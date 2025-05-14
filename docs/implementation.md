@@ -106,6 +106,7 @@ This plan breaks down the development into logical phases, focusing on deliverin
       - _Initial Simpler Approach for Thumbnails:_ Frontend sends a Data URL of the canvas view (`canvas.toDataURL()`) as part of the save payload. Backend saves this as the thumbnail. Update `canvases` table with `thumbnail_url`.
 
 3.  **Frontend - Canvas Editor Page (as per mockup /workspace/docs/screenshots/canvas.png):**
+
     - **Page Component:** `pages/CanvasEditorPage.js`.
     - **Routing:** Takes `:canvasId` from URL parameter. Fetches canvas data using `GET /api/canvases/:canvasId`.
     - **Canvas Library Integration (Fabric.js):**
@@ -145,6 +146,7 @@ This plan breaks down the development into logical phases, focusing on deliverin
       - When canvas changes (Fabric.js `object:modified`, `object:added`, etc. events), trigger a save after a few seconds.
       - Calls `PUT /api/canvases/:id` similar to manual save.
     - **State Management for Canvas:**
+
       - Fabric.js manages its own internal object state.
       - React state for current tool, selected object properties (if building custom property editors), loading/saving status. Zustand or Redux Toolkit could be considered if side panel UIs for object properties become very complex, but try with local/Context first.
 
