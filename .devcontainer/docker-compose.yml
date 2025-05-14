@@ -8,11 +8,6 @@ services:
       POSTGRES_DB: photosharing
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U node -d photosharing"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -29,10 +24,9 @@ services:
       - vscode_extensions:/root/.vscode-server/extensions
       - vscode_extensions_cache:/root/.vscode-server/extensionsCache
     working_dir: /workspace
-    command: sleep infinity
+    tty: true
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
 volumes:
   postgres_data:

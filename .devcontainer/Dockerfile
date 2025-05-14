@@ -13,13 +13,23 @@ RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && echo "$USERNAME:node" | chpasswd
 
-# Note: We don't need to install full PostgreSQL server here
-# because we're using a separate postgres container.
-# The postgres container automatically:
-# 1. Creates the database from POSTGRES_DB
-# 2. Creates the user from POSTGRES_USER
-# 3. Sets the password from POSTGRES_PASSWORD
-# We only need postgresql-client for the pg_isready health check
-
 # Set `DEVCONTAINER` environment variable to help with orientation
 ENV DEVCONTAINER=true
+
+# Create workspace directory and set permissions
+WORKDIR /workspace
+
+# Install global packages that might be needed
+RUN npm install -g nodemon
+
+# Set up environment variables
+ENV VITE_API_URL=http://localhost:3000/api
+ENV DB_USER=node
+ENV DB_HOST=postgres
+ENV DB_NAME=photosharing
+ENV DB_PASSWORD=node
+ENV DB_PORT=5432
+ENV JWT_SECRET=your_secure_jwt_secret_key_here
+ENV PORT=3000
+ENV NODE_ENV=development
+ENV FRONTEND_URL=http://localhost:5173
