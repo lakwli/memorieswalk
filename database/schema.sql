@@ -8,6 +8,11 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create default admin user (password: admin)
+INSERT INTO users (username, password_hash, role) 
+VALUES ('admin', '$2b$10$FxXjmNFv2rqItXgAgRhz0OdBAvfBE1nJxO5GXpS3DAxhT2ePh0oKW', 'admin')
+ON CONFLICT (username) DO NOTHING;
+
 -- Canvases Table
 CREATE TABLE canvases (
     id SERIAL PRIMARY KEY,

@@ -1,0 +1,17 @@
+# Configure npm (run once):
+npm config set registry https://registry.npmjs.org/
+
+# Start Backend (in one terminal):
+cd /workspace/server
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+
+# Start Frontend (in another terminal):
+cd /workspace
+npm install
+npm run frontend:dev
+
+Ports:
+- Backend: http://localhost:3000
+- Frontend: http://localhost:5173

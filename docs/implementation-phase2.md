@@ -1,5 +1,7 @@
 # Phase 2: "My Canvases" Dashboard & Canvas Editor Implementation Details
 
+This document outlines the technical implementation details for Phase 2, focusing on the "My Canvases" Dashboard and the initial setup for the Canvas Editor. It has been updated to reflect the use of **Chakra UI** as the primary UI component library and **React-Konva** for canvas rendering. Visual styling should strictly adhere to the specifications in `docs/screenshots/dashboard/dashboard.png.md` and `docs/screenshots/canvas/canvas.png.md`.
+
 ## 1. Technology Stack & Dependencies
 
 ### Core Libraries
@@ -7,21 +9,27 @@
 ```json
 {
   "dependencies": {
+    "@chakra-ui/react": "^2.8.0", // Or latest stable
+    "@chakra-ui/icons": "^2.1.0", // Or latest stable
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
-    "@mui/material": "^5.13.0",
-    "@mui/icons-material": "^5.11.16",
-    "konva": "^9.0.0",
-    "react-konva": "^18.2.8",
+    "framer-motion": "^10.16.0", // Or latest stable (peer for Chakra UI)
+    "konva": "^9.2.0", // Or latest stable
+    "react-konva": "^18.2.10", // Or latest stable
     "react-dropzone": "^14.2.3",
-    "notistack": "^3.0.1"
+    "react-router-dom": "^6.15.0" // Or latest stable
+    // "react-icons": "^4.10.0" // Optional, for a wider range of icons
   }
 }
 ```
 
+**Note:** `notistack` (for MUI toasts) is replaced by Chakra UI's built-in `useToast` hook.
+
 ## 2. Component Structure
 
 ### A. Directory Layout
+
+The proposed directory layout remains a good guideline:
 
 ```
 src/
@@ -29,221 +37,115 @@ src/
 │   ├── dashboard/
 │   │   ├── CanvasGrid.jsx
 │   │   ├── SearchBar.jsx
-│   │   └── ActionsBar.jsx
+│   │   └── ActionsBar.jsx // Or integrate actions directly into DashboardPage/AppHeader
 │   ├── editor/
 │   │   ├── KonvaCanvas.jsx
-│   │   ├── Toolbar.jsx
+│   │   ├── EditorToolbar.jsx // Renamed for clarity
+│   │   ├── TopNavigationBar.jsx // For editor's top bar
 │   │   └── ShareModal.jsx
 │   └── common/
-│       ├── AppHeader.jsx
+│       ├── AppHeader.jsx // Main app header, potentially used on Dashboard
 │       └── LoadingSpinner.jsx
 ├── pages/
 │   ├── DashboardPage.jsx
 │   └── CanvasEditorPage.jsx
+├── theme/
+│   └── index.js          // Chakra UI theme customization
 ├── context/
-│   └── ThemeContext.jsx
-└── hooks/
-    └── useCanvas.js
+│   └── AuthContext.jsx   // Remains for authentication
+├── hooks/
+│   └── useCanvas.js      // Remains for canvas logic
+├── services/
+│   └── canvasService.js  // Remains for API calls
+└── App.jsx
+└── main.jsx            // ChakraProvider setup here
 ```
 
-### B. Component Implementation Details
+### B. Component Implementation Details (Conceptual - using Chakra UI)
+
+All components will be built using Chakra UI. Styling details (colors, fonts, spacing, dimensions) must be sourced from `docs/screenshots/dashboard/dashboard.png.md` and `docs/screenshots/canvas/canvas.png.md`.
 
 #### 1. Dashboard Components
 
-##### CanvasGrid.jsx
+Refer to `docs/screenshots/dashboard/dashboard.png.md` for all styling.
 
-```jsx
-import { Grid, Card, CardMedia, CardContent, Typography } from "@mui/material";
+##### `AppHeader.jsx` (Common, used on Dashboard)
 
-const CanvasGrid = ({ canvases, onCanvasClick }) => {
-  return (
-    <Grid container spacing={3}>
-      {canvases.map((canvas) => (
-        <Grid item xs={12} sm={6} md={4} key={canvas.id}>
-          <Card
-            onClick={() => onCanvasClick(canvas.id)}
-            sx={{
-              cursor: "pointer",
-              transition: "transform 0.2s",
-              "&:hover": { transform: "scale(1.02)" },
-            }}
-          >
-            <CardMedia
-              component="img"
-              height="140"
-              image={canvas.thumbnail_url}
-              alt={canvas.title}
-            />
-            <CardContent>
-              <Typography variant="h6">{canvas.title}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Last edited: {new Date(canvas.updated_at).toLocaleDateString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-```
+- Uses Chakra `Flex`, `Heading` (for "My Canvas" title, bold 24px), `Avatar` (40x40px, initials).
+- May include a `ThemeToggle` component if dark mode is implemented.
 
-##### SearchBar.jsx
+##### `SearchBar.jsx` (`src/components/dashboard/`)
 
-```jsx
-import { Paper, InputBase, IconButton } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+- Uses Chakra `InputGroup`, `InputLeftElement` (with `SearchIcon` from `@chakra-ui/icons`), `Input`.
+- Styles: Placeholder "Search photos, albums or places...", background `#F0F2F5`, rounded corners (4px).
 
-const SearchBar = ({ onSearch }) => {
-  return (
-    <Paper
-      component="form"
-      sx={{ p: "2px 4px", display: "flex", alignItems: "center", width: 400 }}
-    >
-      <InputBase
-        sx={{ ml: 1, flex: 1 }}
-        placeholder="Search canvases..."
-        onChange={(e) => onSearch(e.target.value)}
-      />
-      <IconButton type="button" sx={{ p: "10px" }}>
-        <SearchIcon />
-      </IconButton>
-    </Paper>
-  );
-};
-```
+##### `ActionsBar.jsx` or integrated into `DashboardPage.jsx`
 
-#### 2. Canvas Editor Components
+- **Create Canvas Button:** Chakra `Button`. Full width, height ~48px, background `#3578E5` (primary blue), white text (16px), rounded corners (4px).
+- **Delete Canvas Button (if applicable here):** Chakra `Button`, styled as per mockups if a global delete is present on the dashboard.
 
-##### KonvaCanvas.jsx
+##### `CanvasGrid.jsx` (`src/components/dashboard/`)
 
-```jsx
-import { Stage, Layer, Image, Text, Line } from "react-konva";
-import { useEffect, useRef } from "react";
+- Uses Chakra `Heading` for "Recent Canvas" (bold 18px) and `Link` for "View All".
+- Uses Chakra `SimpleGrid` (columns={2}) or `Grid` to achieve the 2-column layout.
+- Each canvas card: Chakra `Box` styled as a square (100x100px), light pastel background, rounded corners (8px).
+- Displays canvas title (e.g., "Travel 2024" bold 14px dark gray) using Chakra `Text`.
+- Thumbnail can be an `Image` component or a styled `Box` with background.
 
-const KonvaCanvas = ({ width, height, objects, onObjectsChange, tool }) => {
-  const stageRef = useRef(null);
+#### 2. Canvas Editor Components (Initial Setup)
 
-  useEffect(() => {
-    // Load saved canvas state
-    if (objects) {
-      // Implementation of loading objects
-    }
-  }, [objects]);
+Refer to `docs/screenshots/canvas/canvas.png.md` for all styling.
 
-  const handleDragEnd = (e) => {
-    const id = e.target.id();
-    const newObjects = objects.map((obj) =>
-      obj.id === id ? { ...obj, x: e.target.x(), y: e.target.y() } : obj
-    );
-    onObjectsChange(newObjects);
-  };
+##### `TopNavigationBar.jsx` (`src/components/editor/`)
 
-  return (
-    <Stage
-      width={width}
-      height={height}
-      ref={stageRef}
-      style={{ background: "white" }}
-    >
-      <Layer>
-        {objects.map((obj) => {
-          switch (obj.type) {
-            case "image":
-              return (
-                <Image
-                  key={obj.id}
-                  id={obj.id}
-                  {...obj}
-                  draggable
-                  onDragEnd={handleDragEnd}
-                />
-              );
-            case "text":
-              return (
-                <Text
-                  key={obj.id}
-                  id={obj.id}
-                  {...obj}
-                  draggable
-                  onDragEnd={handleDragEnd}
-                />
-              );
-            case "drawing":
-              return (
-                <Line
-                  key={obj.id}
-                  id={obj.id}
-                  {...obj}
-                  draggable
-                  onDragEnd={handleDragEnd}
-                />
-              );
-            default:
-              return null;
-          }
-        })}
-      </Layer>
-    </Stage>
-  );
-};
-```
+- Uses Chakra `Flex` (height ~56px, background `#F7F9FA`).
+- Contains:
+  - `IconButton` (with `ArrowBackIcon`) for back navigation.
+  - `Box` with `Heading` (canvas title, e.g., "Travel 2024", bold 20px) and `Text` (subtitle, e.g., "My Creative Space", 14px, color `#6B6B6B`).
+  - `HStack` for action buttons:
+    - "Save" `Button`: background `#3578E5`, white text.
+    - "Share" `Button`: white background, `#3578E5` border and text.
 
-##### Toolbar.jsx
+##### `EditorToolbar.jsx` (`src/components/editor/`)
 
-```jsx
-import { Paper, ToggleButtonGroup, ToggleButton } from "@mui/material";
-import {
-  Upload as UploadIcon,
-  TextFields as TextIcon,
-  Brush as BrushIcon,
-  Rotate90DegreesCcw as RotateIcon,
-  Layers as LayersIcon,
-} from "@mui/icons-material";
+- Uses Chakra `Flex` (fixed bottom, translucent white background, height ~64px).
+- Contains five equally spaced tool buttons. Each tool:
+  - Chakra `Box` or `VStack` for icon and label.
+  - `IconButton` or `Button` with a monochrome outline icon (24x24px, consider `react-icons` or custom SVGs).
+  - `Text` for label below icon (12px, color `#4B4B4B`).
+  - Active tool state: blue icon and/or underline.
 
-const Toolbar = ({ activeTool, onToolChange }) => {
-  return (
-    <Paper sx={{ position: "fixed", bottom: 0, width: "100%", p: 2 }}>
-      <ToggleButtonGroup
-        value={activeTool}
-        exclusive
-        onChange={onToolChange}
-        aria-label="canvas tools"
-      >
-        <ToggleButton value="upload" aria-label="upload photo">
-          <UploadIcon /> Upload
-        </ToggleButton>
-        <ToggleButton value="text" aria-label="add text">
-          <TextIcon /> Text
-        </ToggleButton>
-        <ToggleButton value="draw" aria-label="draw">
-          <BrushIcon /> Draw
-        </ToggleButton>
-        <ToggleButton value="rotate" aria-label="rotate">
-          <RotateIcon /> Rotate
-        </ToggleButton>
-        <ToggleButton value="layers" aria-label="manage layers">
-          <LayersIcon /> Layers
-        </ToggleButton>
-      </ToggleButtonGroup>
-    </Paper>
-  );
-};
-```
+##### `KonvaCanvas.jsx` (`src/components/editor/`)
 
-### UI COmponents
+- The core `react-konva` (`Stage`, `Layer`, `Image`, `Text`, `Line`) implementation remains similar to the original plan.
+- It will be embedded within the main content area of `CanvasEditorPage.jsx`.
+- The `width` and `height` props will be managed by `CanvasEditorPage.jsx` to fit the available space.
+- Background should be white as per `docs/screenshots/canvas/canvas.png.md:24`.
 
-Core Technologies
-For this photo sharing app with canvas editing capabilities, I recommend:
+##### `ShareModal.jsx` (`src/components/editor/`)
 
-React + Vite as the base framework
-React-Konva for the canvas editor
-Chakra UI for the UI components (buttons, navigation, modals)
-React Router for navigation between screens
+- Uses Chakra `Modal`, `ModalOverlay`, `ModalContent`, `ModalHeader`, `ModalBody`, `ModalFooter`, `Input`, `Button`.
+- Styled according to general app theme and modal best practices.
+
+#### 3. Page Components
+
+##### `DashboardPage.jsx` (`src/pages/`)
+
+- Main layout: Centered `Box` with fixed width (e.g., 360px) as per `docs/screenshots/dashboard/dashboard.png.md:5`.
+- Composes `AppHeader`, `SearchBar`, "Create Canvas" `Button`, and `CanvasGrid`.
+- Handles fetching canvas list via `canvasService` and manages related state.
+
+##### `CanvasEditorPage.jsx` (`src/pages/`)
+
+- Composes `TopNavigationBar`, the main canvas area (containing `KonvaCanvas`), and `EditorToolbar`.
+- Manages overall editor state: canvas data, selected tool, etc.
+- Handles API calls for fetching/saving canvas data via `canvasService`.
 
 ### C. Custom Hooks
 
-#### useCanvas.js
+#### `useCanvas.js` (`src/hooks/`)
+
+The existing `useCanvas.js` structure for managing `objects`, `selectedId`, and `tool`, along with functions like `addObject`, `updateObject`, `deleteObject`, `moveToLayer`, is largely UI-agnostic and can be retained.
 
 ```javascript
 import { useState, useCallback } from "react";
@@ -251,7 +153,7 @@ import { useState, useCallback } from "react";
 export const useCanvas = (initialObjects = []) => {
   const [objects, setObjects] = useState(initialObjects);
   const [selectedId, setSelectedId] = useState(null);
-  const [tool, setTool] = useState("select");
+  const [tool, setTool] = useState("select"); // e.g., 'select', 'draw', 'text'
 
   const addObject = useCallback((object) => {
     setObjects((prev) => [...prev, { ...object, id: Date.now().toString() }]);
@@ -268,6 +170,7 @@ export const useCanvas = (initialObjects = []) => {
   }, []);
 
   const moveToLayer = useCallback((id, direction) => {
+    // ... (implementation for reordering objects)
     setObjects((prev) => {
       const index = prev.findIndex((obj) => obj.id === id);
       if (index === -1) return prev;
@@ -275,12 +178,15 @@ export const useCanvas = (initialObjects = []) => {
       const newObjects = [...prev];
       const [movedObj] = newObjects.splice(index, 1);
 
-      if (direction === "forward") {
+      if (direction === "forward" && index < newObjects.length) {
         newObjects.splice(index + 1, 0, movedObj);
-      } else if (direction === "backward") {
-        newObjects.splice(Math.max(0, index - 1), 0, movedObj);
+      } else if (direction === "backward" && index > 0) {
+        newObjects.splice(index - 1, 0, movedObj);
+      } else if (direction === "toFront") {
+        newObjects.push(movedObj);
+      } else if (direction === "toBack") {
+        newObjects.unshift(movedObj);
       }
-
       return newObjects;
     });
   }, []);
@@ -295,40 +201,81 @@ export const useCanvas = (initialObjects = []) => {
     moveToLayer,
     setSelectedId,
     setTool,
+    setObjects, // Expose setObjects for loading data
   };
 };
 ```
 
 ## 3. API Integration
 
-### canvasService.js
+### `canvasService.js` (`src/services/`)
+
+This service remains structurally the same for backend communication.
 
 ```javascript
+// src/services/canvasService.js
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
 class CanvasService {
   async getCanvases() {
-    const response = await fetch("/api/canvases");
+    // TODO: Add authentication headers
+    const response = await fetch(`${API_BASE_URL}/canvases`);
     if (!response.ok) throw new Error("Failed to fetch canvases");
     return response.json();
   }
 
-  async saveCanvas(id, canvasData) {
-    const response = await fetch(`/api/canvases/${id}`, {
+  async getCanvasById(id) {
+    // TODO: Add authentication headers
+    const response = await fetch(`${API_BASE_URL}/canvases/${id}`);
+    if (!response.ok) throw new Error(`Failed to fetch canvas ${id}`);
+    return response.json();
+  }
+
+  async createCanvas(title) {
+    // TODO: Add authentication headers
+    const response = await fetch(`${API_BASE_URL}/canvases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (!response.ok) throw new Error("Failed to create canvas");
+    return response.json();
+  }
+
+  async saveCanvas(id, canvasData, title, thumbnailUrl) {
+    // TODO: Add authentication headers
+    const payload = { canvas_data: canvasData };
+    if (title) payload.title = title;
+    if (thumbnailUrl) payload.thumbnail_url = thumbnailUrl; // Or handle thumbnail on backend
+
+    const response = await fetch(`${API_BASE_URL}/canvases/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        canvas_data: canvasData,
-        thumbnail_url: await this.generateThumbnail(canvasData),
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
     if (!response.ok) throw new Error("Failed to save canvas");
     return response.json();
   }
 
-  async generateThumbnail(canvasData) {
-    // Implementation of thumbnail generation
-    // This could be done via canvas.toDataURL() or a dedicated backend endpoint
+  async deleteCanvas(id) {
+    // TODO: Add authentication headers
+    const response = await fetch(`${API_BASE_URL}/canvases/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error("Failed to delete canvas");
+    return response.json(); // Or handle no content
+  }
+
+  // Thumbnail generation might be client-side (using canvas.toDataURL())
+  // or server-side. For now, assume client sends it or backend generates it.
+  async generateThumbnailFromKonvaStage(stage) {
+    if (!stage) return null;
+    // Ensure quality and desired format, e.g., image/jpeg for smaller size
+    return stage.toDataURL({
+      mimeType: "image/jpeg",
+      quality: 0.8,
+      pixelRatio: 0.5,
+    });
   }
 }
 
@@ -337,618 +284,389 @@ export const canvasService = new CanvasService();
 
 ## 4. State Management
 
-### A. Canvas State Structure
+### A. Canvas State Structure (Konva Objects)
+
+The `CanvasObject` interface for Konva items remains relevant.
 
 ```typescript
 interface CanvasObject {
   id: string;
-  type: "image" | "text" | "drawing";
+  type: "image" | "text" | "rect" | "freehand"; // Add more types as needed
   x: number;
   y: number;
   width?: number;
   height?: number;
   rotation?: number;
+  fill?: string; // For shapes
+  stroke?: string; // For shapes/lines
+  strokeWidth?: number; // For shapes/lines
   // Type-specific properties
-  text?: string;
-  fontSize?: number;
-  points?: number[]; // For drawings
-  imageUrl?: string; // For images
+  text?: string; // For text
+  fontSize?: number; // For text
+  fontFamily?: string; // For text
+  points?: number[]; // For freehand drawings/lines
+  src?: string; // For images (URL or data URL)
+  konvaImage?: HTMLImageElement; // Preloaded image for Konva
+  // Add other Konva properties as needed
 }
 
-interface CanvasState {
+interface CanvasData {
+  // Represents the content saved to backend
   objects: CanvasObject[];
-  selectedId: string | null;
-  tool: "select" | "upload" | "text" | "draw" | "rotate" | "layers";
+  // Potentially viewport info if zoom/pan is saved
+  // width?: number; // Original canvas dimensions if different from viewport
+  // height?: number;
+}
+
+interface EditorState {
+  // Overall state for the editor page
+  currentCanvasId: string | null;
+  canvasTitle: string;
+  canvasSubtitle?: string; // As per canvas.png.md
+  objects: CanvasObject[];
+  selectedObjectId: string | null;
+  activeTool: string; // e.g., 'select', 'text', 'draw', 'upload'
+  isLoading: boolean;
+  error: string | null;
+  // Zoom/pan state if implemented
+  // scale?: number;
+  // position?: { x: number; y: number };
 }
 ```
 
 ### B. Auto-save Implementation
 
-```javascript
-const useAutoSave = (canvasId, objects) => {
-  useEffect(() => {
-    const saveTimeout = setTimeout(() => {
-      if (objects.length > 0) {
-        canvasService.saveCanvas(canvasId, objects).catch(console.error);
-      }
-    }, 3000); // Auto-save after 3 seconds of no changes
+The `useAutoSave` hook logic is still applicable. It would call `canvasService.saveCanvas`.
 
-    return () => clearTimeout(saveTimeout);
-  }, [canvasId, objects]);
+```javascript
+// src/hooks/useAutoSave.js
+import { useEffect, useRef } from "react";
+import { canvasService } from "../services/canvasService"; // Adjust path
+
+const useAutoSave = (canvasId, objects, title, konvaStageRef) => {
+  const debouncedSave = useRef(null);
+
+  useEffect(() => {
+    if (debouncedSave.current) {
+      clearTimeout(debouncedSave.current);
+    }
+
+    debouncedSave.current = setTimeout(async () => {
+      if (canvasId && objects && objects.length > 0 && konvaStageRef.current) {
+        try {
+          // Generate thumbnail before saving
+          const thumbnailUrl =
+            await canvasService.generateThumbnailFromKonvaStage(
+              konvaStageRef.current
+            );
+          await canvasService.saveCanvas(
+            canvasId,
+            { objects },
+            title,
+            thumbnailUrl
+          );
+          // Optionally show a success toast (non-intrusively)
+          console.log("Auto-saved canvas:", canvasId);
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+          // Optionally show an error toast
+        }
+      }
+    }, 3000); // Auto-save after 3 seconds of inactivity/changes
+
+    return () => {
+      if (debouncedSave.current) {
+        clearTimeout(debouncedSave.current);
+      }
+    };
+  }, [canvasId, objects, title, konvaStageRef]);
 };
+
+export default useAutoSave;
 ```
 
-## 5. Error Handling & Loading States
+## 5. Error Handling & Loading States (Chakra UI)
 
 ### A. Loading States
 
+Use Chakra UI's `Spinner` or `Skeleton` components.
+
 ```jsx
-const LoadingSpinner = () => (
+// src/components/common/LoadingSpinner.jsx
+import { Box, Spinner } from "@chakra-ui/react";
+
+const LoadingSpinner = ({
+  size = "xl",
+  thickness = "4px",
+  speed = "0.65s",
+  color = "blue.500",
+}) => (
   <Box
     display="flex"
     justifyContent="center"
     alignItems="center"
     minHeight="200px"
   >
-    <CircularProgress />
+    <Spinner
+      size={size}
+      thickness={thickness}
+      speed={speed}
+      color={color}
+      emptyColor="gray.200"
+    />
   </Box>
 );
+
+// Example Skeleton for Canvas Cards
+// import { Skeleton, SkeletonText, SimpleGrid, Box } from "@chakra-ui/react";
+// const CanvasGridSkeleton = () => (
+//   <SimpleGrid columns={2} spacing="16px"> {/* As per dashboard.png.md */}
+//     {[...Array(6)].map((_, i) => (
+//       <Box key={i} borderWidth="1px" borderRadius="lg" overflow="hidden" p={4}
+//            height="100px" width="100px"> {/* As per dashboard.png.md */}
+//         <Skeleton height="60px" />
+//         <SkeletonText mt="3" noOfLines={1} spacing="3" />
+//       </Box>
+//     ))}
+//   </SimpleGrid>
+// );
 ```
 
-### B. Error Boundary
+### B. Error Notifications
 
-```jsx
-class CanvasErrorBoundary extends React.Component {
-  state = { hasError: false };
+Use Chakra UI's `useToast` hook for displaying error messages.
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <Box textAlign="center" p={4}>
-          <Typography variant="h6" color="error">
-            Something went wrong with the canvas editor.
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => window.location.reload()}
-            sx={{ mt: 2 }}
-          >
-            Reload Page
-          </Button>
-        </Box>
-      );
-    }
-
-    return this.props.children;
-  }
-}
+```javascript
+// Example usage in a component
+// import { useToast } from "@chakra-ui/react";
+// const toast = useToast();
+// toast({
+//   title: "An error occurred.",
+//   description: "Unable to save canvas.",
+//   status: "error",
+//   duration: 5000,
+//   isClosable: true,
+// });
 ```
+
+An `ErrorBoundary` component can still be used for catching rendering errors, using Chakra components for its UI.
 
 ## 6. Testing Strategy
 
-### A. Unit Tests
-
-Example test for KonvaCanvas component:
-
-```javascript
-import { render, fireEvent } from "@testing-library/react";
-import KonvaCanvas from "./KonvaCanvas";
-
-describe("KonvaCanvas", () => {
-  it("renders canvas objects correctly", () => {
-    const objects = [{ id: "1", type: "text", text: "Test", x: 100, y: 100 }];
-    const { container } = render(
-      <KonvaCanvas objects={objects} width={800} height={600} />
-    );
-    expect(container.querySelector("canvas")).toBeInTheDocument();
-  });
-
-  // Add more tests for object manipulation, tool interactions, etc.
-});
-```
-
-### B. Integration Tests
-
-Focus on testing:
-
-- Canvas state management
-- Auto-save functionality
-- Tool interactions
-- API integration
-- Error handling
+The general testing strategy (unit tests for components/hooks, integration tests for user flows) remains valid. Tests for Chakra UI components would use `@testing-library/react`.
 
 ## 7. Performance Optimizations
 
-### A. React-Konva Optimizations
+- **React-Konva:** Caching shapes (`shape.cache()`), using `Konva.FastLayer` if appropriate, virtualizing large numbers of objects.
+- **React:** `React.memo`, `useCallback`, `useMemo` where applicable.
+- **Chakra UI:** Generally performant. Avoid excessive re-renders of large component trees.
+
+## 8. Accessibility Considerations (Chakra UI)
+
+Chakra UI components are built with accessibility in mind (ARIA attributes, keyboard navigation).
+
+- Ensure all interactive elements (`Button`, `IconButton`, `Link`, form inputs) have accessible names (e.g., `aria-label` for `IconButton`).
+- Manage focus appropriately, especially in modals and interactive canvas elements.
 
 ```jsx
-// Use transformer for resizing/rotating
-const Transformer = ({ selectedId }) => {
-  const transformerRef = useRef();
-  const selectedRef = useRef();
-
-  useEffect(() => {
-    if (selectedId) {
-      transformerRef.current.nodes([selectedRef.current]);
-      transformerRef.current.getLayer().batchDraw();
-    }
-  }, [selectedId]);
-
-  return <Konva.Transformer ref={transformerRef} />;
-};
-
-// Implement object caching
-const CachedImage = ({ src, ...props }) => {
-  const imageRef = useRef();
-
-  useEffect(() => {
-    if (imageRef.current) {
-      imageRef.current.cache();
-    }
-  }, [src]);
-
-  return <Image ref={imageRef} src={src} {...props} />;
-};
+// Example of accessible IconButton for Toolbar
+// import { IconButton, Text, VStack } from "@chakra-ui/react";
+// import { SomeIcon } from "react-icons/fi"; // Example icon
+//
+// const ToolbarButton = ({ label, icon, isActive, ...props }) => (
+//   <VStack spacing={1}>
+//     <IconButton
+//       aria-label={label}
+//       icon={icon}
+//       variant="ghost"
+//       colorScheme={isActive ? "blue" : "gray"} // Style for active tool
+//       borderBottom={isActive ? "2px solid" : "none"}
+//       borderColor={isActive ? "blue.500" : "transparent"}
+//       {...props}
+//     />
+//     <Text fontSize="xs" color={isActive ? "blue.500" : "gray.600"}>{label}</Text>
+//   </VStack>
+// );
 ```
 
-### B. Rendering Optimizations
+## 9. Theme System (Chakra UI)
 
-- Use `React.memo` for pure components
-- Implement virtualization for large canvases
-- Batch updates for multiple object changes
+Chakra UI has a robust theming system. Customize it in `src/theme/index.js`.
+Refer to `docs/screenshots/dashboard/dashboard.png.md` and `docs/screenshots/canvas/canvas.png.md` for color palettes, fonts, etc.
 
-## 8. Accessibility Considerations
-
-### A. ARIA Labels
-
-```jsx
-// Example of accessible toolbar button
-const ToolbarButton = ({ icon, label, onClick }) => (
-  <IconButton onClick={onClick} aria-label={label} role="button" tabIndex={0}>
-    {icon}
-  </IconButton>
-);
-```
-
-### B. Keyboard Navigation
-
-```jsx
-const KeyboardHandler = ({ onDelete, onCopy, onPaste }) => {
-  useEffect(() => {
-    const handleKeyboard = (e) => {
-      if (e.key === "Delete") onDelete();
-      if (e.ctrlKey && e.key === "c") onCopy();
-      if (e.ctrlKey && e.key === "v") onPaste();
-    };
-
-    window.addEventListener("keydown", handleKeyboard);
-    return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [onDelete, onCopy, onPaste]);
-
-  return null;
-};
-```
-
-## 9. Theme System
-
-### A. Base Color Palette
+### A. Theme File (`src/theme/index.js`)
 
 ```javascript
-const baseColors = {
-  primary: {
-    main: "#2196F3", // Bright blue, good for main actions
-    light: "#64B5F6", // Lighter blue for hover states
-    dark: "#1976D2", // Darker blue for active states
-    contrastText: "#fff", // White text on primary colors
-  },
-  secondary: {
-    main: "#FF4081", // Pink accent for secondary actions
-    light: "#FF80AB",
-    dark: "#F50057",
-    contrastText: "#fff",
-  },
-  success: {
-    main: "#4CAF50", // Green for success states
-    light: "#81C784",
-    dark: "#388E3C",
-  },
-  error: {
-    main: "#F44336", // Red for error states
-    light: "#E57373",
-    dark: "#D32F2F",
-  },
-};
-```
+// src/theme/index.js
+import { extendTheme } from "@chakra-ui/react";
 
-### B. Theme Modes
-
-```javascript
-// Light Theme
-const lightTheme = {
-  palette: {
-    mode: "light",
-    background: {
-      default: "#F5F5F5", // Light gray background
-      paper: "#FFFFFF", // White surface
-      canvas: "#FFFFFF", // White canvas background
-    },
-    text: {
-      primary: "rgba(0, 0, 0, 0.87)",
-      secondary: "rgba(0, 0, 0, 0.6)",
-      disabled: "rgba(0, 0, 0, 0.38)",
-    },
-    divider: "rgba(0, 0, 0, 0.12)",
-    ...baseColors,
+// 1. Define Color Palette (as per .png.md files)
+const colors = {
+  brand: {
+    primary: "#3578E5", // Primary Blue
+    // Add other shades if needed: 50, 100, ..., 900
   },
+  backgrounds: {
+    header: "#F7F9FA", // Canvas Editor Top Nav
+    canvasArea: "#FFFFFF",
+    dashboardSearch: "#F0F2F5",
+    // ... other specific background colors
+  },
+  textColors: {
+    primary: "#000000", // Default text
+    secondary: "#6B6B6B", // Subtitles, secondary info
+    labels: "#4B4B4B", // Toolbar labels
+    // ... other specific text colors
+  },
+  // Accent pastels for thumbnails/placeholders (can be an array or object)
+  accentPastels: ["#E8F4FF", "#FFF1E6", "#F6F9EB" /* ... */],
 };
 
-// Dark Theme
-const darkTheme = {
-  palette: {
-    mode: "dark",
-    background: {
-      default: "#121212", // Material dark background
-      paper: "#1E1E1E", // Slightly lighter surface
-      canvas: "#262626", // Dark but distinguishable canvas
-    },
-    text: {
-      primary: "rgba(255, 255, 255, 0.87)",
-      secondary: "rgba(255, 255, 255, 0.6)",
-      disabled: "rgba(255, 255, 255, 0.38)",
-    },
-    divider: "rgba(255, 255, 255, 0.12)",
-    ...baseColors,
-  },
+// 2. Define Typography (as per .png.md files)
+const fonts = {
+  heading: "'Inter', sans-serif", // Example, ensure font is loaded
+  body: "'Roboto', sans-serif", // Example, ensure font is loaded
 };
-```
 
-### C. Component-Specific Theming
+const fontSizes = {
+  // Define specific font sizes from .png.md
+  // e.g., for Dashboard title, Canvas Editor title, subtitles, labels
+};
 
-```javascript
+const fontWeights = {
+  // Define specific font weights
+};
+
+// 3. Component Style Overrides (Optional, for consistent styling)
 const components = {
-  MuiCard: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        backgroundColor: theme.palette.background.paper,
-        transition: "transform 0.2s, box-shadow 0.2s",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: theme.shadows[4],
-        },
-      }),
+  Button: {
+    baseStyle: {
+      borderRadius: "4px", // Default for most buttons as per .png.md
+      // fontWeight: "medium", // Example
     },
-  },
-  MuiAppBar: {
-    styleOverrides: {
-      root: {
-        backgroundColor: "transparent",
-        backdropFilter: "blur(8px)",
-        borderBottom: "1px solid",
-        borderColor: "divider",
+    variants: {
+      primaryBlue: {
+        // Custom variant for the main blue button
+        bg: "brand.primary",
+        color: "white",
+        _hover: { bg: "blue.600" }, // Darken on hover
+      },
+      outlineBlue: {
+        // Custom variant for share button
+        border: "1px solid",
+        borderColor: "brand.primary",
+        color: "brand.primary",
+        bg: "white",
       },
     },
   },
-  MuiButton: {
-    styleOverrides: {
-      root: {
-        borderRadius: 8,
-        textTransform: "none",
-        fontWeight: 500,
-      },
-    },
+  // ... other component overrides (Input, Card/Box for canvas items, etc.)
+};
+
+// 4. Global Styles (Optional)
+const styles = {
+  global: {
+    // 'html, body': {
+    //   fontFamily: fonts.body,
+    // },
+    // a: {
+    //   color: 'brand.primary',
+    // },
   },
 };
+
+// 5. Create the theme
+const theme = extendTheme({
+  colors,
+  fonts,
+  fontSizes,
+  fontWeights,
+  components,
+  styles,
+  // config: {
+  //   initialColorMode: "light", // If dark mode is not a V1 requirement
+  //   useSystemColorMode: false,
+  // }
+});
+
+export default theme;
 ```
 
-### D. Typography
-
-```javascript
-const typography = {
-  fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-  h1: {
-    fontSize: "2.5rem",
-    fontWeight: 600,
-  },
-  h2: {
-    fontSize: "2rem",
-    fontWeight: 600,
-  },
-  h3: {
-    fontSize: "1.75rem",
-    fontWeight: 600,
-  },
-  body1: {
-    fontSize: "1rem",
-    lineHeight: 1.5,
-  },
-  button: {
-    textTransform: "none",
-    fontWeight: 500,
-  },
-};
-```
-
-### E. Theme Provider Implementation
+### B. Theme Provider Setup (`src/main.jsx`)
 
 ```jsx
-// src/context/ThemeContext.jsx
-import { createContext, useContext, useState, useMemo } from "react";
-import { createTheme, ThemeProvider as MuiThemeProvider } from "@mui/material";
+// src/main.jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { ChakraProvider } from "@chakra-ui/react";
+import { BrowserRouter } from "react-router-dom";
+import theme from "./theme"; // Your custom theme
+// import './index.css'; // If you have global non-Chakra CSS
 
-export const ThemeContext = createContext();
-
-export const ThemeProvider = ({ children }) => {
-  const [mode, setMode] = useState("light");
-
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: mode === "light" ? lightTheme.palette : darkTheme.palette,
-        typography,
-        components,
-        shape: {
-          borderRadius: 8,
-        },
-        shadows: [
-          "none",
-          "0px 2px 4px rgba(0,0,0,0.1)",
-          // ... custom shadows
-        ],
-      }),
-    [mode]
-  );
-
-  return (
-    <ThemeContext.Provider value={{ mode, setMode }}>
-      <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>
-    </ThemeContext.Provider>
-  );
-};
-```
-
-### F. Theme Toggle Component
-
-```jsx
-const ThemeToggle = () => {
-  const { mode, setMode } = useContext(ThemeContext);
-
-  return (
-    <IconButton
-      onClick={() => setMode(mode === "light" ? "dark" : "light")}
-      color="inherit"
-      aria-label="toggle theme"
-    >
-      {mode === "light" ? <DarkModeIcon /> : <LightModeIcon />}
-    </IconButton>
-  );
-};
-```
-
-### G. Canvas Theme Integration
-
-```javascript
-// Custom hook for canvas theme
-const useCanvasTheme = () => {
-  const theme = useTheme();
-
-  return {
-    background: theme.palette.background.canvas,
-    gridColor:
-      theme.palette.mode === "light"
-        ? "rgba(0, 0, 0, 0.1)"
-        : "rgba(255, 255, 255, 0.1)",
-    objectBorder:
-      theme.palette.mode === "light"
-        ? "rgba(0, 0, 0, 0.2)"
-        : "rgba(255, 255, 255, 0.2)",
-    selectionColor: theme.palette.primary.main,
-  };
-};
-```
-
-## 10. Additional UI/UX Patterns
-
-### A. Empty States & First-Time User Experience
-
-```jsx
-const EmptyState = () => (
-  <Box textAlign="center" py={8}>
-    <img src="/empty-state.svg" alt="No canvases yet" />
-    <Typography variant="h5" mt={2}>
-      Create your first canvas
-    </Typography>
-    <Typography variant="body1" color="text.secondary" mb={3}>
-      Start by clicking the "Create Canvas" button above
-    </Typography>
-    <Button variant="contained" startIcon={<AddIcon />}>
-      Create Canvas
-    </Button>
-  </Box>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <ChakraProvider theme={theme}>
+        {/* <ColorModeScript initialColorMode={theme.config.initialColorMode} /> */}
+        <App />
+      </ChakraProvider>
+    </BrowserRouter>
+  </React.StrictMode>
 );
 ```
+
+## 10. Additional UI/UX Patterns (Chakra UI Examples)
+
+Adapt patterns using Chakra UI components and styling from `.png.md` files.
+
+### A. Empty States
+
+Use Chakra `Box`, `Image` (for SVG/PNG), `Heading`, `Text`, `Button`.
 
 ### B. Navigation & Information Architecture
 
-```jsx
-// Breadcrumb Navigation
-const Breadcrumbs = () => (
-  <MuiBreadcrumbs>
-    <Link href="/dashboard">My Canvases</Link>
-    <Typography color="text.primary">{currentCanvas.title}</Typography>
-  </MuiBreadcrumbs>
-);
-
-// App Header with User Context
-const AppHeader = () => (
-  <AppBar position="sticky">
-    <Toolbar>
-      <Typography variant="h6" sx={{ flexGrow: 1 }}>
-        My Canvases
-      </Typography>
-      <UserMenu />
-      <ThemeToggle />
-    </Toolbar>
-  </AppBar>
-);
-```
+- **Breadcrumbs:** Use Chakra `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbLink`.
+- **App Header:** As described in Dashboard components.
 
 ### C. Loading States & Feedback
 
-```jsx
-// Skeleton Loader for Canvas Grid
-const CanvasGridSkeleton = () => (
-  <Grid container spacing={3}>
-    {[1, 2, 3].map((i) => (
-      <Grid item xs={12} sm={6} md={4} key={i}>
-        <Skeleton variant="rectangular" height={140} />
-        <Skeleton variant="text" sx={{ mt: 1 }} />
-      </Grid>
-    ))}
-  </Grid>
-);
+- **Skeleton Loaders:** Chakra `Skeleton`, `SkeletonText`.
+- **Toast Notifications:** Chakra `useToast` hook.
 
-// Toast Notifications
-const useToast = () => {
-  const { enqueueSnackbar } = useSnackbar();
+### D. Responsive Design
 
-  return {
-    success: (message) => enqueueSnackbar(message, { variant: "success" }),
-    error: (message) => enqueueSnackbar(message, { variant: "error" }),
-    info: (message) => enqueueSnackbar(message, { variant: "info" }),
-  };
-};
-```
-
-### D. Progressive Disclosure
-
-```jsx
-// Action Hierarchy
-const ActionButtons = () => (
-  <Stack direction="row" spacing={2}>
-    <Button variant="contained" startIcon={<AddIcon />} sx={{ minWidth: 140 }}>
-      Create Canvas
-    </Button>
-    <Button
-      variant="outlined"
-      startIcon={<DeleteIcon />}
-      sx={{ minWidth: 140 }}
-    >
-      Delete
-    </Button>
-  </Stack>
-);
-```
-
-### E. Responsive Design Patterns
-
-```jsx
-// Responsive Grid
-const useResponsiveGrid = () => ({
-  spacing: { xs: 2, sm: 3 },
-  columns: { xs: 1, sm: 2, md: 3, lg: 4 },
-  itemHeight: { xs: 180, sm: 200, md: 220 },
-});
-
-// Responsive Toolbar
-const ResponsiveToolbar = () => {
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  return (
-    <Toolbar
-      sx={{
-        flexDirection: isMobile ? "column" : "row",
-        gap: isMobile ? 1 : 2,
-        p: isMobile ? 1 : 2,
-      }}
-    >
-      {/* Toolbar content */}
-    </Toolbar>
-  );
-};
-```
-
-### F. Enhanced Accessibility
-
-```jsx
-// Focus Management
-const useFocusManagement = () => {
-  const focusRef = useRef(null);
-  useEffect(() => {
-    if (focusRef.current) {
-      focusRef.current.focus();
-    }
-  }, []);
-  return focusRef;
-};
-
-// Screen Reader Announcements
-const useAnnounce = () => {
-  const announce = (message) => {
-    const element = document.createElement("div");
-    element.setAttribute("aria-live", "polite");
-    element.textContent = message;
-    document.body.appendChild(element);
-    setTimeout(() => document.body.removeChild(element), 1000);
-  };
-  return announce;
-};
-
-// Enhanced Tooltips
-const ToolbarTooltip = ({ title, children }) => (
-  <Tooltip title={title} placement="top" enterDelay={500} arrow>
-    {children}
-  </Tooltip>
-);
-```
-
-### G. Performance Patterns
-
-```jsx
-// Lazy Loading Grid
-const LazyCanvasGrid = () => {
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 12 });
-  const observerRef = useInfiniteScroll(loadMore);
-
-  return (
-    <div ref={observerRef}>
-      <Grid container spacing={3}>
-        {canvases.slice(visibleRange.start, visibleRange.end).map((canvas) => (
-          <CanvasCard key={canvas.id} canvas={canvas} />
-        ))}
-      </Grid>
-    </div>
-  );
-};
-
-// Selection Feedback
-const useSelectionFeedback = () => {
-  return {
-    strokeWidth: 2,
-    stroke: theme.palette.primary.main,
-    dash: [4, 4],
-    cornerRadius: 5,
-    borderRadius: 0,
-    padding: 10,
-  };
-};
-```
+Chakra UI uses responsive array/object syntax for props (e.g., `width={{ base: '100%', md: '50%' }}`).
 
 ## 11. Deployment Considerations
 
-### A. Build Configuration
+### A. Build Configuration (`vite.config.js`)
+
+If using manual chunks, update for Chakra UI:
 
 ```javascript
 // vite.config.js
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
 export default defineConfig({
+  plugins: [react()],
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          konva: ["konva", "react-konva"],
-          mui: ["@mui/material", "@mui/icons-material"],
+        manualChunks: (id) => {
+          if (id.includes("node_modules/@chakra-ui")) {
+            return "chakra";
+          }
+          if (
+            id.includes("node_modules/konva") ||
+            id.includes("node_modules/react-konva")
+          ) {
+            return "konva";
+          }
+          if (id.includes("node_modules/framer-motion")) {
+            return "framer-motion";
+          }
         },
       },
     },
@@ -958,13 +676,6 @@ export default defineConfig({
 
 ### B. Environment Configuration
 
-```javascript
-// config.js
-export const config = {
-  apiUrl: import.meta.env.VITE_API_URL,
-  maxCanvasSize: import.meta.env.VITE_MAX_CANVAS_SIZE || 4096,
-  autoSaveInterval: import.meta.env.VITE_AUTO_SAVE_INTERVAL || 3000,
-};
-```
+The `config.js` for environment variables remains conceptually the same.
 
-This implementation guide provides a detailed blueprint for Phase 2 development, focusing on the technical implementation details of the dashboard and canvas editor components. The guide emphasizes code quality, performance, accessibility, and maintainability while adhering to React best practices and modern web development standards.
+This updated guide provides a blueprint for Phase 2 development using Chakra UI, React-Konva, and adhering to the detailed visual specifications.

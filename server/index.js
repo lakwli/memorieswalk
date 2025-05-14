@@ -1,46 +1,42 @@
 import dotenv from "dotenv";
-dotenv.config();
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
-import { env } from "process";
-import { router as authRoutes, authenticateToken } from "./auth.js";
+import pool from "./db.js";
+import authRoutes from "./routes/auth.js";
+import canvasRoutes from "./routes/canvas.js";
 
-// Initialize the Express app
+dotenv.config();
+
 const app = express();
 
-// Middleware
 app.use(
   cors({
-    origin: env.FRONTEND_URL || "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:3001"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
-app.use(bodyParser.json());
 
-// Authentication routes
-app.use("/api", authRoutes);
+app.use(express.json());
 
-// Protected route example
-app.get("/api/protected", authenticateToken, (req, res) => {
-  res.json({ message: "This is a protected route", user: req.user });
-});
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/canvases", canvasRoutes);
 
-// Basic route for testing
+// Basic health check endpoint
 app.get("/", (req, res) => {
-  res.send("Backend is running");
+  res.json({ status: "API is running" });
 });
 
-// Error handling middleware
-app.use((err, req, res) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
-});
+// Test PostgreSQL connection and start server
+pool.query("SELECT NOW()", (err, res) => {
+  if (err) {
+    console.error("❌ PostgreSQL connection error:", err);
+    process.exit(1);
+  }
+  console.log("✅ Connected to PostgreSQL at:", process.env.DB_HOST);
 
-// Start the server
-const PORT = env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Frontend URL: ${env.FRONTEND_URL}`);
-  console.log(`Environment: ${env.NODE_ENV}`);
+  app.listen(process.env.PORT || 3000, () => {
+    console.log(`🚀 Server running on port ${process.env.PORT || 3000}`);
+  });
 });

@@ -1,89 +1,168 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import authService from '../services/authService';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import authService from "../services/authService";
+import {
+  Box,
+  Button,
+  Container,
+  FormControl,
+  FormLabel,
+  Input,
+  Stack,
+  Heading,
+  Text,
+  useToast,
+} from "@chakra-ui/react";
 
 const LoginPage = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    
-    const { login } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const from = location.state?.from?.pathname || '/';
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const from = location.state?.from?.pathname || "/dashboard";
 
-        try {
-            const data = await authService.login(username, password);
-            login(data.user, data.token);
-            navigate(from, { replace: true });
-        } catch (err) {
-            setError(err.error || 'Failed to login');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    console.log("Login attempt started...");
 
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Sign in to your account
-                    </h2>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-4 mb-4">
-                            <div className="text-sm text-red-700">{error}</div>
-                        </div>
-                    )}
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <input
-                                type="text"
-                                required
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Username"
-                            />
-                        </div>
-                        <div>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                            />
-                        </div>
-                    </div>
+    try {
+      const data = await authService.login(username, password);
+      console.log("Login API response:", data);
 
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                                isLoading
-                                    ? 'bg-indigo-400'
-                                    : 'bg-indigo-600 hover:bg-indigo-700'
-                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                        >
-                            {isLoading ? 'Signing in...' : 'Sign in'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
+      login(data.user, data.token);
+      console.log("Auth context updated, navigating to:", from);
+
+      navigate(from, { replace: true });
+
+      toast({
+        title: "Login successful",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("Login error:", err);
+      toast({
+        title: "Login failed",
+        description: err.message || "Network error. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const token = authService.getAuthToken();
+    if (token) {
+      console.log("Token found, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
+  return (
+    <Box
+      minH="100vh"
+      bg="gray.50"
+      py={{ base: "12", md: "16" }}
+      px={{ base: "4", sm: "6", lg: "8" }}
+    >
+      <Container maxW="md">
+        <Stack spacing="8">
+          <Stack spacing="6" align="center">
+            {/* Logo or App Icon could go here */}
+            <Stack spacing="3" textAlign="center">
+              <Heading size="xl" fontWeight="bold" color="gray.900">
+                My Canvas
+              </Heading>
+              <Text color="gray.500" fontSize="lg">
+                Sign in to access your creative space
+              </Text>
+            </Stack>
+          </Stack>
+
+          <Box
+            py={{ base: "8", sm: "12" }}
+            px={{ base: "6", sm: "8" }}
+            bg="white"
+            boxShadow="md"
+            borderRadius="xl"
+          >
+            <form onSubmit={handleSubmit}>
+              <Stack spacing="6">
+                <Stack spacing="5">
+                  <FormControl isRequired>
+                    <FormLabel htmlFor="username" color="gray.700">
+                      Username
+                    </FormLabel>
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      borderRadius="md"
+                      borderColor="gray.300"
+                      _hover={{
+                        borderColor: "gray.400",
+                      }}
+                      _focus={{
+                        borderColor: "blue.500",
+                        boxShadow: "outline",
+                      }}
+                    />
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel htmlFor="password" color="gray.700">
+                      Password
+                    </FormLabel>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      borderRadius="md"
+                      borderColor="gray.300"
+                      _hover={{
+                        borderColor: "gray.400",
+                      }}
+                      _focus={{
+                        borderColor: "blue.500",
+                        boxShadow: "outline",
+                      }}
+                    />
+                  </FormControl>
+                </Stack>
+
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  size="lg"
+                  fontSize="md"
+                  isLoading={isLoading}
+                  loadingText="Signing in..."
+                >
+                  Sign in
+                </Button>
+
+                <Text mt={2} textAlign="center" color="gray.600" fontSize="sm">
+                  Contact your administrator if you need access
+                </Text>
+              </Stack>
+            </form>
+          </Box>
+        </Stack>
+      </Container>
+    </Box>
+  );
 };
 
 export default LoginPage;

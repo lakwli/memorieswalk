@@ -4,19 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "setup": "node server/scripts/seedAdmin.js",
+    "prestart": "npm run setup",
+    "start": "node server/index.js",
+    "dev": "npm run frontend:dev",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed-admin": "node server/scripts/seedAdmin.js",
+    "frontend": "vite",
+    "frontend:dev": "vite",
+    "backend": "cd server && npm run dev"
   },
   "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
+    "@chakra-ui/react": "^2.10.7",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.2",
     "@syncfusion/ej2-react-dropdowns": "^28.2.3",
     "axios": "^1.9.0",
+    "framer-motion": "^10.18.0",
+    "konva": "^9.3.20",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-dropzone": "^14.3.8",
+    "react-konva": "^18.2.10",
     "react-router-dom": "^7.6.0"
   },
   "devDependencies": {

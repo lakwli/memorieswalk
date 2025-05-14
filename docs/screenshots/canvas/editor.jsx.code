@@ -1,0 +1,680 @@
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Stage,
+  Layer,
+  Rect,
+  Text,
+  Image as KonvaImage,
+  Group,
+  Line,
+  Circle,
+} from "react-konva";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  HStack,
+  Text as ChakraText,
+  IconButton,
+  useToast,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  PopoverTrigger,
+  PopoverContent,
+  Popover,
+  Portal,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Input,
+} from "@chakra-ui/react";
+import { ArrowBackIcon, AddIcon, HamburgerIcon } from "@chakra-ui/icons";
+import { useNavigate, useParams } from "react-router-dom";
+import useImage from "use-image";
+
+// Custom transformer component for resizing/rotating objects
+const Transformer = ({ selectedId, objects }) => {
+  const transformerRef = useRef();
+  const [selectedNode, setSelectedNode] = useState(null);
+
+  useEffect(() => {
+    // Find the selected node
+    if (selectedId) {
+      const node = objects.find((obj) => obj.id === selectedId);
+      setSelectedNode(node);
+    } else {
+      setSelectedNode(null);
+    }
+  }, [selectedId, objects]);
+
+  return selectedNode ? (
+    <Group>
+      {/* Visual indicator for selected object */}
+      <Rect
+        x={selectedNode.x - 5}
+        y={selectedNode.y - 5}
+        width={(selectedNode.width || 100) + 10}
+        height={(selectedNode.height || 20) + 10}
+        stroke="#0096FF"
+        strokeWidth={2}
+        dash={[5, 5]}
+        fill="transparent"
+      />
+
+      {/* Rotation handle */}
+      <Circle
+        x={selectedNode.x + (selectedNode.width || 100) / 2}
+        y={selectedNode.y - 20}
+        radius={8}
+        fill="#0096FF"
+        draggable
+      />
+    </Group>
+  ) : null;
+};
+
+const CanvasEditor = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const stageRef = useRef(null);
+  const { isOpen, onOpen, onClose } = useDisclosure(); // For modals
+
+  // Canvas state
+  const [canvasTitle, setCanvasTitle] = useState("Travel 2024");
+  const [subtitle, setSubtitle] = useState("My Creative Space");
+  const [objects, setObjects] = useState([
+    {
+      id: 1,
+      type: "text",
+      text: "Summer Memories",
+      x: 450,
+      y: 500,
+      fontSize: 30,
+      rotation: 15,
+      color: "#4285f4",
+      width: 250,
+      height: 40,
+    },
+    {
+      id: 2,
+      type: "rect",
+      x: 150,
+      y: 480,
+      width: 150,
+      height: 150,
+      fill: "#e1f5fe",
+      rotation: -5,
+    },
+    {
+      id: 3,
+      type: "rect",
+      x: 320,
+      y: 360,
+      width: 250,
+      height: 170,
+      fill: "#fff3e0",
+      rotation: 0,
+    },
+    {
+      id: 4,
+      type: "rect",
+      x: 320,
+      y: 680,
+      width: 150,
+      height: 150,
+      fill: "#fce4ec",
+      rotation: 0,
+    },
+    {
+      id: 5,
+      type: "rect",
+      x: 600,
+      y: 640,
+      width: 130,
+      height: 170,
+      fill: "#e1f5fe",
+      rotation: 15,
+    },
+    {
+      id: 6,
+      type: "line",
+      points: [120, 350, 340, 350],
+      stroke: "#f44336",
+      strokeWidth: 5,
+    },
+  ]);
+
+  const [selectedId, setSelectedId] = useState(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 1000 });
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [mode, setMode] = useState("select"); // select, draw, text, etc.
+  const [drawingPoints, setDrawingPoints] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState([]);
+
+  // Handle window resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      const container = document.getElementById("canvas-container");
+      if (container) {
+        // Maintain aspect ratio but fit within the container
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+
+        const scaleX = containerWidth / canvasSize.width;
+        const scaleY = containerHeight / canvasSize.height;
+        const newScale = Math.min(scaleX, scaleY, 1); // Don't scale larger than 1
+
+        setScale(newScale);
+      }
+    };
+
+    window.addEventListener("resize", updateDimensions);
+    updateDimensions();
+
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+    };
+  }, [canvasSize]);
+
+  // Handle selection
+  const checkDeselect = (e) => {
+    if (mode === "select") {
+      const clickedOnEmpty = e.target === e.target.getStage();
+      if (clickedOnEmpty) {
+        setSelectedId(null);
+      }
+    }
+  };
+
+  // Handle object dragging
+  const handleDragStart = (e) => {
+    if (mode === "select") {
+      const id = e.target.id();
+      setSelectedId(id);
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    if (mode === "select") {
+      const id = e.target.id();
+      const objIndex = objects.findIndex((obj) => obj.id === parseInt(id));
+
+      if (objIndex !== -1) {
+        const updatedObjects = [...objects];
+        updatedObjects[objIndex] = {
+          ...updatedObjects[objIndex],
+          x: e.target.x(),
+          y: e.target.y(),
+        };
+
+        setObjects(updatedObjects);
+      }
+    }
+  };
+
+  // Drawing functionality
+  const handleMouseDown = (e) => {
+    if (mode === "draw") {
+      setIsDrawing(true);
+      const pos = e.target.getStage().getPointerPosition();
+      setDrawingPoints([pos.x, pos.y]);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (mode === "draw" && isDrawing) {
+      const stage = e.target.getStage();
+      const point = stage.getPointerPosition();
+      setDrawingPoints([...drawingPoints, point.x, point.y]);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (mode === "draw" && isDrawing) {
+      setIsDrawing(false);
+
+      if (drawingPoints.length >= 4) {
+        // At least 2 points to make a line
+        const newLine = {
+          id: Date.now(),
+          type: "freehand",
+          points: drawingPoints,
+          stroke: "#f44336",
+          strokeWidth: 3,
+        };
+
+        setObjects([...objects, newLine]);
+      }
+
+      setDrawingPoints([]);
+    }
+  };
+
+  // Save canvas
+  const handleSave = () => {
+    // Logic to save canvas - in a real app this would save to backend
+    toast({
+      title: "Canvas saved",
+      status: "success",
+      duration: 2000,
+    });
+  };
+
+  // Share canvas
+  const handleShare = () => {
+    onOpen(); // Open share modal
+  };
+
+  // Add photo
+  const handleAddPhoto = (e) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.onchange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const newImage = {
+            id: Date.now(),
+            type: "image",
+            x: canvasSize.width / 2 - 100,
+            y: canvasSize.height / 2 - 100,
+            width: 200,
+            height: 200,
+            src: reader.result,
+            rotation: 0,
+          };
+
+          setUploadedImages([
+            ...uploadedImages,
+            { src: reader.result, id: newImage.id },
+          ]);
+          setObjects([...objects, newImage]);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    fileInput.click();
+  };
+
+  // Add text
+  const handleAddText = () => {
+    const newText = {
+      id: Date.now(),
+      type: "text",
+      text: "New Text",
+      x: canvasSize.width / 2 - 50,
+      y: canvasSize.height / 2,
+      fontSize: 20,
+      width: 100,
+      height: 30,
+      rotation: 0,
+      color: "#000000",
+    };
+
+    setObjects([...objects, newText]);
+    setSelectedId(newText.id);
+    setMode("select");
+  };
+
+  // Start drawing
+  const handleDraw = () => {
+    setMode("draw");
+    setSelectedId(null);
+  };
+
+  // Rotate object
+  const handleRotate = () => {
+    if (selectedId !== null) {
+      const objIndex = objects.findIndex((obj) => obj.id === selectedId);
+      if (objIndex !== -1) {
+        const updatedObjects = [...objects];
+        updatedObjects[objIndex] = {
+          ...updatedObjects[objIndex],
+          rotation: ((updatedObjects[objIndex].rotation || 0) + 15) % 360,
+        };
+        setObjects(updatedObjects);
+      }
+    } else {
+      toast({
+        title: "No object selected",
+        description: "Please select an object to rotate",
+        status: "warning",
+        duration: 2000,
+      });
+    }
+  };
+
+  // Manage layers
+  const handleLayers = () => {
+    // Open layers panel
+    toast({
+      title: "Layers panel",
+      description: "This would open a layers management panel",
+      status: "info",
+      duration: 2000,
+    });
+  };
+
+  // Custom Image component that loads from state
+  const ImageComponent = ({ obj }) => {
+    const imageData = uploadedImages.find((img) => img.id === obj.id);
+    const [image] = useImage(imageData ? imageData.src : "");
+
+    return (
+      <KonvaImage
+        id={obj.id.toString()}
+        image={image}
+        x={obj.x}
+        y={obj.y}
+        width={obj.width}
+        height={obj.height}
+        rotation={obj.rotation || 0}
+        draggable={mode === "select"}
+        onClick={() => mode === "select" && setSelectedId(obj.id)}
+        onTap={() => mode === "select" && setSelectedId(obj.id)}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      />
+    );
+  };
+
+  // Render different object types
+  const renderObject = (obj) => {
+    switch (obj.type) {
+      case "rect":
+        return (
+          <Rect
+            key={obj.id}
+            id={obj.id.toString()}
+            x={obj.x}
+            y={obj.y}
+            width={obj.width}
+            height={obj.height}
+            fill={obj.fill}
+            rotation={obj.rotation || 0}
+            draggable={mode === "select"}
+            onClick={() => mode === "select" && setSelectedId(obj.id)}
+            onTap={() => mode === "select" && setSelectedId(obj.id)}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        );
+      case "text":
+        return (
+          <Text
+            key={obj.id}
+            id={obj.id.toString()}
+            x={obj.x}
+            y={obj.y}
+            text={obj.text}
+            fontSize={obj.fontSize}
+            fill={obj.color}
+            rotation={obj.rotation || 0}
+            draggable={mode === "select"}
+            onClick={() => mode === "select" && setSelectedId(obj.id)}
+            onTap={() => mode === "select" && setSelectedId(obj.id)}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        );
+      case "line":
+        return (
+          <Line
+            key={obj.id}
+            id={obj.id.toString()}
+            points={obj.points}
+            stroke={obj.stroke}
+            strokeWidth={obj.strokeWidth}
+            tension={0.5}
+            lineCap="round"
+            lineJoin="round"
+            draggable={mode === "select"}
+            onClick={() => mode === "select" && setSelectedId(obj.id)}
+            onTap={() => mode === "select" && setSelectedId(obj.id)}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        );
+      case "freehand":
+        return (
+          <Line
+            key={obj.id}
+            id={obj.id.toString()}
+            points={obj.points}
+            stroke={obj.stroke}
+            strokeWidth={obj.strokeWidth}
+            tension={0.5}
+            lineCap="round"
+            lineJoin="round"
+            draggable={mode === "select"}
+            onClick={() => mode === "select" && setSelectedId(obj.id)}
+            onTap={() => mode === "select" && setSelectedId(obj.id)}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        );
+      case "image":
+        return <ImageComponent key={obj.id} obj={obj} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Box h="100vh" display="flex" flexDirection="column">
+      {/* Header */}
+      <Box py={4} px={6} borderBottomWidth="1px">
+        <Heading size="lg">5. Canvas Editor</Heading>
+      </Box>
+
+      {/* Canvas Header */}
+      <Flex
+        px={4}
+        py={3}
+        borderBottomWidth="1px"
+        alignItems="center"
+        justifyContent="space-between"
+      >
+        <Flex alignItems="center">
+          <IconButton
+            icon={<ArrowBackIcon />}
+            variant="ghost"
+            fontSize="24px"
+            onClick={() => navigate("/")}
+            aria-label="Go back"
+            mr={4}
+          />
+          <Box>
+            <Heading size="lg">{canvasTitle}</Heading>
+            <ChakraText color="gray.500">{subtitle}</ChakraText>
+          </Box>
+        </Flex>
+
+        <HStack>
+          <Button colorScheme="blue" onClick={handleSave}>
+            Save
+          </Button>
+          <Button variant="outline" onClick={handleShare}>
+            Share
+          </Button>
+        </HStack>
+      </Flex>
+
+      {/* Canvas Area */}
+      <Box
+        flex="1"
+        overflow="auto"
+        bg="gray.50"
+        id="canvas-container"
+        position="relative"
+        onClick={() => mode !== "select" && setMode("select")}
+      >
+        <Stage
+          width={canvasSize.width * scale}
+          height={canvasSize.height * scale}
+          scaleX={scale}
+          scaleY={scale}
+          x={position.x}
+          y={position.y}
+          ref={stageRef}
+          onMouseDown={(e) => {
+            checkDeselect(e);
+            handleMouseDown(e);
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onTouchStart={checkDeselect}
+        >
+          <Layer>
+            {objects.map(renderObject)}
+
+            {/* Current drawing line */}
+            {isDrawing && drawingPoints.length >= 4 && (
+              <Line
+                points={drawingPoints}
+                stroke="#f44336"
+                strokeWidth={3}
+                tension={0.5}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+
+            {/* Selection transformer */}
+            <Transformer selectedId={selectedId} objects={objects} />
+          </Layer>
+        </Stage>
+      </Box>
+
+      {/* Bottom Toolbar */}
+      <Flex
+        py={3}
+        px={2}
+        borderTopWidth="1px"
+        justifyContent="space-around"
+        alignItems="center"
+        bg="white"
+      >
+        <Box textAlign="center" onClick={handleAddPhoto}>
+          <IconButton
+            aria-label="Add Photo"
+            icon={
+              <Box as="span" fontSize="xl">
+                📷
+              </Box>
+            }
+            size="lg"
+            variant="ghost"
+            colorScheme={mode === "photo" ? "blue" : "gray"}
+          />
+          <ChakraText fontSize="sm">Add Photo</ChakraText>
+        </Box>
+
+        <Box textAlign="center" onClick={handleAddText}>
+          <IconButton
+            aria-label="Add Text"
+            icon={
+              <ChakraText fontSize="xl" fontWeight="bold">
+                T
+              </ChakraText>
+            }
+            size="lg"
+            variant="ghost"
+            colorScheme={mode === "text" ? "blue" : "gray"}
+          />
+          <ChakraText fontSize="sm">Add Text</ChakraText>
+        </Box>
+
+        <Box textAlign="center" onClick={handleDraw}>
+          <IconButton
+            aria-label="Draw"
+            icon={
+              <Box as="span" fontSize="xl">
+                ✏️
+              </Box>
+            }
+            size="lg"
+            variant="ghost"
+            colorScheme={mode === "draw" ? "blue" : "gray"}
+          />
+          <ChakraText fontSize="sm">Draw</ChakraText>
+        </Box>
+
+        <Box textAlign="center" onClick={handleRotate}>
+          <IconButton
+            aria-label="Rotate"
+            icon={
+              <Box as="span" fontSize="xl">
+                🔄
+              </Box>
+            }
+            size="lg"
+            variant="ghost"
+            colorScheme="gray"
+          />
+          <ChakraText fontSize="sm">Rotate</ChakraText>
+        </Box>
+
+        <Box textAlign="center" onClick={handleLayers}>
+          <IconButton
+            aria-label="Layers"
+            icon={<HamburgerIcon />}
+            size="lg"
+            variant="ghost"
+            colorScheme="gray"
+          />
+          <ChakraText fontSize="sm">Layers</ChakraText>
+        </Box>
+      </Flex>
+
+      {/* Share Modal */}
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Share Your Canvas</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box mb={4}>
+              <ChakraText mb={2}>Share with friends</ChakraText>
+              <Input placeholder="Enter email addresses..." />
+            </Box>
+            <Box>
+              <ChakraText mb={2}>Or copy this link</ChakraText>
+              <Flex>
+                <Input
+                  value={`https://yourapp.com/canvas/${id}`}
+                  isReadOnly
+                  mr={2}
+                />
+                <Button>Copy</Button>
+              </Flex>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={onClose}>
+              Send
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
+  );
+};
+
+export default CanvasEditor;

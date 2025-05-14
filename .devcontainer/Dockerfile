@@ -32,4 +32,4 @@ ENV DB_PORT=5432
 ENV JWT_SECRET=your_secure_jwt_secret_key_here
 ENV PORT=3000
 ENV NODE_ENV=development
-ENV FRONTEND_URL=http://localhost:5173
+ENV FRONTEND_URL=http://localhost:3001
