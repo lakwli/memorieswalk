@@ -4,14 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "setup": "node server/scripts/seedAdmin.js",
-    "prestart": "npm run setup",
     "start": "node server/index.js",
     "dev": "npm run frontend:dev",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "seed-admin": "node server/scripts/seedAdmin.js",
     "frontend": "vite",
     "frontend:dev": "vite",
     "backend": "cd server && npm run dev"
