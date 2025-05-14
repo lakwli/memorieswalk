@@ -4,11 +4,16 @@ import { extendTheme } from "@chakra-ui/react";
 // 1. Define Color Palette (as per .png.md files)
 const colors = {
   brand: {
-    50: "#e3f2fd",
-    100: "#bbdefb",
-    500: "#3578E5", // Primary blue from mockups
-    600: "#2961c9",
-    700: "#1e4baf",
+    50: "#E8F4FF",
+    100: "#C9E2FF",
+    200: "#90C2FF",
+    300: "#64A8FF",
+    400: "#4593FC",
+    500: "#3578E5", // Primary brand color
+    600: "#2961C9",
+    700: "#1E4BAF",
+    800: "#173A8C",
+    900: "#102A6A",
   },
   backgrounds: {
     app: "#FFFFFF",
@@ -32,9 +37,6 @@ const colors = {
     searchBar: "#F0F2F5", // dashboard.png.md (same as background, or slightly darker if needed)
     buttonOutline: "#3578E5", // Share button outline
   },
-  // Accent pastels for thumbnails/placeholders (can be an array or object)
-  // From canvas.png.md: #E8F4FF, #FFF1E6, #F6F9EB
-  // From dashboard.jsx.code (example): #f0f5f9, #e9f7ef, #fff3e0, #fce4ec, #e1f5fe, #e0f2f1
   accentPastels: {
     blue: "#E8F4FF",
     orange: "#FFF1E6",
@@ -47,10 +49,9 @@ const colors = {
 };
 
 // 2. Define Typography (as per .png.md files)
-// Ensure these fonts are loaded in your public/index.html or via a CSS import
 const fonts = {
-  heading: "Inter, system-ui, sans-serif",
-  body: "Inter, system-ui, sans-serif",
+  heading: "'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+  body: "'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
 };
 
 // Specific text styles can be defined in components or as component style overrides
@@ -63,11 +64,28 @@ const fonts = {
 const components = {
   Button: {
     baseStyle: {
-      borderRadius: "4px", // Default for most buttons as per .png.md
-      fontWeight: "medium",
+      fontWeight: "500",
+      borderRadius: "8px",
+      _focus: {
+        boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)",
+      },
     },
     variants: {
-      // "Create Canvas" button style from dashboard.png.md
+      solid: {
+        bg: "brand.500",
+        color: "white",
+        _hover: { bg: "brand.600" },
+        _active: { bg: "brand.700" },
+      },
+      outline: {
+        borderColor: "brand.500",
+        color: "brand.500",
+        _hover: { bg: "brand.50" },
+      },
+      ghost: {
+        color: "gray.600",
+        _hover: { bg: "gray.100" },
+      },
       createCanvas: {
         bg: "brand.primary",
         color: "textColors.buttonLight",
@@ -75,7 +93,6 @@ const components = {
         fontSize: "16px",
         _hover: { bg: "blue.600" }, // Chakra's blue.600 is a darker shade
       },
-      // "Save" button style from canvas.png.md
       saveCanvas: {
         bg: "brand.primary",
         color: "textColors.buttonLight",
@@ -83,7 +100,6 @@ const components = {
         padding: "8px 16px",
         _hover: { bg: "blue.600" },
       },
-      // "Share" button style from canvas.png.md
       shareCanvas: {
         bg: "backgrounds.canvasArea", // white
         color: "brand.primary",
@@ -100,17 +116,41 @@ const components = {
   },
   Heading: {
     baseStyle: {
+      fontWeight: "600",
+      color: "gray.900",
       fontFamily: fonts.heading,
     },
   },
   Text: {
     baseStyle: {
+      color: "gray.700",
       fontFamily: fonts.body,
     },
   },
   Input: {
-    // For Search Bar
     variants: {
+      outline: {
+        field: {
+          borderRadius: "8px",
+          borderColor: "gray.200",
+          _hover: { borderColor: "gray.300" },
+          _focus: {
+            borderColor: "brand.500",
+            boxShadow: "0 0 0 1px var(--chakra-colors-brand-500)",
+          },
+        },
+      },
+      filled: {
+        field: {
+          borderRadius: "8px",
+          bg: "gray.50",
+          _hover: { bg: "gray.100" },
+          _focus: {
+            bg: "white",
+            borderColor: "brand.500",
+          },
+        },
+      },
       dashboardSearch: {
         field: {
           bg: "backgrounds.dashboardSearch",
@@ -119,28 +159,38 @@ const components = {
           _placeholder: { color: "gray.500" },
         },
       },
-      outline: {
-        field: {
-          _focus: {
-            borderColor: "brand.500",
-            boxShadow: "0 0 0 1px var(--chakra-colors-brand-500)",
-          },
-        },
+    },
+  },
+  Link: {
+    baseStyle: {
+      color: "brand.500",
+      _hover: {
+        textDecoration: "none",
+        color: "brand.600",
       },
     },
   },
-  // Add overrides for Card (Box for canvas items), Link, Avatar etc. if needed
-  // to match .png.md specifics more easily globally.
+  Card: {
+    baseStyle: {
+      container: {
+        borderRadius: "12px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+      },
+    },
+  },
 };
 
 // 4. Global Styles (Optional)
 const styles = {
   global: {
     "html, body": {
-      fontFamily: fonts.body,
-      color: "textColors.primary",
-      bg: "backgrounds.app",
+      color: "gray.900",
       lineHeight: "tall",
+      bg: "gray.50",
+      fontFamily: fonts.body,
+    },
+    "::selection": {
+      backgroundColor: "brand.100",
     },
     a: {
       color: "textColors.link",

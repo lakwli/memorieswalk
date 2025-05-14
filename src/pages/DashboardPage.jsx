@@ -139,13 +139,13 @@ const DashboardPage = () => {
   const CanvasGrid = ({ items }) => (
     <Box px={6} pb={6}>
       <Flex justifyContent="space-between" alignItems="center" mb={4}>
-        <Heading size="md" fontWeight="semibold" color="gray.900">
+        <Heading size="md" fontWeight="semibold" color={theme.colors.gray[900]}>
           Recent Canvas
         </Heading>
         <Link
           as={RouterLink}
           to="/canvases/all"
-          color="#4186E0"
+          color={theme.colors.blue[500]}
           fontWeight="medium"
         >
           View All
@@ -162,11 +162,11 @@ const DashboardPage = () => {
             key={canvas.id}
             as={RouterLink}
             to={`/canvas/${canvas.id}`}
-            bg={[
-              "#F8F9FE",
-              "#F7FCF7",
-              "#FFF8F5",
-            ][index % 3]}
+            bg={
+              theme.colors.mode === "light"
+                ? ["#F8F9FE", "#F7FCF7", "#FFF8F5"][index % 3]
+                : theme.colors.gray[700]
+            }
             borderRadius="lg"
             height="180px"
             p={4}
@@ -179,7 +179,11 @@ const DashboardPage = () => {
             alignItems="center"
             justifyContent="center"
           >
-            <Text fontWeight="semibold" color="gray.800" fontSize="lg">
+            <Text
+              fontWeight="semibold"
+              color={theme.colors.gray[800]}
+              fontSize="lg"
+            >
               {canvas.title}
             </Text>
           </Box>
@@ -200,12 +204,7 @@ const DashboardPage = () => {
   };
 
   return (
-    <Container
-      maxW="1200px"
-      p={0}
-      bg="gray.50"
-      minH="100vh"
-    >
+    <Container maxW="1200px" p={0} bg="gray.50" minH="100vh">
       <Box width="100%" bg="white">
         <AppHeader />
         <SearchBar />
