@@ -15,10 +15,12 @@ import {
 } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Header = () => {
   const navigate = useNavigate();
-  
+  const { logout } = useAuth();
+
   return (
     <Box bg="backgrounds.header" borderBottom="1px" borderColor="borders.light">
       <Container maxW="container.xl">
@@ -29,29 +31,29 @@ const Header = () => {
               src="/logo.svg"
               alt="Logo"
               cursor="pointer"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate("/dashboard")}
             />
             <HStack spacing={6}>
-              <Text 
-                as={RouterLink} 
+              <Text
+                as={RouterLink}
                 to="/dashboard"
-                fontWeight="500" 
+                fontWeight="500"
                 color="textColors.primary"
               >
                 Dashboard
               </Text>
-              <Text 
+              <Text
                 as={RouterLink}
                 to="/templates"
-                fontWeight="500" 
+                fontWeight="500"
                 color="textColors.secondary"
               >
                 Templates
               </Text>
-              <Text 
+              <Text
                 as={RouterLink}
                 to="/settings"
-                fontWeight="500" 
+                fontWeight="500"
                 color="textColors.secondary"
               >
                 Settings
@@ -75,7 +77,15 @@ const Header = () => {
               <MenuItem>Account Settings</MenuItem>
               <MenuItem>Help Center</MenuItem>
               <MenuDivider />
-              <MenuItem color="red.500">Sign Out</MenuItem>
+              <MenuItem
+                color="red.500"
+                onClick={() => {
+                  logout();
+                  navigate("/login");
+                }}
+              >
+                Sign Out
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>
