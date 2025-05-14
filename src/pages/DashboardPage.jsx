@@ -14,17 +14,13 @@ import {
   Text,
   useToast,
   Spinner,
-  useTheme, // Import useTheme
+  useTheme,
 } from "@chakra-ui/react";
 import { SearchIcon, AddIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import PropTypes from "prop-types"; // Import PropTypes
-import { canvasService } from "../services/canvasService"; // Assuming path is correct
-import ErrorBoundary from "../components/ErrorBoundary"; // Import ErrorBoundary
-// import AppHeader from '../components/common/AppHeader'; // Placeholder
-// import SearchBar from '../components/dashboard/SearchBar'; // Placeholder
-// import CanvasGrid from '../components/dashboard/CanvasGrid'; // Placeholder
-// import LoadingSpinner from '../components/common/LoadingSpinner'; // Placeholder
+import PropTypes from "prop-types";
+import { canvasService } from "../services/canvasService";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 const DashboardPage = () => {
   const [canvases, setCanvases] = useState([]);
@@ -33,7 +29,7 @@ const DashboardPage = () => {
   const [error, setError] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
-  const theme = useTheme(); // Access the theme object
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchCanvases = async () => {
@@ -63,8 +59,6 @@ const DashboardPage = () => {
 
   const handleCreateCanvas = async () => {
     try {
-      // For now, prompt for a title or use a default.
-      // In a real app, you might have a modal for this.
       const title = prompt("Enter canvas title:", "New Canvas");
       if (title) {
         const newCanvas = await canvasService.createCanvas(title);
@@ -75,9 +69,8 @@ const DashboardPage = () => {
           duration: 3000,
           isClosable: true,
         });
-        // Add to local state or refetch
-        setCanvases((prev) => [newCanvas, ...prev]); // Add to top for immediate visibility
-        navigate(`/canvas/${newCanvas.id}`); // Navigate to editor (Phase 3)
+        setCanvases((prev) => [newCanvas, ...prev]);
+        navigate(`/canvas/${newCanvas.id}`);
       }
     } catch (err) {
       toast({
@@ -94,7 +87,6 @@ const DashboardPage = () => {
     canvas.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Placeholder for AppHeader component
   const AppHeader = () => (
     <Flex
       px={6}
@@ -102,108 +94,96 @@ const DashboardPage = () => {
       justifyContent="space-between"
       alignItems="center"
       borderBottomWidth="1px"
-      borderColor="borders.light" // from theme
+      borderColor="gray.100"
     >
-      <Heading fontSize="24px" fontWeight="bold" fontFamily="heading">
-        {" "}
-        {/* Explicitly 24px */}
+      <Heading fontSize="2xl" fontWeight="semibold" color="gray.900">
         My Canvas
       </Heading>
-      <Avatar name="User" bg="gray.300" boxSize="40px" />{" "}
-      {/* Explicitly 40px */}
-      {/* Replace with actual user data later */}
+      <Avatar name="JD" bg="gray.200" color="gray.600" size="md" />
     </Flex>
   );
 
-  // Placeholder for SearchBar component
   const SearchBar = () => (
     <Box px={6} py={4}>
-      <InputGroup>
-        <InputLeftElement pointerEvents="none">
+      <InputGroup size="lg">
+        <InputLeftElement pointerEvents="none" h="48px">
           <SearchIcon color="gray.400" />
         </InputLeftElement>
         <Input
-          variant="dashboardSearch" // Using custom variant from theme
+          h="48px"
+          fontSize="md"
           placeholder="Search photos, albums or places..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          bg="gray.50"
+          border="none"
+          _placeholder={{ color: "gray.400" }}
+          _focus={{ bg: "gray.100", boxShadow: "none" }}
         />
       </InputGroup>
     </Box>
   );
 
-  // Placeholder for LoadingSpinner
   const LoadingSpinner = () => (
     <Flex justify="center" align="center" height="200px">
       <Spinner
         thickness="4px"
         speed="0.65s"
         emptyColor="gray.200"
-        color="brand.primary" // Use theme color
+        color="brand.primary"
         size="xl"
       />
     </Flex>
   );
 
-  // Placeholder for CanvasGrid component
   const CanvasGrid = ({ items }) => (
     <Box px={6} pb={6}>
       <Flex justifyContent="space-between" alignItems="center" mb={4}>
-        <Heading size="md" fontWeight="bold" fontFamily="heading">
+        <Heading size="md" fontWeight="semibold" color="gray.900">
           Recent Canvas
         </Heading>
-        <Link as={RouterLink} to="/canvases/all" color="textColors.link">
+        <Link
+          as={RouterLink}
+          to="/canvases/all"
+          color="#4186E0"
+          fontWeight="medium"
+        >
           View All
         </Link>
       </Flex>
       {items.length === 0 && !isLoading && (
-        <Text textAlign="center" color="textColors.secondary" py={10}>
+        <Text textAlign="center" color="gray.500" py={10}>
           No canvases yet. Create one to get started!
         </Text>
       )}
-      <SimpleGrid columns={{ base: 1, sm: 2 }} spacing="16px">
-        {" "}
-        {/* Adhering to 2 columns from dashboard.png.md */}
-        {items.map(
-          (
-            canvas,
-            index // Added index for color cycling
-          ) => (
-            <Box
-              key={canvas.id}
-              as={RouterLink}
-              to={`/canvas/${canvas.id}`}
-              // Cycle through accentPastels from theme
-              bg={
-                theme.colors.accentPastels[
-                  Object.keys(theme.colors.accentPastels)[
-                    index % Object.keys(theme.colors.accentPastels).length
-                  ]
-                ] || "gray.100"
-              }
-              borderRadius="8px" // from dashboard.png.md
-              height="100px" // from dashboard.png.md
-              width="100%" // Cards will take full width of their grid cell
-              p={4}
-              borderWidth="1px"
-              borderColor="borders.light"
-              _hover={{
-                transform: "translateY(-4px)",
-                shadow: "md",
-                cursor: "pointer",
-              }}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              textAlign="center"
-            >
-              <Text fontWeight="bold" color="textColors.dashboardCanvasTitle">
-                {canvas.title}
-              </Text>
-              {/* Thumbnail would go here if available: <Image src={canvas.thumbnail_url} /> */}
-            </Box>
-          )
-        )}
+      <SimpleGrid columns={{ base: 2, md: 3 }} spacing="16px">
+        {items.map((canvas, index) => (
+          <Box
+            key={canvas.id}
+            as={RouterLink}
+            to={`/canvas/${canvas.id}`}
+            bg={[
+              "#F8F9FE",
+              "#F7FCF7",
+              "#FFF8F5",
+            ][index % 3]}
+            borderRadius="lg"
+            height="180px"
+            p={4}
+            transition="transform 0.2s"
+            _hover={{
+              transform: "translateY(-2px)",
+              shadow: "sm",
+            }}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text fontWeight="semibold" color="gray.800" fontSize="lg">
+              {canvas.title}
+            </Text>
+          </Box>
+        ))}
       </SimpleGrid>
     </Box>
   );
@@ -214,37 +194,33 @@ const DashboardPage = () => {
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
           .isRequired,
         title: PropTypes.string.isRequired,
-        // thumbnail_url: PropTypes.string, // Optional, if you plan to use it directly
       })
     ).isRequired,
-    isLoading: PropTypes.bool, // Added isLoading to propTypes as it's used in conditional rendering
+    isLoading: PropTypes.bool,
   };
 
   return (
     <Container
-      maxW="360px" // Fixed width as per dashboard.png.md
-      centerContent // Centers the container itself
-      py={{ base: 4, md: 8 }}
-      bg="backgrounds.app" // white
+      maxW="1200px"
+      p={0}
+      bg="gray.50"
       minH="100vh"
     >
-      <Box
-        width="100%"
-        borderWidth="1px"
-        borderRadius="lg"
-        shadow="sm"
-        bg="white"
-      >
-        {" "}
-        {/* Simulating the card */}
+      <Box width="100%" bg="white">
         <AppHeader />
         <SearchBar />
         <Box px={6} pt={2} pb={6}>
           <Button
-            variant="createCanvas" // Using custom variant from theme
+            variant="solid"
             leftIcon={<AddIcon />}
-            width="100%"
+            width="full"
             onClick={handleCreateCanvas}
+            bg="#4186E0"
+            color="white"
+            _hover={{ bg: "#3674C7" }}
+            borderRadius="md"
+            size="lg"
+            height="48px"
           >
             Create Canvas
           </Button>
