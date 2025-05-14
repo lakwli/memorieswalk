@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Create default admin user (password: admin)
 INSERT INTO users (username, password_hash, role) 
-VALUES ('admin', '$2b$10$FxXjmNFv2rqItXgAgRhz0OdBAvfBE1nJxO5GXpS3DAxhT2ePh0oKW', 'admin')
+VALUES ('admin', '$2b$10$tC7BJbvf25cjFXkOScaSW.BFyqDjQsim3ygxTYliFW9mqMWuDsdYu', 'admin')
 ON CONFLICT (username) DO NOTHING;
 
 -- Canvases Table

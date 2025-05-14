@@ -1,31 +1,33 @@
+import dotenv from "dotenv";
 import pool from "../db.js";
+import bcrypt from "bcrypt";
 
-async function testAuth() {
-  try {
-    console.log("🔍 Testing database connection...");
-    const dbResult = await pool.query("SELECT NOW()");
-    console.log("✅ Database connected successfully");
+dotenv.config();
 
-    console.log("\n🔍 Testing users table...");
-    const usersResult = await pool.query("SELECT username, role FROM users");
-    console.log("📊 Current users:", usersResult.rows);
-
-    console.log("\n🔍 Testing auth with admin credentials...");
-    const authResult = await pool.query(
-      "SELECT id, username, role FROM users WHERE username = $1 AND password_hash = $2",
-      ["admin", "admin"]
-    );
-
-    if (authResult.rows.length > 0) {
-      console.log("✅ Found user:", authResult.rows[0]);
-    } else {
-      console.log("❌ Auth failed: User not found or incorrect password");
-    }
-  } catch (error) {
-    console.error("❌ Test failed:", error.message);
-  } finally {
+describe("Authentication", () => {
+  afterAll(async () => {
     await pool.end();
-  }
-}
+  });
 
-testAuth();
+  describe("Admin Login Tests", () => {
+    test("login with admin-admin", async () => {
+      const result = await pool.query(
+        "SELECT password_hash FROM users WHERE username = $1",
+        ["admin"]
+      );
+      const hash = result.rows[0].password_hash;
+      const isValid = await bcrypt.compare("admin", hash);
+      expect(isValid).toBe(true);
+    });
+
+    test("login with admin-admin123", async () => {
+      const result = await pool.query(
+        "SELECT password_hash FROM users WHERE username = $1",
+        ["admin"]
+      );
+      const hash = result.rows[0].password_hash;
+      const isValid = await bcrypt.compare("admin123", hash);
+      expect(isValid).toBe(true);
+    });
+  });
+});
