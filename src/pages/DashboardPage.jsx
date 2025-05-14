@@ -1,26 +1,25 @@
 import { useState, useEffect } from "react";
 import {
   Box,
-  Container,
-  Heading,
   Button,
   InputGroup,
   InputLeftElement,
   Input,
-  Flex,
-  Avatar,
   Link,
   SimpleGrid,
   Text,
   useToast,
   Spinner,
   useTheme,
+  Heading,
+  Flex, // Add missing Flex import
 } from "@chakra-ui/react";
 import { SearchIcon, AddIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { canvasService } from "../services/canvasService";
 import ErrorBoundary from "../components/ErrorBoundary";
+import MasterLayout from "../layouts/MasterLayout.jsx"; // Add .jsx extension
 
 const DashboardPage = () => {
   const [canvases, setCanvases] = useState([]);
@@ -87,24 +86,8 @@ const DashboardPage = () => {
     canvas.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const AppHeader = () => (
-    <Flex
-      px={6}
-      py={4}
-      justifyContent="space-between"
-      alignItems="center"
-      borderBottomWidth="1px"
-      borderColor="gray.100"
-    >
-      <Heading fontSize="2xl" fontWeight="semibold" color="gray.900">
-        My Canvas
-      </Heading>
-      <Avatar name="JD" bg="gray.200" color="gray.600" size="md" />
-    </Flex>
-  );
-
   const SearchBar = () => (
-    <Box px={6} py={4}>
+    <Box mb={6}>
       <InputGroup size="lg">
         <InputLeftElement pointerEvents="none" h="48px">
           <SearchIcon color="gray.400" />
@@ -115,8 +98,8 @@ const DashboardPage = () => {
           placeholder="Search photos, albums or places..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          variant="filled"
           bg="gray.50"
-          border="none"
           _placeholder={{ color: "gray.400" }}
           _focus={{ bg: "gray.100", boxShadow: "none" }}
         />
@@ -204,11 +187,11 @@ const DashboardPage = () => {
   };
 
   return (
-    <Container maxW="1200px" p={0} bg="gray.50" minH="100vh">
-      <Box width="100%" bg="white">
-        <AppHeader />
+    <MasterLayout>
+      <Box>
+        <Heading size="lg" mb={6}>My Canvas</Heading>
         <SearchBar />
-        <Box px={6} pt={2} pb={6}>
+        <Box mb={6}>
           <Button
             variant="solid"
             leftIcon={<AddIcon />}
@@ -232,7 +215,7 @@ const DashboardPage = () => {
         )}
         {!isLoading && !error && <CanvasGrid items={filteredCanvases} />}
       </Box>
-    </Container>
+    </MasterLayout>
   );
 };
 

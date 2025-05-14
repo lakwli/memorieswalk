@@ -18,6 +18,7 @@ const colors = {
   backgrounds: {
     app: "#FFFFFF",
     header: "#F7F9FA", // Canvas Editor Top Nav background from canvas.png.md
+    footer: "#F7F9FA", // Added footer background
     canvasArea: "#FFFFFF", // Canvas area background from canvas.png.md
     dashboardSearch: "#F0F2F5", // Dashboard search bar background from dashboard.png.md
     dashboardCard: "#FFFFFF", // Default for cards, can be overridden by pastel accents
@@ -176,6 +177,12 @@ const components = {
         borderRadius: "12px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
       },
+    },
+  },
+  Container: {
+    baseStyle: {
+      maxW: "1280px",
+      px: { base: 4, md: 6, lg: 8 },
     },
   },
 };
