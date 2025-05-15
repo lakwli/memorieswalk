@@ -1,5 +1,5 @@
 -- Users Table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -14,7 +14,7 @@ VALUES ('admin', '$2b$10$tC7BJbvf25cjFXkOScaSW.BFyqDjQsim3ygxTYliFW9mqMWuDsdYu',
 ON CONFLICT (username) DO NOTHING;
 
 -- Memories Table
-CREATE TABLE memories (
+CREATE TABLE IF NOT EXISTS memories (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     title VARCHAR(255) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE memories (
 );
 
 -- Photos Table
-CREATE TABLE photos (
+CREATE TABLE IF NOT EXISTS photos (
     id SERIAL PRIMARY KEY,
     memory_id INTEGER REFERENCES memories(id) ON DELETE CASCADE,
     file_path VARCHAR(255) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE photos (
 );
 
 -- Share Links Table
-CREATE TABLE share_links (
+CREATE TABLE IF NOT EXISTS share_links (
     id SERIAL PRIMARY KEY,
     memory_id INTEGER REFERENCES memories(id) ON DELETE CASCADE,
     token VARCHAR(255) UNIQUE NOT NULL,
