@@ -78,10 +78,10 @@ const LoginPage = () => {
       <Container maxW="md">
         <Stack spacing="8">
           <Stack spacing="6" align="center">
-            {/* Logo or App Icon could go here */}
+            {/* Logo or App Icon could go here */}{" "}
             <Stack spacing="3" textAlign="center">
               <Heading size="xl" fontWeight="bold" color="gray.900">
-                My Canvas
+                My Memories
               </Heading>
               <Text color="gray.500" fontSize="lg">
                 Sign in to access your creative space

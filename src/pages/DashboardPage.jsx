@@ -17,12 +17,12 @@ import {
 import { SearchIcon, AddIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import { canvasService } from "../services/canvasService";
+import { memoryService } from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
 import MasterLayout from "../layouts/MasterLayout.jsx"; // Add .jsx extension
 
 const DashboardPage = () => {
-  const [canvases, setCanvases] = useState([]);
+  const [memories, setMemories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,19 +31,19 @@ const DashboardPage = () => {
   const theme = useTheme();
 
   useEffect(() => {
-    const fetchCanvases = async () => {
+    const fetchMemories = async () => {
       try {
-        console.log("Dashboard: Attempting to fetch canvases");
+        console.log("Dashboard: Attempting to fetch memories");
         setIsLoading(true);
         setError(null);
-        const fetchedCanvases = await canvasService.getCanvases();
-        console.log("Dashboard: Canvases fetched:", fetchedCanvases);
-        setCanvases(fetchedCanvases);
+        const fetchedMemories = await memoryService.getMemories();
+        console.log("Dashboard: Memories fetched:", fetchedMemories);
+        setMemories(fetchedMemories);
       } catch (err) {
-        console.error("Dashboard: Error fetching canvases:", err);
+        console.error("Dashboard: Error fetching memories:", err);
         setError(err.message);
         toast({
-          title: "Error fetching canvases",
+          title: "Error fetching memories",
           description: err.message,
           status: "error",
           duration: 5000,
@@ -53,27 +53,26 @@ const DashboardPage = () => {
         setIsLoading(false);
       }
     };
-    fetchCanvases();
+    fetchMemories();
   }, [toast]);
-
-  const handleCreateCanvas = async () => {
+  const handleCreateMemory = async () => {
     try {
-      const title = prompt("Enter canvas title:", "New Canvas");
+      const title = prompt("Enter memory title:", "New Memory");
       if (title) {
-        const newCanvas = await canvasService.createCanvas(title);
+        const newMemory = await memoryService.createMemory(title);
         toast({
-          title: "Canvas Created",
-          description: `Canvas "${newCanvas.title}" created successfully.`,
+          title: "Memory Created",
+          description: `Memory "${newMemory.title}" created successfully.`,
           status: "success",
           duration: 3000,
           isClosable: true,
         });
-        setCanvases((prev) => [newCanvas, ...prev]);
-        navigate(`/canvas/${newCanvas.id}`);
+        setMemories((prev) => [newMemory, ...prev]);
+        navigate(`/memory/${newMemory.id}`);
       }
     } catch (err) {
       toast({
-        title: "Error creating canvas",
+        title: "Error creating memory",
         description: err.message,
         status: "error",
         duration: 5000,
@@ -81,9 +80,8 @@ const DashboardPage = () => {
       });
     }
   };
-
-  const filteredCanvases = canvases.filter((canvas) =>
-    canvas.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMemories = memories.filter((memory) =>
+    memory.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const SearchBar = () => (
@@ -118,16 +116,15 @@ const DashboardPage = () => {
       />
     </Flex>
   );
-
-  const CanvasGrid = ({ items }) => (
+  const MemoryGrid = ({ items }) => (
     <Box px={6} pb={6}>
       <Flex justifyContent="space-between" alignItems="center" mb={4}>
         <Heading size="md" fontWeight="semibold" color={theme.colors.gray[900]}>
-          Recent Canvas
+          Recent Memories
         </Heading>
         <Link
           as={RouterLink}
-          to="/canvases/all"
+          to="/memories/all"
           color={theme.colors.blue[500]}
           fontWeight="medium"
         >
@@ -136,15 +133,15 @@ const DashboardPage = () => {
       </Flex>
       {items.length === 0 && !isLoading && (
         <Text textAlign="center" color="gray.500" py={10}>
-          No canvases yet. Create one to get started!
+          No memories yet. Create one to get started!
         </Text>
       )}
       <SimpleGrid columns={{ base: 2, md: 3 }} spacing="16px">
-        {items.map((canvas, index) => (
+        {items.map((memory, index) => (
           <Box
-            key={canvas.id}
+            key={memory.id}
             as={RouterLink}
-            to={`/canvas/${canvas.id}`}
+            to={`/memory/${memory.id}`}
             bg={
               theme.colors.mode === "light"
                 ? ["#F8F9FE", "#F7FCF7", "#FFF8F5"][index % 3]
@@ -167,7 +164,7 @@ const DashboardPage = () => {
               color={theme.colors.gray[800]}
               fontSize="lg"
             >
-              {canvas.title}
+              {memory.title}
             </Text>
           </Box>
         ))}
@@ -175,7 +172,7 @@ const DashboardPage = () => {
     </Box>
   );
 
-  CanvasGrid.propTypes = {
+  MemoryGrid.propTypes = {
     items: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
@@ -185,12 +182,11 @@ const DashboardPage = () => {
     ).isRequired,
     isLoading: PropTypes.bool,
   };
-
   return (
     <MasterLayout>
       <Box>
         <Heading size="lg" mb={6}>
-          My Moments
+          My Memories
         </Heading>
         <SearchBar />
         <Box mb={6}>
@@ -198,7 +194,7 @@ const DashboardPage = () => {
             variant="solid"
             leftIcon={<AddIcon />}
             width="full"
-            onClick={handleCreateCanvas}
+            onClick={handleCreateMemory}
             bg="#4186E0"
             color="white"
             _hover={{ bg: "#3674C7" }}
@@ -206,7 +202,7 @@ const DashboardPage = () => {
             size="lg"
             height="48px"
           >
-            Create Canvas
+            Create Memory
           </Button>
         </Box>
         {isLoading && <LoadingSpinner />}
@@ -215,7 +211,7 @@ const DashboardPage = () => {
             Error: {error}
           </Text>
         )}
-        {!isLoading && !error && <CanvasGrid items={filteredCanvases} />}
+        {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
       </Box>
     </MasterLayout>
   );

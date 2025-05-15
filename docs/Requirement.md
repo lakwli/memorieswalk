@@ -4,30 +4,33 @@ Target User:
 Non-technical non designer but normal user could be students, teenager, parent, or anyone, whom just simply want to show their photo in a way they want to present it, just like old time with album with blank age, but now digitally.
 
 Core App:
-User can build canvas not only upload the picture, but mainly to capture meaningful moment, where memory play important hints to strong emotion, that they want to keep it, while this memory can make them back to the past with the feeling back again. User can present it from the canvas to make it more life, from how they feel it, Ur perspective, how they want to share, be it footstep on world, or time based show your growing, or memory with certain people, or whatever. Hence ever.They can share to whoever they want.
+User can build Memories not only upload the picture, but mainly to capture meaningful moment, where memory play important hints to strong emotion, that they want to keep it, while this memory can make them back to the past with the feeling back again. User can present it from the Canvas to make it more life, from how they feel it, Ur perspective, how they want to share, be it footstep on world, or time based show your growing, or memory with certain people, or whatever. Hence ever.They can share to whoever they want.
+
+Future extension:
+a memory means Infinite Canvas. User can have other view (future, e.g. GridView, PlacesView, TimelineView).
 
 Detail:
 
 The web app should allow:
 Uploading photos (drag & drop or mobile tap)
-Placing them into freeform canvas
+Placing them into Canvas
 Generating a shareable link for others to view
 
-Below are the key screens, highlighting the new canvas feature you requested.
+Below are the key screens, highlighting the new Canvas feature.
 
-1. **My Canvases (Dashboard)**
-2. **Canvas Editor**
+1. **MyMemories (Dashboard)**
+2. **MyMemories Editor**
 3. **Share/Publish**
 
 Here’s the super-simple spec:
 
 ---
 
-# 📕 Minimum-Viable Digital Canvas Album
+# 📕 Minimum-Viable Digital MyMemories Album
 
-## 1. My Canvases (Dashboard)
+## 1. My Memories (Dashboard)
 
-- **List of Canvases**
+- **List of Memories**
 
 This is the central hub where users first land. I've kept it clean and minimal with:
 
@@ -41,7 +44,7 @@ The dashboard helps users quickly find their content without overwhelming them w
 
 ---
 
-## 2. Canvas Editor
+## 2. MyMemories Editor
 
 ### A. Toolbar
 
@@ -57,8 +60,8 @@ The dashboard helps users quickly find their content without overwhelming them w
 
 Freely position photos with intuitive drag-and-drop
 Rotate photos using simple handles
-Add text layers anywhere on the canvas
-Draw directly on the canvas with a pen tool
+Add text layers anywhere on the Canvas
+Draw directly on the Canvas with a pen tool
 Manage layers for complex compositions
 Save their creation with a prominent button
 
@@ -104,6 +107,6 @@ Privacy controls that are easy to understand
 6. Admin & Users
    Admin-Managed Accounts: only admin can create user logins
 
-Each User sees only their own canvases
+Each User sees only their own memories
 
 No public signup

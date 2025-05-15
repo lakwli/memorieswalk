@@ -1,9 +1,12 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import process from "process";
 import pool from "./db.js";
 import authRoutes from "./routes/auth.js";
-import canvasRoutes from "./routes/canvas.js";
+import canvasRoutes from "./routes/canvas.js"; // Keep for backward compatibility
+import memoryRoutes from "./routes/memory.js";
+import memoryRoutesDetailed from "./routes/memoryRoutes.js";
 
 dotenv.config();
 
@@ -21,7 +24,9 @@ app.use(express.json());
 
 // API routes
 app.use("/api/auth", authRoutes);
-app.use("/api/canvases", canvasRoutes);
+app.use("/api/canvases", canvasRoutes); // Keep for backward compatibility
+app.use("/api/memories", memoryRoutes);
+app.use("/api/memories", memoryRoutesDetailed);
 
 // Basic health check endpoint
 app.get("/", (req, res) => {
@@ -29,14 +34,15 @@ app.get("/", (req, res) => {
 });
 
 // Test PostgreSQL connection and start server
-pool.query("SELECT NOW()", (err, res) => {
+pool.query("SELECT NOW()", (err, _result) => {
   if (err) {
     console.error("❌ PostgreSQL connection error:", err);
     process.exit(1);
   }
   console.log("✅ Connected to PostgreSQL at:", process.env.DB_HOST);
 
-  app.listen(process.env.PORT || 3000, () => {
-    console.log(`🚀 Server running on port ${process.env.PORT || 3000}`);
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`🚀 Server running on port ${port}`);
   });
 });

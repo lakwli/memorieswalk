@@ -11,6 +11,17 @@ async function initializeDb() {
   try {
     console.log("🔄 Initializing database...");
 
+    // Drop existing tables
+    console.log("Dropping existing tables if any...");
+    await pool.query(`
+      DROP TABLE IF EXISTS share_links CASCADE;
+      DROP TABLE IF EXISTS photos CASCADE;
+      DROP TABLE IF EXISTS memories CASCADE;
+      DROP TABLE IF EXISTS canvases CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
+    `);
+    console.log("✅ Existing tables dropped");
+
     // Read and execute schema.sql
     const schemaPath = path.join(__dirname, "../../database/schema.sql");
     const schema = await fs.readFile(schemaPath, "utf8");
