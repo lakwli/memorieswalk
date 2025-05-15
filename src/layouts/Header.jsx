@@ -16,6 +16,7 @@ import {
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logo from "../assets/logo.svg";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -28,8 +29,8 @@ const Header = () => {
           <HStack spacing={8}>
             <Image
               h="32px"
-              src="/logo.svg"
-              alt="Logo"
+              src={logo}
+              alt="Moments Logo"
               cursor="pointer"
               onClick={() => navigate("/dashboard")}
             />

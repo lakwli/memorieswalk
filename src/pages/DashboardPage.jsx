@@ -189,7 +189,9 @@ const DashboardPage = () => {
   return (
     <MasterLayout>
       <Box>
-        <Heading size="lg" mb={6}>My Canvas</Heading>
+        <Heading size="lg" mb={6}>
+          My Moments
+        </Heading>
         <SearchBar />
         <Box mb={6}>
           <Button

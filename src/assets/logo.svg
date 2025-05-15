@@ -1,0 +1,25 @@
+<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background -->
+  
+  <!-- Abstract photo frames in different angles -->
+  <g transform="translate(150, 100)">
+    <!-- Main photo frame -->
+    <rect x="-60" y="-40" width="70" height="55" fill="#ffffff" stroke="#5D7CF2" stroke-width="3" transform="rotate(-8)" rx="3" ry="3" />
+    
+    <!-- Secondary photo frame -->
+    <rect x="-25" y="-15" width="60" height="45" fill="#ffffff" stroke="#56CCF2" stroke-width="3" transform="rotate(12)" rx="3" ry="3" />
+    
+    <!-- Third photo frame -->
+    <rect x="10" y="0" width="50" height="40" fill="#ffffff" stroke="#5D7CF2" stroke-width="3" transform="rotate(-5)" rx="3" ry="3" />
+  </g>
+  
+  <!-- Letter m stylized with curved lines representing waves of memories -->
+  <path d="M85,130 C90,120 95,115 100,130 C105,115 110,120 115,130" stroke="#5D7CF2" stroke-width="6" stroke-linecap="round" fill="none" />
+  
+  <!-- Text -->
+  <text x="150" y="160" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#333333" font-weight="500">moments</text>
+  
+  <!-- Shutter or aperture symbol representing photography -->
+  <circle cx="150" cy="90" r="12" fill="none" stroke="#56CCF2" stroke-width="2.5" />
+  <circle cx="150" cy="90" r="6" fill="#5D7CF2" />
+</svg>
