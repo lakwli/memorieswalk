@@ -4,7 +4,7 @@ Target User:
 Non-technical non designer but normal user could be students, teenager, parent, or anyone, whom just simply want to show their photo in a way they want to present it, just like old time with album with blank age, but now digitally.
 
 Core App:
-User can build Memories not only upload the picture, but mainly to capture meaningful moment, where memory play important hints to strong emotion, that they want to keep it, while this memory can make them back to the past with the feeling back again. User can present it from the Canvas to make it more life, from how they feel it, Ur perspective, how they want to share, be it footstep on world, or time based show your growing, or memory with certain people, or whatever. Hence ever.They can share to whoever they want.
+User can build Memories not only upload the picture, but mainly to capture meaningful moment, where memory play important hints to strong emotion, that they want to keep it, while this memory can make them back to the past with the feeling back again. User can present it from the Memories to make it more life, from how they feel it, Ur perspective, how they want to share, be it footstep on world, or time based show your growing, or memory with certain people, or whatever. Hence ever.They can share to whoever they want.
 
 Future extension:
 a memory means Infinite Canvas. User can have other view (future, e.g. GridView, PlacesView, TimelineView).
@@ -16,7 +16,7 @@ Uploading photos (drag & drop or mobile tap)
 Placing them into Canvas
 Generating a shareable link for others to view
 
-Below are the key screens, highlighting the new Canvas feature.
+Below are the key screens, highlighting the new Memories feature.
 
 1. **MyMemories (Dashboard)**
 2. **MyMemories Editor**

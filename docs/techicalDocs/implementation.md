@@ -28,8 +28,8 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
     - Define initial schema for:
       - `users` (id, username, password_hash, created_at, updated_at) - `username` should be unique.
-      - `canvases` (id, user_id (FK to users), title, canvas_data (JSONB), created_at, updated_at, thumbnail_url).
-      - `share_links` (id, canvas_id (FK to canvases), token (unique, unguessable), expires_at (nullable), allow_downloads (boolean), created_at).
+      - `Memories` (id, user_id (FK to users), title, Memories_data (JSONB), created_at, updated_at, thumbnail_url).
+      - `share_links` (id, Memories_id (FK to Memories), token (unique, unguessable), expires_at (nullable), allow_downloads (boolean), created_at).
     - Set up migrations (e.g., using `node-pg-migrate` or Knex.js migrations).
 
 3.  **Backend - User Management & Authentication API:**
@@ -48,70 +48,70 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
 ---
 
-### Phase 2: "My Canvases" Dashboard & Basic Canvas CRUD
+### Phase 2: "My Memories" Dashboard & Basic Memories CRUD
 
-**Goal:** Implement the dashboard screen and the backend logic for managing canvases.
+**Goal:** Implement the dashboard screen and the backend logic for managing Memories.
 
-1.  **Backend - Canvas CRUD API:**
+1.  **Backend - Memories CRUD API:**
 
-    - `POST /api/canvases`: Create a new canvas (requires authenticated user). Sets `user_id` from `req.user`. Returns new canvas object (or ID).
-      - _Input:_ `{ title: "My New Canvas" }`
-      - _Response:_ `{ id: ..., title: "My New Canvas", user_id: ..., canvas_data: null, ... }`
-    - `GET /api/canvases`: List canvases for the authenticated user.
+    - `POST /api/Memories`: Create a new Memories (requires authenticated user). Sets `user_id` from `req.user`. Returns new Memories object (or ID).
+      - _Input:_ `{ title: "My New Memories" }`
+      - _Response:_ `{ id: ..., title: "My New Memories", user_id: ..., Memories: null, ... }`
+    - `GET /api/Memories`: List Memories for the authenticated user.
       - _Response:_ `[{ id, title, thumbnail_url, updated_at }, ...]`
-    - `GET /api/canvases/:id`: Get a specific canvas (owned by the user). Returns full canvas data including `canvas_data` (JSONB).
-    - `PUT /api/canvases/:id`: Update canvas (e.g., title, `canvas_data`).
-    - `DELETE /api/canvases/:id`: Delete a canvas (owned by the user).
-    - Middleware to ensure users can only access/modify their own canvases.
+    - `GET /api/Memories/:id`: Get a specific Memories (owned by the user). Returns full Memories data including `Memories_data` (JSONB).
+    - `PUT /api/Memories/:id`: Update Memories (e.g., title, `Memories_data`).
+    - `DELETE /api/Memories/:id`: Delete a Memories (owned by the user).
+    - Middleware to ensure users can only access/modify their own Memories.
 
-2.  **Frontend - "My Canvases" Dashboard (as per mockup /workspace/docs/screenshots/dashboard.png):**
+2.  **Frontend - "My Memories" Dashboard (as per mockup /workspace/docs/screenshots/dashboard.png):**
     - **Page Component:** `pages/DashboardPage.js`.
     - **UI:**
-      - Header: "My Canvas", User Profile icon/initials (top right).
+      - Header: "My Memories", User Profile icon/initials (top right).
       - Search bar (client-side filtering for now).
-      - "Create Canvas" button:
-        - Action: Calls `POST /api/canvases`. On success, navigates to Canvas Editor for the new canvas ID.
-        - _Mockup Detail:_ Blue button with "Create Canvas".
-      - "Delete Canvas" button:
-        - Action: Only active if a canvas is selected (or implement per-canvas delete icons). Calls `DELETE /api/canvases/:id`. Requires confirmation.
-        - _Mockup Detail:_ White button with "Delete Canvas".
-      - "Recent Canvas" grid:
-        - Fetches data from `GET /api/canvases`.
-        - Displays each canvas as a card (initially, placeholder for thumbnail, then `thumbnail_url`). Cards should show canvas title (e.g., "Travel 2024").
-        - Clicking a canvas navigates to the Canvas Editor for that canvas.
+      - "Create Memories" button:
+        - Action: Calls `POST /api/Memories`. On success, navigates to Memories Editor for the new Memories ID.
+        - _Mockup Detail:_ Blue button with "Create Memories".
+      - "Delete Memories" button:
+        - Action: Only active if a Memories is selected (or implement per-Memories delete icons). Calls `DELETE /api/Memories/:id`. Requires confirmation.
+        - _Mockup Detail:_ White button with "Delete Memories".
+      - "Recent Memories" grid:
+        - Fetches data from `GET /api/Memories`.
+        - Displays each Memories as a card (initially, placeholder for thumbnail, then `thumbnail_url`). Cards should show Memories title (e.g., "Travel 2024").
+        - Clicking a Memories navigates to the Memories Editor for that Memories.
         - "View All" link (if pagination is implemented later).
-    - **State:** Local component state for canvas list, search term.
-    - **API Service:** `services/canvasService.js`.
+    - **State:** Local component state for Memories list, search term.
+    - **API Service:** `services/MemoriesService.js`.
 
 ---
 
-### Phase 3: Canvas Editor - Core Functionality & Photo Uploads
+### Phase 3: Memories Editor - Core Functionality & Photo Uploads
 
-**Goal:** Implement the Canvas Editor screen with core object manipulation and photo uploading.
+**Goal:** Implement the Memories Editor screen with core object manipulation and photo uploading.
 
 1.  **Backend - Photo Upload & Serving:**
 
-    - `POST /api/canvases/:id/photos` or `/api/photos?canvasId=:id`: Upload photo.
+    - `POST /api/Memories/:id/photos` or `/api/photos?MemoriesId=:id`: Upload photo.
       - Uses `multer` for file handling.
-      - Saves original image to `server/uploads/user_<userId>/canvas_<canvasId>/<filename>`.
+      - Saves original image to `server/uploads/user_<userId>/Memories_<MemoriesId>/<filename>`.
       - Uses `sharp` to generate a display-optimized version and a small thumbnail.
       - Returns path/URL to the uploaded photo.
     - Static file serving (Express middleware) for the `uploads` directory.
 
 2.  **Backend - Auto-Save & Manual Save Endpoint:**
 
-    - Re-use `PUT /api/canvases/:id`. The request body will contain the `canvas_data` (JSON from Fabric.js) and potentially a new `thumbnail_data_url` (if using frontend thumbnail generation initially).
+    - Re-use `PUT /api/Memories/:id`. The request body will contain the `Memories_data` (JSON from Fabric.js) and potentially a new `thumbnail_data_url` (if using frontend thumbnail generation initially).
     - **Thumbnail Generation (Option 2 - Robust, from `architecture.md`):**
-      - If frontend sends canvas JSON, backend could _eventually_ use a headless browser or specialized library to render the canvas JSON to an image for the `thumbnail_url`.
-      - _Initial Simpler Approach for Thumbnails:_ Frontend sends a Data URL of the canvas view (`canvas.toDataURL()`) as part of the save payload. Backend saves this as the thumbnail. Update `canvases` table with `thumbnail_url`.
+      - If frontend sends Memories JSON, backend could _eventually_ use a headless browser or specialized library to render the Memories JSON to an image for the `thumbnail_url`.
+      - _Initial Simpler Approach for Thumbnails:_ Frontend sends a Data URL of the Memories view (`Memories.toDataURL()`) as part of the save payload. Backend saves this as the thumbnail. Update `Memories` table with `thumbnail_url`.
 
-3.  **Frontend - Canvas Editor Page (as per mockup /workspace/docs/screenshots/canvas.png):**
+3.  **Frontend - Memories Editor Page (as per mockup /workspace/docs/screenshots/Memories.png):**
 
-    - **Page Component:** `pages/CanvasEditorPage.js`.
-    - **Routing:** Takes `:canvasId` from URL parameter. Fetches canvas data using `GET /api/canvases/:canvasId`.
-    - **Canvas Library Integration (Fabric.js):**
-      - Initialize Fabric.js on a `<canvas>` element.
-      - Load existing `canvas_data` into Fabric.js (e.g., `canvas.loadFromJSON(data)`).
+    - **Page Component:** `pages/MemoriesEditorPage.js`.
+    - **Routing:** Takes `:MemoriesId` from URL parameter. Fetches Memories data using `GET /api/Memories/:MemoriesId`.
+    - **Memories Library Integration (Fabric.js):**
+      - Initialize Fabric.js on a `<Memories>` element.
+      - Load existing `Memories_data` into Fabric.js (e.g., `Memories.loadFromJSON(data)`).
     - **Workspace:**
       - Infinite/Scrollable: Configure Fabric.js for a large workspace, possibly with panning/zooming controls.
       - Background: White or configurable.
@@ -119,33 +119,33 @@ This plan breaks down the development into logical phases, focusing on deliverin
       - Each tool will be a button with an icon and label. The active tool should be highlighted.
       - **"Add Photo" (📁 Upload):**
         - Uses `React Dropzone` or `<input type="file">`.
-        - On file selection/drop, uploads to backend (`POST /api/canvases/:id/photos`).
-        - On successful upload, adds the image to the Fabric.js canvas (`fabric.Image.fromURL`).
-        - Allow drag & drop directly onto the canvas area as well.
+        - On file selection/drop, uploads to backend (`POST /api/Memories/:id/photos`).
+        - On successful upload, adds the image to the Fabric.js Memories (`fabric.Image.fromURL`).
+        - Allow drag & drop directly onto the Memories area as well.
       - **"Add Text" (✍️ Text):**
-        - Adds a `fabric.IText` object to the canvas.
+        - Adds a `fabric.IText` object to the Memories.
         - Allow editing text content, basic styling (font, size, color - use Fabric.js properties and potentially a small context menu/panel when text is selected).
       - **"Draw" (🖌️ Draw):**
-        - Enables Fabric.js free drawing mode (`canvas.isDrawingMode = true`).
+        - Enables Fabric.js free drawing mode (`Memories.isDrawingMode = true`).
         - Provide basic controls for color and brush width.
       - **"Rotate" (🔄 Rotate):**
         - This is usually an affordance on the selected object in Fabric.js (corner controls). Ensure these are enabled. The button might cycle through selection modes or offer a specific rotation input. Simpler: rely on Fabric.js's default controls for selected objects.
       - **"Layers" (📑 Layers):**
         - Select an object.
-        - Buttons for "Bring Forward" (`canvas.bringForward()`), "Send Backward" (`canvas.sendBackwards()`), "Bring to Front", "Send to Back".
+        - Buttons for "Bring Forward" (`Memories.bringForward()`), "Send Backward" (`Memories.sendBackwards()`), "Bring to Front", "Send to Back".
     - **Top Bar (as per mockup):**
       - Back arrow (navigate to Dashboard).
-      - Canvas Title (editable, updates `title` field).
+      - Memories Title (editable, updates `title` field).
       - **"Save" button (💾 Manual Save):**
-        - Serializes canvas state (`canvas.toJSON()`).
-        - Calls `PUT /api/canvases/:id` with `{ canvas_data: serializedData, title: currentTitle }`.
-        - _Optional:_ Send a `canvas.toDataURL()` for thumbnail update.
+        - Serializes Memories state (`Memories.toJSON()`).
+        - Calls `PUT /api/Memories/:id` with `{ Memories_data: serializedData, title: currentTitle }`.
+        - _Optional:_ Send a `Memories.toDataURL()` for thumbnail update.
       - **"Share" button (🔗 Share):** Opens the Share/Publish modal (Phase 4).
     - **Auto-Save Logic:**
       - `useEffect` hook with a debounce/throttle mechanism.
-      - When canvas changes (Fabric.js `object:modified`, `object:added`, etc. events), trigger a save after a few seconds.
-      - Calls `PUT /api/canvases/:id` similar to manual save.
-    - **State Management for Canvas:**
+      - When Memories changes (Fabric.js `object:modified`, `object:added`, etc. events), trigger a save after a few seconds.
+      - Calls `PUT /api/Memories/:id` similar to manual save.
+    - **State Management for Memories:**
 
       - Fabric.js manages its own internal object state.
       - React state for current tool, selected object properties (if building custom property editors), loading/saving status. Zustand or Redux Toolkit could be considered if side panel UIs for object properties become very complex, but try with local/Context first.
@@ -154,21 +154,21 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
 ### Phase 4: Sharing & Public Viewing
 
-**Goal:** Implement the functionality to generate shareable links and view shared canvases.
+**Goal:** Implement the functionality to generate shareable links and view shared Memories.
 
 1.  **Backend - Share Link API:**
 
-    - `POST /api/canvases/:id/share`: Create/get a share link for a canvas.
+    - `POST /api/Memories/:id/share`: Create/get a share link for a Memories.
       - Generates a unique, unguessable token.
-      - Saves to `share_links` table (token, canvas_id, expiry_date, allow_downloads).
+      - Saves to `share_links` table (token, Memories_id, expiry_date, allow_downloads).
       - Returns the share link URL (e.g., `https://yourdomain.com/share/:token`).
-    - `GET /api/share/:token`: Retrieve canvas data for public viewing.
-      - Looks up canvas by token. Checks expiry.
-      - Returns read-only canvas data (`{ title, canvas_data, allow_downloads }`). _Does not return user-specific info._
-    - _(Optional)_ `PUT /api/canvases/:id/share`: Update share link settings (e.g., expiry, allow_downloads).
-    - _(Optional)_ `DELETE /api/canvases/:id/share`: Revoke share link.
+    - `GET /api/share/:token`: Retrieve Memories data for public viewing.
+      - Looks up Memories by token. Checks expiry.
+      - Returns read-only Memories data (`{ title, Memories_data, allow_downloads }`). _Does not return user-specific info._
+    - _(Optional)_ `PUT /api/Memories/:id/share`: Update share link settings (e.g., expiry, allow_downloads).
+    - _(Optional)_ `DELETE /api/Memories/:id/share`: Revoke share link.
 
-2.  **Frontend - Share/Publish Modal (from Canvas Editor "Share" button):**
+2.  **Frontend - Share/Publish Modal (from Memories Editor "Share" button):**
 
     - **UI:**
       - Modal dialog.
@@ -180,16 +180,16 @@ This plan breaks down the development into logical phases, focusing on deliverin
     - **Logic:** Calls backend share link APIs.
 
 3.  **Frontend - Public View Page:**
-    - **Page Component:** `pages/SharedCanvasPage.js`.
+    - **Page Component:** `pages/SharedMemoriesPage.js`.
     - **Routing:** `/share/:token`. Extracts token from URL.
     - **Logic:**
-      - Calls `GET /api/share/:token` to fetch canvas data.
-      - Renders the canvas in a read-only mode. This might involve:
+      - Calls `GET /api/share/:token` to fetch Memories data.
+      - Renders the Memories in a read-only mode. This might involve:
         - Initializing Fabric.js.
-        - Loading `canvas_data`.
-        - Disabling all editing interactions (`canvas.selection = false`, objects not selectable/movable).
-      - Displays canvas title.
-      - If `allow_downloads` is true, provide a button to download the canvas (e.g., as a PNG using `canvas.toDataURL()` or a backend endpoint that renders and serves it).
+        - Loading `Memories_data`.
+        - Disabling all editing interactions (`Memories.selection = false`, objects not selectable/movable).
+      - Displays Memories title.
+      - If `allow_downloads` is true, provide a button to download the Memories (e.g., as a PNG using `Memories.toDataURL()` or a backend endpoint that renders and serves it).
 
 ---
 
@@ -209,9 +209,9 @@ This plan breaks down the development into logical phases, focusing on deliverin
     - **Loading States:** Show spinners/loaders during API calls.
     - **Responsive Design:** Ensure the UI is usable on various screen sizes, especially the shared view and dashboard. The editor might be more desktop-focused.
     - **Accessibility (A11y):** Basic ARIA attributes, keyboard navigation.
-    - **UX:** Confirm destructive actions (delete canvas). Clear visual feedback for active tools, save status.
-    - **Empty States:** Friendly messages when no canvases exist, etc.
-    - **Thumbnail Quality:** If initial frontend Data URL thumbnails are poor, implement robust backend thumbnail generation from canvas JSON.
+    - **UX:** Confirm destructive actions (delete Memories). Clear visual feedback for active tools, save status.
+    - **Empty States:** Friendly messages when no Memories exist, etc.
+    - **Thumbnail Quality:** If initial frontend Data URL thumbnails are poor, implement robust backend thumbnail generation from Memories JSON.
 
 ---
 
@@ -238,22 +238,22 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
 4.  **Testing:**
     - **Manual Testing:** Thoroughly test all user flows on different browsers/devices.
-    - **(Optional) Unit/Integration Tests:** Add tests for critical backend logic (auth, canvas permissions) and frontend components/services.
+    - **(Optional) Unit/Integration Tests:** Add tests for critical backend logic (auth, Memories permissions) and frontend components/services.
 
 ---
 
 ### Key Decisions & Considerations during Implementation:
 
-- **Canvas Library Choice:** Stick with Fabric.js as suggested. It's mature and feature-rich.
-- **Thumbnail Generation:** Start with frontend-generated Data URLs sent to backend for simplicity for "Recent Canvas" thumbnails. Plan to upgrade to backend rendering from JSON (`sharp` + SVG export from Fabric.js, or headless browser) if quality/performance becomes an issue.
-- **State Management (Frontend):** React Context for global state (auth). Local component state for most UI elements. Zustand for canvas editor specific complex state if `Fabric.js` internal state + component state becomes unwieldy.
-- **"Infinite Canvas":** Fabric.js can handle large canvas dimensions. Panning/zooming will be important.
+- **Memories Library Choice:** Stick with Fabric.js as suggested. It's mature and feature-rich.
+- **Thumbnail Generation:** Start with frontend-generated Data URLs sent to backend for simplicity for "Recent Memories" thumbnails. Plan to upgrade to backend rendering from JSON (`sharp` + SVG export from Fabric.js, or headless browser) if quality/performance becomes an issue.
+- **State Management (Frontend):** React Context for global state (auth). Local component state for most UI elements. Zustand for Memories editor specific complex state if `Fabric.js` internal state + component state becomes unwieldy.
+- **"Infinite Memories":** Fabric.js can handle large Memories dimensions. Panning/zooming will be important.
 - **User-Friendliness (All Ages):**
   - Clear visual hierarchy (as in mockups).
   - Prominent buttons with both icons and text labels (as shown in editor mockup).
   - Intuitive drag-and-drop.
   - Minimize clutter.
-- **Search on Dashboard:** Start with client-side filtering of displayed canvases. If data grows large, implement server-side search.
+- **Search on Dashboard:** Start with client-side filtering of displayed Memories. If data grows large, implement server-side search.
 - **Admin Role:** Add a `role` column (e.g., 'admin', 'user') to the `users` table to manage admin access. The first admin user might need to be created manually in the DB or via a seed script.
 
-This phased approach should allow for steady progress and the ability to adapt as development unfolds. The mockups provide excellent guidance for the UI, especially for the Dashboard and Canvas Editor.
+This phased approach should allow for steady progress and the ability to adapt as development unfolds. The mockups provide excellent guidance for the UI, especially for the Dashboard and Memories Editor.

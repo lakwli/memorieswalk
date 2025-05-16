@@ -1,4 +1,4 @@
-# Frontend Technical Details: My Canvases Dashboard & Editor
+# Frontend Technical Details: My Memories Dashboard & Editor
 
 ## 1. App Structure & Main Files
 
@@ -59,7 +59,7 @@
 
 - **Frontend Services:**
 
-  - `src/services/memoryService.js`: CRUD operations for "memories" (canvases).
+  - `src/services/memoryService.js`: CRUD operations for "memories" (Memories).
   - `src/services/canvasService.js`: (If present) Handles canvas-specific API calls.
   - Services use fetch/axios to communicate with backend endpoints, passing JWT tokens as needed.
 
@@ -83,6 +83,6 @@
 ---
 
 **Summary:**
-The app is a React/Chakra UI SPA with a dashboard for managing canvases ("memories"), a canvas editor, and authentication. It uses a clear separation of concerns: layout, routing, authentication context, service layers for API calls, and a custom theme. The backend is a Node/Express REST API with JWT authentication and endpoints for user, memory, and canvas management.
+The app is a React/Chakra UI SPA with a dashboard for managing Memories ("memories"), a Memories editor, and authentication. It uses a clear separation of concerns: layout, routing, authentication context, service layers for API calls, and a custom theme. The backend is a Node/Express REST API with JWT authentication and endpoints for user, memory, and Memories management.
 
 If you need a deeper dive into any specific part (e.g., code samples, flow diagrams, or file-by-file breakdown), see the referenced files or request further details.
