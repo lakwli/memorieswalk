@@ -5,15 +5,17 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(authService.getAuthToken()); // Manage token in state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = () => {
-      const token = authService.getAuthToken();
-      const user = authService.getCurrentUser();
-      if (token && user) {
-        setUser(user);
+      const currentToken = authService.getAuthToken();
+      const currentUser = authService.getCurrentUser();
+      if (currentToken && currentUser) {
+        setUser(currentUser);
+        setToken(currentToken);
         setIsAuthenticated(true);
       }
       setIsLoading(false);
@@ -21,15 +23,18 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = (userData, token) => {
+  const login = (userData, authToken) => {
+    // Renamed token param to avoid conflict
     setUser(userData);
+    setToken(authToken); // Set token state
     setIsAuthenticated(true);
-    authService.setAuthToken(token);
+    authService.setAuthToken(authToken);
     authService.setCurrentUser(userData);
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null); // Clear token state
     setIsAuthenticated(false);
     authService.logout();
   };
@@ -39,7 +44,9 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, setUser, token, isAuthenticated, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

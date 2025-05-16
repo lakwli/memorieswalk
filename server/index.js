@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.js";
 import canvasRoutes from "./routes/canvas.js"; // Keep for backward compatibility
 import memoryRoutes from "./routes/memory.js";
 import memoryRoutesDetailed from "./routes/memoryRoutes.js";
+import userRoutes from "./routes/userRoutes.js"; // Add this line
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/canvases", canvasRoutes); // Keep for backward compatibility
 app.use("/api/memories", memoryRoutes);
 app.use("/api/memories", memoryRoutesDetailed);
+app.use("/api/users", userRoutes); // Add this line
 
 // Basic health check endpoint
 app.get("/", (req, res) => {
@@ -34,7 +36,8 @@ app.get("/", (req, res) => {
 });
 
 // Test PostgreSQL connection and start server
-pool.query("SELECT NOW()", (err, _result) => {
+pool.query("SELECT NOW()", (err) => {
+  // Remove _result
   if (err) {
     console.error("❌ PostgreSQL connection error:", err);
     process.exit(1);
