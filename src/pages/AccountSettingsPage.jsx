@@ -6,18 +6,19 @@ import {
   FormLabel,
   Input,
   VStack,
-  Heading,
   useToast,
   Spinner,
   Alert,
   AlertIcon,
+  Grid,
+  GridItem,
 } from "@chakra-ui/react";
-import AuthContext from "../context/AuthContext"; // Changed to default import
+import AuthContext from "../context/AuthContext";
 import { updateUserProfile, changePassword } from "../services/userService";
-import MasterLayout from "../layouts/MasterLayout.jsx"; // Import MasterLayout
+import PageLayout from "../layouts/PageLayout";
 
 const AccountSettingsPage = () => {
-  const { user, token, setUser } = useContext(AuthContext); // setUser is now available
+  const { user, token, setUser } = useContext(AuthContext);
   const toast = useToast();
 
   const [fullName, setFullName] = useState("");
@@ -46,7 +47,7 @@ const AccountSettingsPage = () => {
     setProfileSuccess("");
     try {
       const updatedUser = await updateUserProfile(token, { fullName, email });
-      setUser(updatedUser); // Update user in AuthContext
+      setUser(updatedUser);
       setProfileSuccess("Profile updated successfully!");
       toast({
         title: "Profile Updated",
@@ -83,7 +84,6 @@ const AccountSettingsPage = () => {
       return;
     }
     if (newPassword.length < 6) {
-      // Example: Basic password length validation
       setPasswordError("New password must be at least 6 characters long.");
       setIsLoading(false);
       return;
@@ -123,15 +123,13 @@ const AccountSettingsPage = () => {
   }
 
   return (
-    <MasterLayout>
-      {" "}
-      {/* Wrap content with MasterLayout */}
-      <Box p={8} maxWidth="600px" mx="auto">
-        <VStack spacing={8} align="stretch">
+    <PageLayout title="Account Settings">
+      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={10}>
+        <GridItem>
           <Box>
-            <Heading as="h2" size="lg" mb={6}>
-              Account Information
-            </Heading>
+            <Box fontSize="xl" fontWeight="semibold" mb={4}>
+              Profile Information
+            </Box>
             {profileError && (
               <Alert status="error" mb={4}>
                 <AlertIcon />
@@ -145,7 +143,7 @@ const AccountSettingsPage = () => {
               </Alert>
             )}
             <form onSubmit={handleProfileUpdate}>
-              <VStack spacing={4}>
+              <VStack spacing={4} align="stretch">
                 <FormControl id="fullName">
                   <FormLabel>Full Name</FormLabel>
                   <Input
@@ -178,17 +176,20 @@ const AccountSettingsPage = () => {
                   colorScheme="blue"
                   isLoading={isLoading}
                   loadingText="Updating..."
+                  alignSelf="flex-start"
                 >
                   Update Profile
                 </Button>
               </VStack>
             </form>
           </Box>
+        </GridItem>
 
+        <GridItem>
           <Box>
-            <Heading as="h2" size="lg" mb={6}>
+            <Box fontSize="xl" fontWeight="semibold" mb={4}>
               Change Password
-            </Heading>
+            </Box>
             {passwordError && (
               <Alert status="error" mb={4}>
                 <AlertIcon />
@@ -202,7 +203,7 @@ const AccountSettingsPage = () => {
               </Alert>
             )}
             <form onSubmit={handlePasswordChange}>
-              <VStack spacing={4}>
+              <VStack spacing={4} align="stretch">
                 <FormControl id="currentPassword">
                   <FormLabel>Current Password</FormLabel>
                   <Input
@@ -235,15 +236,16 @@ const AccountSettingsPage = () => {
                   colorScheme="teal"
                   isLoading={isLoading}
                   loadingText="Changing..."
+                  alignSelf="flex-start"
                 >
                   Change Password
                 </Button>
               </VStack>
             </form>
           </Box>
-        </VStack>
-      </Box>
-    </MasterLayout> // Close MasterLayout
+        </GridItem>
+      </Grid>
+    </PageLayout>
   );
 };
 

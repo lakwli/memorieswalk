@@ -13,7 +13,9 @@ import {
   Heading,
   Text,
   useToast,
+  Image,
 } from "@chakra-ui/react";
+import logo from "../assets/logo.svg"; // Make sure this path is correct
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
@@ -78,7 +80,7 @@ const LoginPage = () => {
       <Container maxW="md">
         <Stack spacing="8">
           <Stack spacing="6" align="center">
-            {/* Logo or App Icon could go here */}{" "}
+            <Image h="48px" src={logo} alt="Moments Logo" />
             <Stack spacing="3" textAlign="center">
               <Heading size="xl" fontWeight="bold" color="gray.900">
                 My Memories

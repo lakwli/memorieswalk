@@ -11,15 +11,14 @@ import {
   useToast,
   Spinner,
   useTheme,
-  Heading,
-  Flex, // Add missing Flex import
+  Flex,
 } from "@chakra-ui/react";
 import { SearchIcon, AddIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { memoryService } from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
-import MasterLayout from "../layouts/MasterLayout.jsx"; // Add .jsx extension
+import PageLayout from "../layouts/PageLayout";
 
 const DashboardPage = () => {
   const [memories, setMemories] = useState([]);
@@ -55,6 +54,7 @@ const DashboardPage = () => {
     };
     fetchMemories();
   }, [toast]);
+
   const handleCreateMemory = async () => {
     try {
       const title = prompt("Enter memory title:", "New Memory");
@@ -80,6 +80,7 @@ const DashboardPage = () => {
       });
     }
   };
+
   const filteredMemories = memories.filter((memory) =>
     memory.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -116,12 +117,17 @@ const DashboardPage = () => {
       />
     </Flex>
   );
+
   const MemoryGrid = ({ items }) => (
-    <Box px={6} pb={6}>
+    <Box pb={6}>
       <Flex justifyContent="space-between" alignItems="center" mb={4}>
-        <Heading size="md" fontWeight="semibold" color={theme.colors.gray[900]}>
+        <Text
+          fontWeight="semibold"
+          color={theme.colors.gray[900]}
+          fontSize="lg"
+        >
           Recent Memories
-        </Heading>
+        </Text>
         <Link
           as={RouterLink}
           to="/memories/all"
@@ -180,40 +186,53 @@ const DashboardPage = () => {
         title: PropTypes.string.isRequired,
       })
     ).isRequired,
-    isLoading: PropTypes.bool,
   };
+
+  // Create Memory Button as an action for the page header
+  const createMemoryAction = (
+    <Button
+      variant="solid"
+      leftIcon={<AddIcon />}
+      onClick={handleCreateMemory}
+      bg="#4186E0"
+      color="white"
+      _hover={{ bg: "#3674C7" }}
+      borderRadius="md"
+      size="md"
+    >
+      Create Memory
+    </Button>
+  );
+
   return (
-    <MasterLayout>
-      <Box>
-        <Heading size="lg" mb={6}>
-          My Memories
-        </Heading>
-        <SearchBar />
-        <Box mb={6}>
-          <Button
-            variant="solid"
-            leftIcon={<AddIcon />}
-            width="full"
-            onClick={handleCreateMemory}
-            bg="#4186E0"
-            color="white"
-            _hover={{ bg: "#3674C7" }}
-            borderRadius="md"
-            size="lg"
-            height="48px"
-          >
-            Create Memory
-          </Button>
-        </Box>
-        {isLoading && <LoadingSpinner />}
-        {error && (
-          <Text color="red.500" textAlign="center" p={4}>
-            Error: {error}
-          </Text>
-        )}
-        {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
+    <PageLayout title="My Memories" actions={createMemoryAction}>
+      <SearchBar />
+
+      <Box mb={6}>
+        <Button
+          variant="solid"
+          leftIcon={<AddIcon />}
+          width="full"
+          onClick={handleCreateMemory}
+          bg="#4186E0"
+          color="white"
+          _hover={{ bg: "#3674C7" }}
+          borderRadius="md"
+          size="lg"
+          height="48px"
+        >
+          Create Memory
+        </Button>
       </Box>
-    </MasterLayout>
+
+      {isLoading && <LoadingSpinner />}
+      {error && (
+        <Text color="red.500" textAlign="center" p={4}>
+          Error: {error}
+        </Text>
+      )}
+      {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
+    </PageLayout>
   );
 };
 
