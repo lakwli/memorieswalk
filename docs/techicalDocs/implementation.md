@@ -6,7 +6,7 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
 **Core Technologies (as per architecture.md):**
 
-- **Frontend:** React, Vite, Fabric.js (or similar), React Router, Zustand (if needed), Tailwind CSS (or similar).
+- **Frontend:** React, Vite, Fabric.js (or similar), React Router, Zustand (if needed), Tailwind CSS (or similar). For Memory Editor, chose React-Konva
 - **Backend:** Node.js, Express.js, PostgreSQL, JWT, `sharp`.
 - **Development:** Monorepo structure.
 
@@ -105,7 +105,7 @@ This plan breaks down the development into logical phases, focusing on deliverin
       - If frontend sends Memories JSON, backend could _eventually_ use a headless browser or specialized library to render the Memories JSON to an image for the `thumbnail_url`.
       - _Initial Simpler Approach for Thumbnails:_ Frontend sends a Data URL of the Memories view (`Memories.toDataURL()`) as part of the save payload. Backend saves this as the thumbnail. Update `Memories` table with `thumbnail_url`.
 
-3.  **Frontend - Memories Editor Page (as per mockup /workspace/docs/screenshots/Memories.png):**
+3.  **Frontend - Memories Editor Page (as per mockup /workspace/docs/screenshots/MemoryEditor.png. Picture explaination: /workspace/docs/screenshots/memories/memoryEditor.png.md):**
 
     - **Page Component:** `pages/MemoriesEditorPage.js`.
     - **Routing:** Takes `:MemoriesId` from URL parameter. Fetches Memories data using `GET /api/Memories/:MemoriesId`.

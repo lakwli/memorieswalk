@@ -77,11 +77,9 @@ const Header = () => {
               </HStack>
             </MenuButton>
             <MenuList>
-              <MenuItem>Profile</MenuItem>
               <MenuItem as={RouterLink} to="/account-settings">
                 Account Settings
               </MenuItem>
-              <MenuItem>Help Center</MenuItem>
               <MenuDivider />
               <MenuItem
                 color="red.500"
