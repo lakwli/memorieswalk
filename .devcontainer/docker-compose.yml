@@ -1,34 +1,35 @@
 services:
+  app:
+    container_name: memorieswalk
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    env_file:
+      - ../server/.env
+    # The app container needs to keep running
+    tty: true
+    # Add port mappings to match your forwardPorts in devcontainer.json
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+    depends_on:
+      - postgres
+
   postgres:
-    image: postgres:15
+    image: postgres:latest
     container_name: postgres
+    # Define environment variables directly instead of using env_file
     environment:
       POSTGRES_USER: node
       POSTGRES_PASSWORD: node
-      POSTGRES_DB: photosharing
+      POSTGRES_DB: memorieswalk
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
-  dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: dev
-    environment:
-      DEVCONTAINER: true
-    volumes:
-      - ../:/workspace:cached
-      - vscode_extensions:/root/.vscode-server/extensions
-      - vscode_extensions_cache:/root/.vscode-server/extensionsCache
-    working_dir: /workspace
-    tty: true
-    depends_on:
-      - postgres
-
 volumes:
   postgres_data:
-  vscode_extensions:
-  vscode_extensions_cache:

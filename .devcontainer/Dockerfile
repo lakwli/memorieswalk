@@ -22,14 +22,5 @@ WORKDIR /workspace
 # Install global packages that might be needed
 RUN npm install -g nodemon
 
-# Set up environment variables
-ENV VITE_API_URL=http://localhost:3000/api
-ENV DB_USER=node
-ENV DB_HOST=postgres
-ENV DB_NAME=photosharing
-ENV DB_PASSWORD=node
-ENV DB_PORT=5432
-ENV JWT_SECRET=your_secure_jwt_secret_key_here
-ENV PORT=3000
-ENV NODE_ENV=development
-ENV FRONTEND_URL=http://localhost:3001
+# No ARG or ENV definitions for application variables
+# These will be provided by the .env file through Docker Compose

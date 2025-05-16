@@ -1,7 +1,7 @@
 {
-    "name": "PhotoSharing Dev Environment",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "dev",
+    "name": "MemoriesWalk Dev Environment",
+    "dockerComposeFile": ["docker-compose.yml"],
+    "service": "app",
     "workspaceFolder": "/workspace",
     
     "customizations": {
@@ -19,11 +19,11 @@
                 "editor.defaultFormatter": "esbenp.prettier-vscode",
                 "sqltools.connections": [
                     {
-                        "name": "PhotoSharing DB",
+                        "name": "MemoriesWalk DB",
                         "driver": "PostgreSQL",
                         "server": "postgres",
                         "port": 5432,
-                        "database": "photosharing",
+                        "database": "memorieswalk",
                         "username": "node",
                         "password": "node"
                     }
