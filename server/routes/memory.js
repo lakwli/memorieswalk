@@ -6,6 +6,11 @@ import { processImage, deleteFile } from "../utils/fileUtils.js";
 import { v4 as uuidv4 } from "uuid";
 import Joi from "joi";
 import canvasViewOptimizer from "../utils/canvasViewOptimizer.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -193,38 +198,44 @@ router.post(
             console.error("Cleanup error:", e)
           );
       }
-      return res
-        .status(400)
-        .json({
-          error: `Invalid photo metadata: ${bodyError.details[0].message}`,
-        });
+      return res.status(400).json({
+        error: `Invalid photo metadata: ${bodyError.details[0].message}`,
+      });
     }
 
     const userId = req.user.userId;
     const photoProcessingPromises = req.files.map(async (file) => {
       try {
         const photoId = uuidv4();
-        const processedAbsolutePath = await processImage(
-          file.path,
-          photoId.split("-")[0]
+        const firstPartOfUuid = photoId.split("-")[0];
+        const targetDirForProcessedImage = path.join(
+          __dirname,
+          "../public/photos",
+          firstPartOfUuid
         );
 
-        const publicDirPattern = new RegExp(`^.*/server/public/`);
-        const relativePathForDb = processedAbsolutePath.replace(
-          publicDirPattern,
-          ""
+        const processingResult = await processImage(file.path, {
+          targetDir: targetDirForProcessedImage,
+          baseName: photoId,
+        });
+
+        const publicBaseDir = path.join(__dirname, "../public");
+        const relativePathForDb = path.relative(
+          publicBaseDir,
+          processingResult.processedPath
         );
 
+        // Use metadata from the *processed* image (processingResult.metadata)
         const dbResult = await pool.query(
           "INSERT INTO photos (id, user_id, file_path, mime_type, size_bytes, width, height, captured_at, location_lat, location_lng, captured_place, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, file_path, created_at",
           [
             photoId,
             userId,
             relativePathForDb,
-            file.mimetype,
-            file.size,
-            null,
-            null,
+            processingResult.metadata.format,
+            processingResult.metadata.size,
+            processingResult.metadata.width,
+            processingResult.metadata.height,
             bodyValue.captured_at,
             bodyValue.location_lat,
             bodyValue.location_lng,
@@ -316,11 +327,9 @@ router.delete("/photos/:photoId", authenticateToken, async (req, res, next) => {
     }
 
     await client.query("COMMIT");
-    res
-      .status(200)
-      .json({
-        message: "Photo deleted successfully and unlinked from all memories.",
-      });
+    res.status(200).json({
+      message: "Photo deleted successfully and unlinked from all memories.",
+    });
   } catch (error) {
     if (client) await client.query("ROLLBACK");
     next(error);
@@ -467,6 +476,7 @@ const canvasConfigSchema = Joi.object({
   objects: Joi.array().items(Joi.object()).optional().default([]),
   layers: Joi.array().items(Joi.string()).optional().default([]),
   viewport: Joi.object().optional(),
+  background: Joi.string().optional(),
 }).default({ objects: [], layers: [] });
 
 const viewConfigurationSchema = Joi.object({
@@ -546,12 +556,10 @@ router.post("/:memoryId/views", authenticateToken, async (req, res, next) => {
         dbError.code === "23505" &&
         dbError.constraint === "idx_unique_primary_view_per_memory"
       ) {
-        return res
-          .status(409)
-          .json({
-            error:
-              "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
-          });
+        return res.status(409).json({
+          error:
+            "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
+        });
       }
       throw dbError;
     } finally {
@@ -652,11 +660,9 @@ router.put(
         value.view_type !== actualViewType &&
         !value.configuration_data
       ) {
-        return res
-          .status(400)
-          .json({
-            error: `Configuration data is required when changing view_type to '${value.view_type}'.`,
-          });
+        return res.status(400).json({
+          error: `Configuration data is required when changing view_type to '${value.view_type}'.`,
+        });
       }
 
       if (
@@ -671,11 +677,9 @@ router.put(
           .required()
           .validate(configuration_data);
         if (configError) {
-          return res
-            .status(400)
-            .json({
-              error: `Invalid configuration_data for view_type '${newViewType}': ${configError.details[0].message}`,
-            });
+          return res.status(400).json({
+            error: `Invalid configuration_data for view_type '${newViewType}': ${configError.details[0].message}`,
+          });
         }
       }
 
@@ -747,12 +751,10 @@ router.put(
         if (result.rows.length === 0) {
           await client.query("ROLLBACK");
           client.release();
-          return res
-            .status(404)
-            .json({
-              error:
-                "View configuration not found during update, or access denied.",
-            });
+          return res.status(404).json({
+            error:
+              "View configuration not found during update, or access denied.",
+          });
         }
 
         await client.query("COMMIT");
@@ -763,12 +765,10 @@ router.put(
           dbError.code === "23505" &&
           dbError.constraint === "idx_unique_primary_view_per_memory"
         ) {
-          return res
-            .status(409)
-            .json({
-              error:
-                "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
-            });
+          return res.status(409).json({
+            error:
+              "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
+          });
         }
         throw dbError;
       } finally {

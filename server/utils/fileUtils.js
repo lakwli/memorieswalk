@@ -37,58 +37,93 @@ function generateUniqueFilename(originalName) {
 // Process image (create optimized and thumbnail versions)
 async function processImage(originalPath, options = {}) {
   const {
-    targetDir, // New option: directory to save processed files
-    baseName, // New option: base name for output files (e.g., photoId)
+    targetDir,
+    baseName,
     width = 2000,
     height = 2000,
     quality = 85,
   } = options;
 
-  // Ensure targetDir is provided
+  console.log(`[processImage] Received originalPath: ${originalPath}`);
+  console.log(
+    `[processImage] Options: ${{ targetDir, baseName, width, height, quality }}`
+  );
+
   if (!targetDir || !baseName) {
+    console.error("[processImage] Error: targetDir and baseName are required.");
     throw new Error("targetDir and baseName are required for processImage");
   }
 
-  // Ensure the target directory exists
   ensureDir(targetDir);
 
-  // Define output paths using targetDir and baseName
-  // We'll save as .webp for optimization
   const optimizedFileName = `${baseName}.webp`;
   const optimizedPath = path.join(targetDir, optimizedFileName);
+  console.log(`[processImage] Optimized path will be: ${optimizedPath}`);
 
   try {
-    // Get image metadata
-    const metadata = await sharp(originalPath).metadata();
+    console.log(
+      `[processImage] Attempting to get metadata for: ${originalPath}`
+    );
+    let fileMetadata;
+    try {
+      fileMetadata = await sharp(originalPath).metadata();
+      console.log(
+        "[processImage] Successfully retrieved metadata:",
+        fileMetadata
+      );
+    } catch (metadataError) {
+      console.error(
+        `[processImage] Error retrieving metadata for ${originalPath}:`,
+        metadataError
+      );
+      throw metadataError; // Re-throw to be caught by the outer try-catch
+    }
 
-    // Create optimized version (WebP)
+    console.log(
+      `[processImage] Attempting to resize and convert to WebP: ${originalPath}`
+    );
     await sharp(originalPath)
       .resize(width, height, {
         fit: "inside",
         withoutEnlargement: true,
       })
-      .webp({ quality }) // Save as WebP
+      .webp({ quality })
       .toFile(optimizedPath);
+    console.log(
+      `[processImage] Successfully processed and saved to: ${optimizedPath}`
+    );
 
-    // Delete the original temporary file after successful processing
     if (fs.existsSync(originalPath)) {
+      console.log(
+        `[processImage] Deleting original temporary file: ${originalPath}`
+      );
       fs.unlinkSync(originalPath);
     }
 
+    const newFileSize = (await fs.promises.stat(optimizedPath)).size;
+    console.log(`[processImage] New file size: ${newFileSize} bytes`);
+
     return {
-      processedPath: optimizedPath, // Return the path of the main processed image
+      processedPath: optimizedPath,
       metadata: {
-        width: metadata.width,
-        height: metadata.height,
-        format: "webp", // Output format is webp
-        originalFormat: metadata.format,
-        size: (await fs.promises.stat(optimizedPath)).size, // Get size of the new file
+        width: fileMetadata.width, // Use metadata from the successful call
+        height: fileMetadata.height,
+        format: "webp",
+        originalFormat: fileMetadata.format,
+        size: newFileSize,
       },
     };
   } catch (error) {
-    // Attempt to delete any partially created files if processing fails
-    if (fs.existsSync(optimizedPath)) fs.unlinkSync(optimizedPath);
-    console.error("Error in processImage:", error);
+    console.error(
+      `[processImage] Error during image processing for ${originalPath}:`,
+      error
+    );
+    if (fs.existsSync(optimizedPath)) {
+      console.log(
+        `[processImage] Cleaning up partially created file: ${optimizedPath}`
+      );
+      fs.unlinkSync(optimizedPath);
+    }
     throw error;
   }
 }
@@ -98,9 +133,11 @@ async function deleteFiles(files) {
   if (!Array.isArray(files)) files = [files];
 
   for (const file of files) {
-    if (file && typeof file === 'string') { // Ensure it's a string path
+    if (file && typeof file === "string") {
+      // Ensure it's a string path
       try {
-        if (fs.existsSync(file)) { // Check if file exists before attempting to delete
+        if (fs.existsSync(file)) {
+          // Check if file exists before attempting to delete
           await fs.promises.unlink(file);
         }
       } catch (err) {
@@ -112,7 +149,7 @@ async function deleteFiles(files) {
 
 // New function to delete a single file
 async function deleteFile(filePath) {
-  if (filePath && typeof filePath === 'string') {
+  if (filePath && typeof filePath === "string") {
     try {
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
@@ -134,5 +171,5 @@ export {
   generateUniqueFilename,
   processImage,
   deleteFiles, // Export renamed function
-  deleteFile,  // Export new function
+  deleteFile, // Export new function
 };

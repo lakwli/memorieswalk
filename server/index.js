@@ -60,16 +60,20 @@ app.get("/", (req, res) => {
 // Add error handling middleware - MUST be after all routes and other app.use calls
 app.use(errorHandler);
 
-// Test PostgreSQL connection and start server
-pool.query("SELECT NOW()", (err) => {
-  if (err) {
-    console.error("❌ PostgreSQL connection error:", err);
-    process.exit(1);
-  }
-  console.log("✅ Connected to PostgreSQL at:", process.env.DB_HOST);
+// Start server only if this file is run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  pool.query("SELECT NOW()", (err) => {
+    if (err) {
+      console.error("❌ PostgreSQL connection error:", err);
+      process.exit(1);
+    }
+    console.log("✅ Connected to PostgreSQL at:", process.env.DB_HOST);
 
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
   });
-});
+}
+
+export default app;

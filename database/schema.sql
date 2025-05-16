@@ -1,3 +1,6 @@
+-- Add EXTENSION for UUID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Drop existing tables in reverse order of dependency or use CASCADE
 DROP TABLE IF EXISTS share_links CASCADE;
 DROP TABLE IF EXISTS memory_view_configurations CASCADE;
@@ -56,7 +59,7 @@ EXECUTE FUNCTION update_updated_at_column();
 
 -- Photos Table
 CREATE TABLE photos (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Changed to UUID
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- User who uploaded/owns the photo
     file_path VARCHAR(1024) NOT NULL UNIQUE, -- Path to the stored photo, should be unique
     file_hash VARCHAR(64), -- SHA256 hash of the file to detect duplicates, can be NULL if not implemented
@@ -81,7 +84,7 @@ EXECUTE FUNCTION update_updated_at_column();
 -- Join Table for Memories and Photos (Many-to-Many)
 CREATE TABLE memory_photos (
     memory_id INTEGER NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    photo_id UUID NOT NULL REFERENCES photos(id) ON DELETE CASCADE, -- Changed to UUID
     added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     -- Optional: position of the photo in the memory, if a default order is desired
     -- photo_order INTEGER DEFAULT 0,
