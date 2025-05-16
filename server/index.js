@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.js";
 import memoryRoutes from "./routes/memory.js"; // This is the main refactored route
 // import memoryRoutesDetailed from "./routes/memoryRoutes.js"; // Likely obsolete or merged into memoryRoutes
 import userRoutes from "./routes/userRoutes.js"; // Add this line
+import publicShareRoutes from './routes/publicShareRoutes.js'; // Import public share routes
 import errorHandler from "./middleware/errorHandler.js"; // Import ES Module error handler
 
 import serveStatic from "serve-static"; // Added for static file serving
@@ -51,6 +52,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryRoutes); // Main route for memories, photos, and views
 // app.use("/api/memories", memoryRoutesDetailed); // Remove if functionality merged
 app.use("/api/users", userRoutes); // Add this line
+app.use('/api/public', publicShareRoutes); // Mount public share routes
 
 // Basic health check endpoint
 app.get("/", (req, res) => {

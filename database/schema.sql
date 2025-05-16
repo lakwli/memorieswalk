@@ -119,14 +119,21 @@ WHERE is_primary_view = TRUE;
 
 -- Share Links Table
 CREATE TABLE share_links (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token TEXT UNIQUE NOT NULL,
     memory_id INTEGER NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    token VARCHAR(255) UNIQUE NOT NULL, -- Secure, random token
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permissions VARCHAR(50) NOT NULL DEFAULT 'view_only',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP WITH TIME ZONE,
-    allow_downloads BOOLEAN DEFAULT FALSE,
-    view_configuration_id INTEGER REFERENCES memory_view_configurations(id) ON DELETE SET NULL, -- Optional: link to a specific view
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+-- Add an index to the token column for faster lookups
+CREATE INDEX IF NOT EXISTS idx_share_links_token ON share_links(token);
+
+-- Add an index to memory_id for faster lookups when dealing with a specific memory
+CREATE INDEX IF NOT EXISTS idx_share_links_memory_id ON share_links(memory_id);
 
 -- Add some indexes for common queries
 CREATE INDEX idx_memories_user_id ON memories(user_id);
@@ -134,8 +141,6 @@ CREATE INDEX idx_photos_user_id ON photos(user_id);
 CREATE INDEX idx_memory_photos_photo_id ON memory_photos(photo_id);
 CREATE INDEX idx_memory_view_configurations_memory_id ON memory_view_configurations(memory_id);
 CREATE INDEX idx_memory_view_configurations_user_id ON memory_view_configurations(user_id);
-CREATE INDEX idx_share_links_token ON share_links(token);
-CREATE INDEX idx_share_links_memory_id ON share_links(memory_id);
 
 -- Example of adding a CHECK constraint for view_type if you have a known set
 -- ALTER TABLE memory_view_configurations ADD CONSTRAINT check_view_type

@@ -14,6 +14,15 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// --- Helper function to check memory ownership ---
+async function checkMemoryOwnership(memoryId, userId) {
+  const memoryCheck = await pool.query(
+    "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
+    [memoryId, userId]
+  );
+  return memoryCheck.rows.length > 0;
+}
+
 // --- Memories Routes ---
 
 // GET all memories for a user
@@ -210,7 +219,7 @@ router.post(
         const firstPartOfUuid = photoId.split("-")[0];
         const targetDirForProcessedImage = path.join(
           __dirname,
-          "../public/photos",
+          "../file_storage/photos",
           firstPartOfUuid
         );
 
@@ -219,13 +228,15 @@ router.post(
           baseName: photoId,
         });
 
-        const publicBaseDir = path.join(__dirname, "../public");
+        const privateStorageBaseDir = path.join(
+          __dirname,
+          "../file_storage/photos"
+        );
         const relativePathForDb = path.relative(
-          publicBaseDir,
+          privateStorageBaseDir,
           processingResult.processedPath
         );
 
-        // Use metadata from the *processed* image (processingResult.metadata)
         const dbResult = await pool.query(
           "INSERT INTO photos (id, user_id, file_path, mime_type, size_bytes, width, height, captured_at, location_lat, location_lng, captured_place, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, file_path, created_at",
           [
@@ -298,7 +309,11 @@ router.delete("/photos/:photoId", authenticateToken, async (req, res, next) => {
         .json({ error: "Photo not found or access denied." });
     }
     const relativeFilePathInDb = photoResult.rows[0].file_path;
-    const absoluteFilePathToDelete = `/workspace/server/public/${relativeFilePathInDb}`;
+    const basePrivatePhotoDir = path.join(__dirname, "../file_storage/photos");
+    const absoluteFilePathToDelete = path.join(
+      basePrivatePhotoDir,
+      relativeFilePathInDb
+    );
 
     await client.query("DELETE FROM memory_photos WHERE photo_id = $1", [
       photoId,
@@ -337,6 +352,82 @@ router.delete("/photos/:photoId", authenticateToken, async (req, res, next) => {
     if (client) client.release();
   }
 });
+
+// --- Authenticated Photo Viewing ---
+
+// GET /api/memories/photos/:photoId/view-authenticated - Serve a photo for an authenticated user
+router.get(
+  "/photos/:photoId/view-authenticated",
+  authenticateToken,
+  async (req, res, next) => {
+    const { photoId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const photoResult = await pool.query(
+        "SELECT file_path, mime_type FROM photos WHERE id = $1 AND user_id = $2",
+        [photoId, userId]
+      );
+
+      if (photoResult.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Photo not found or access denied." });
+      }
+
+      const { file_path: relativeFilePath, mime_type } = photoResult.rows[0];
+      // Ensure __dirname is available. If not, you might need to import path and url
+      // import path from 'path';
+      // import { fileURLToPath } from 'url';
+      // const __filename = fileURLToPath(import.meta.url);
+      // const __dirname = path.dirname(__filename);
+      const basePrivatePhotoDir = path.join(
+        __dirname,
+        "../file_storage/photos"
+      );
+      const absolutePhotoPath = path.join(
+        basePrivatePhotoDir,
+        relativeFilePath
+      );
+
+      res.setHeader("Content-Type", mime_type || "image/jpeg");
+      res.sendFile(absolutePhotoPath, (err) => {
+        if (err) {
+          if (err.code === "ENOENT") {
+            console.error(
+              `File not found for photoId ${photoId} at path ${absolutePhotoPath}`
+            );
+            // Avoid sending JSON if headers might have been partially sent or connection closed
+            if (!res.headersSent) {
+              return res.status(404).json({ error: "Photo file not found." });
+            }
+            return; // Stop further processing
+          }
+          console.error(`Error sending file for photoId ${photoId}:`, err);
+          if (!res.headersSent) {
+            return res.status(500).json({ error: "Error serving photo." });
+          } else {
+            console.error(
+              "Headers already sent, cannot send JSON error response for authenticated photo view."
+            );
+          }
+        }
+      });
+    } catch (error) {
+      if (!res.headersSent) {
+        next(error);
+      } else {
+        console.error(
+          "Caught error after headers sent in authenticated photo view endpoint:",
+          error
+        );
+        if (!res.writableEnded) {
+          res.end(); // Attempt to gracefully close the response if possible
+        }
+      }
+    }
+  }
+);
 
 // --- Memory Photos Linking ---
 
@@ -798,6 +889,180 @@ router.delete(
           .json({ error: "View configuration not found or access denied." });
       }
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// --- Share Links Routes ---
+
+// Schema for creating a share link
+const createShareLinkSchema = Joi.object({
+  expires_at: Joi.date().iso().allow(null).optional(),
+});
+
+// POST /api/memories/:memoryId/share-links - Create a new share link for a memory
+router.post(
+  "/:memoryId/share-links",
+  authenticateToken,
+  async (req, res, next) => {
+    const { memoryId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const { error, value } = createShareLinkSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+      const { expires_at } = value;
+
+      if (!(await checkMemoryOwnership(memoryId, userId))) {
+        return res
+          .status(404)
+          .json({ error: "Memory not found or access denied." });
+      }
+
+      const token = uuidv4(); // Generate a unique token
+
+      const result = await pool.query(
+        "INSERT INTO share_links (token, memory_id, user_id, expires_at) VALUES ($1, $2, $3, $4) RETURNING id, token, expires_at, created_at, is_active",
+        [token, memoryId, userId, expires_at || null]
+      );
+
+      const newShareLink = result.rows[0];
+      // Construct the full URL. Replace with your actual frontend URL structure.
+      const full_share_url = `${req.protocol}://${req.get("host")}/share/view/${
+        newShareLink.token
+      }`; // Adjust if frontend is on a different domain/port
+
+      res.status(201).json({ ...newShareLink, full_share_url });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/memories/:memoryId/share-links - List all share links for a memory
+router.get(
+  "/:memoryId/share-links",
+  authenticateToken,
+  async (req, res, next) => {
+    const { memoryId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      if (!(await checkMemoryOwnership(memoryId, userId))) {
+        return res
+          .status(404)
+          .json({ error: "Memory not found or access denied." });
+      }
+
+      const result = await pool.query(
+        "SELECT id, token, created_at, expires_at, is_active FROM share_links WHERE memory_id = $1 AND user_id = $2 ORDER BY created_at DESC",
+        [memoryId, userId]
+      );
+
+      const shareLinks = result.rows.map((link) => ({
+        ...link,
+        full_share_url: `${req.protocol}://${req.get("host")}/share/view/${
+          link.token
+        }`, // Adjust as needed
+      }));
+
+      res.json(shareLinks);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Schema for updating a share link
+const updateShareLinkSchema = Joi.object({
+  expires_at: Joi.date().iso().allow(null).optional(),
+  is_active: Joi.boolean().optional(),
+}).min(1);
+
+// PUT /api/memories/share-links/:shareLinkId - Update a share link (e.g., expiration, active status)
+router.put(
+  "/share-links/:shareLinkId",
+  authenticateToken,
+  async (req, res, next) => {
+    const { shareLinkId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const { error, value } = updateShareLinkSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+      const { expires_at, is_active } = value;
+
+      const fieldsToUpdate = [];
+      const queryParams = [];
+      let paramIndex = 1;
+
+      if (expires_at !== undefined) {
+        fieldsToUpdate.push(`expires_at = $${paramIndex++}`);
+        queryParams.push(expires_at);
+      }
+      if (is_active !== undefined) {
+        fieldsToUpdate.push(`is_active = $${paramIndex++}`);
+        queryParams.push(is_active);
+      }
+
+      if (fieldsToUpdate.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "No valid fields provided for update." });
+      }
+
+      queryParams.push(shareLinkId, userId);
+
+      const updateQuery = `UPDATE share_links SET ${fieldsToUpdate.join(
+        ", "
+      )} WHERE id = $${paramIndex++} AND user_id = $${paramIndex++} RETURNING id, token, created_at, expires_at, is_active`;
+
+      const result = await pool.query(updateQuery, queryParams);
+
+      if (result.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Share link not found or access denied." });
+      }
+
+      const updatedLink = result.rows[0];
+      const full_share_url = `${req.protocol}://${req.get("host")}/share/view/${
+        updatedLink.token
+      }`;
+
+      res.json({ ...updatedLink, full_share_url });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// DELETE /api/memories/share-links/:shareLinkId - Revoke/Delete a share link
+router.delete(
+  "/share-links/:shareLinkId",
+  authenticateToken,
+  async (req, res, next) => {
+    const { shareLinkId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const result = await pool.query(
+        "DELETE FROM share_links WHERE id = $1 AND user_id = $2 RETURNING id",
+        [shareLinkId, userId]
+      );
+
+      if (result.rowCount === 0) {
+        return res
+          .status(404)
+          .json({ error: "Share link not found or access denied." });
+      }
+      res.status(204).send(); // No Content
     } catch (error) {
       next(error);
     }
