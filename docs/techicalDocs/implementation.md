@@ -10,6 +10,11 @@ This plan breaks down the development into logical phases, focusing on deliverin
 - **Backend:** Node.js, Express.js, PostgreSQL, JWT, `sharp`.
 - **Development:** Monorepo structure.
 
+React + Vite as the base framework
+React-Konva for the canvas editor
+Chakra UI for the UI components (buttons, navigation, modals)
+React Router for navigation between screens
+
 ---
 
 ### Phase 1: Project Setup, Backend Foundation & Core Authentication

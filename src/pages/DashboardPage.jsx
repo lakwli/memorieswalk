@@ -57,20 +57,20 @@ const DashboardPage = () => {
 
   const handleCreateMemory = async () => {
     try {
-      const title = prompt("Enter memory title:", "New Memory");
-      if (title) {
-        const newMemory = await memoryService.createMemory(title);
-        toast({
-          title: "Memory Created",
-          description: `Memory "${newMemory.title}" created successfully.`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        setMemories((prev) => [newMemory, ...prev]);
-        navigate(`/memory/${newMemory.id}`);
-      }
+      // Use a default title instead of prompting the user
+      const defaultTitle = "Untitled Memory";
+      const newMemory = await memoryService.createMemory(defaultTitle);
+      toast({
+        title: "Memory Created",
+        description: `Memory "${newMemory.title}" created successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setMemories((prev) => [newMemory, ...prev]);
+      navigate(`/memory/${newMemory.id}`);
     } catch (err) {
+      console.error("Error creating memory:", err); // Added console.error for better debugging
       toast({
         title: "Error creating memory",
         description: err.message,
