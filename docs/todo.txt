@@ -1,2 +1,0 @@
-Fix:
-Canvas: to removed. 

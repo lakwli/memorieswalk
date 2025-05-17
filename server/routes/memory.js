@@ -83,8 +83,8 @@ router.get("/:memoryId", authenticateToken, async (req, res, next) => {
     memory.photos = photosResult.rows;
 
     const viewsResult = await pool.query(
-      "SELECT id, name, view_type, is_primary_view, updated_at FROM memory_view_configurations WHERE memory_id = $1 ORDER BY name ASC",
-      [memoryId]
+      "SELECT id, name, view_type, configuration_data, is_primary_view, updated_at FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 ORDER BY name ASC",
+      [memoryId, req.user.userId]
     );
     memory.view_configurations = viewsResult.rows;
 
@@ -100,6 +100,7 @@ const updateMemorySchema = Joi.object({
   description: Joi.string().allow("").optional(),
   thumbnail_data_url: Joi.string().uri().allow(null, "").optional(), // For receiving base64 data URL
   memory_data: Joi.object().optional(), // For Fabric.js JSON data
+  client_updated_at: Joi.string().isoDate().required(), // Added to handle client-provided timestamp
 });
 
 router.put("/:memoryId", authenticateToken, async (req, res, next) => {
@@ -112,91 +113,94 @@ router.put("/:memoryId", authenticateToken, async (req, res, next) => {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { title, description, thumbnail_data_url, memory_data } = value;
+    const { client_updated_at, ...updatesToApply } = value;
+    const { title, description, thumbnail_data_url, memory_data } =
+      updatesToApply;
 
-    if (
-      Object.keys(value).length === 0 ||
-      (title === undefined &&
-        description === undefined &&
-        thumbnail_data_url === undefined &&
-        memory_data === undefined)
-    ) {
-      return res.status(400).json({ error: "No update fields provided." });
+    // Check if there are any actual fields to update besides the timestamp
+    const updateKeys = Object.keys(updatesToApply);
+    if (updateKeys.length === 0) {
+      return res.status(400).json({
+        error:
+          "No actual data fields provided for update. Only a timestamp was found.",
+      });
     }
 
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      const memoryCheck = await client.query(
-        "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
-        [memoryId, userId]
-      );
-      if (memoryCheck.rows.length === 0) {
+      // Check memory ownership first
+      if (!(await checkMemoryOwnership(memoryId, userId))) {
         await client.query("ROLLBACK");
+        client.release();
         return res
           .status(404)
           .json({ error: "Memory not found or access denied." });
       }
 
-      // Update title, description, thumbnail_url in 'memories' table
-      const memoryUpdateFields = [];
-      const memoryQueryParams = [];
-      let memoryParamIndex = 1;
+      // Update core memory fields
+      const coreUpdateFields = [];
+      const coreUpdateValues = [];
+      let coreParamIndex = 1;
 
       if (title !== undefined) {
-        memoryUpdateFields.push(`title = $${memoryParamIndex++}`);
-        memoryQueryParams.push(title);
+        coreUpdateFields.push(`title = $${coreParamIndex++}`);
+        coreUpdateValues.push(title);
       }
       if (description !== undefined) {
-        memoryUpdateFields.push(`description = $${memoryParamIndex++}`);
-        memoryQueryParams.push(description);
+        coreUpdateFields.push(`description = $${coreParamIndex++}`);
+        coreUpdateValues.push(description);
       }
       if (thumbnail_data_url !== undefined) {
-        memoryUpdateFields.push(`thumbnail_url = $${memoryParamIndex++}`);
-        // For now, directly storing the data URL.
-        // In a real app, you might save this as a file and store the path.
-        memoryQueryParams.push(thumbnail_data_url);
+        coreUpdateFields.push(`thumbnail_url = $${coreParamIndex++}`);
+        coreUpdateValues.push(thumbnail_data_url);
       }
 
-      if (memoryUpdateFields.length > 0) {
-        memoryQueryParams.push(memoryId, userId);
-        const updateMemoryQuery = `UPDATE memories SET ${memoryUpdateFields.join(
+      // Always update the memory's own updated_at timestamp using client_updated_at
+      coreUpdateFields.push(`updated_at = $${coreParamIndex++}`);
+      coreUpdateValues.push(client_updated_at);
+
+      if (coreUpdateFields.length > 0) {
+        // Will always be true as updated_at is included
+        coreUpdateValues.push(memoryId, userId); // For WHERE clause
+        const updateMemoryQuery = `UPDATE memories SET ${coreUpdateFields.join(
           ", "
-        )}, updated_at = NOW() WHERE id = $${memoryParamIndex++} AND user_id = $${memoryParamIndex++} RETURNING *`;
-        await client.query(updateMemoryQuery, memoryQueryParams);
+        )} WHERE id = $${coreParamIndex++} AND user_id = $${coreParamIndex++}`;
+        await client.query(updateMemoryQuery, coreUpdateValues);
       }
 
-      // Handle memory_data (canvas data) - save to memory_view_configurations
       if (memory_data !== undefined) {
-        // Check if a 'canvas' view configuration already exists for this memory
-        const existingCanvasView = await client.query(
-          "SELECT id FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 AND view_type = $3",
-          [memoryId, userId, "canvas"]
+        const viewConfigName = "Default Canvas View";
+        const viewConfigType = "canvas";
+
+        const existingViewConfig = await client.query(
+          "SELECT id FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 AND view_type = $3 AND name = $4",
+          [memoryId, userId, viewConfigType, viewConfigName]
         );
 
-        if (existingCanvasView.rows.length > 0) {
-          // Update existing canvas view
-          const viewConfigId = existingCanvasView.rows[0].id;
+        if (existingViewConfig.rows.length > 0) {
+          // Update existing canvas view configuration
+          const configId = existingViewConfig.rows[0].id;
           await client.query(
-            "UPDATE memory_view_configurations SET configuration_data = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
-            [memory_data, viewConfigId, userId]
+            "UPDATE memory_view_configurations SET configuration_data = $1, updated_at = $2 WHERE id = $3 AND user_id = $4",
+            [memory_data, client_updated_at, configId, userId] // Use client_updated_at
           );
         } else {
           // Create new canvas view configuration
           await client.query(
-            "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $7)",
             [
               memoryId,
               userId,
-              "Default Canvas View", // Default name
-              "canvas", // Default view_type
+              viewConfigName,
+              viewConfigType,
               memory_data,
-              true, // Make it primary by default if it's the first canvas
-            ]
+              true,
+              client_updated_at,
+            ] // Use client_updated_at for created_at and updated_at
           );
         }
-        // We might want to fetch and add the updated/created view_configuration to the response
       }
 
       await client.query("COMMIT");
@@ -616,348 +620,6 @@ router.delete(
   }
 );
 
-// --- Memory View Configurations Routes ---
-
-const viewConfigBaseSchema = {
-  name: Joi.string().min(1).max(255).required(),
-  view_type: Joi.string()
-    .valid("canvas", "grid", "map", "timeline", "list")
-    .required(),
-  is_primary_view: Joi.boolean().optional(),
-};
-
-const canvasConfigSchema = Joi.object({
-  objects: Joi.array().items(Joi.object()).optional().default([]),
-  layers: Joi.array().items(Joi.string()).optional().default([]),
-  viewport: Joi.object().optional(),
-  background: Joi.string().optional(),
-}).default({ objects: [], layers: [] });
-
-const viewConfigurationSchema = Joi.object({
-  ...viewConfigBaseSchema,
-  configuration_data: Joi.when("view_type", {
-    is: "canvas",
-    then: canvasConfigSchema.required(),
-    otherwise: Joi.object().required(),
-  }),
-});
-
-// POST create a new view configuration for a memory
-router.post("/:memoryId/views", authenticateToken, async (req, res, next) => {
-  const { memoryId } = req.params;
-  const userId = req.user.userId;
-
-  try {
-    const { error, value } = viewConfigurationSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const memoryCheck = await pool.query(
-      "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
-      [memoryId, userId]
-    );
-    if (memoryCheck.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "Memory not found or access denied." });
-    }
-
-    let { name, view_type, configuration_data, is_primary_view } = value;
-
-    if (view_type === "canvas") {
-      configuration_data = canvasViewOptimizer.optimize(configuration_data);
-      const dataSize = canvasViewOptimizer.getSize(configuration_data);
-      const maxSize = 10 * 1024 * 1024;
-      if (dataSize > maxSize) {
-        return res.status(413).json({
-          message: `Canvas data too large (${(dataSize / (1024 * 1024)).toFixed(
-            2
-          )}MB). Max size is ${(maxSize / (1024 * 1024)).toFixed(2)}MB.`,
-          size: dataSize,
-          limit: maxSize,
-        });
-      }
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-
-      if (is_primary_view) {
-        await client.query(
-          "UPDATE memory_view_configurations SET is_primary_view = FALSE WHERE memory_id = $1 AND user_id = $2",
-          [memoryId, userId]
-        );
-      }
-
-      const result = await client.query(
-        "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-        [
-          memoryId,
-          userId,
-          name,
-          view_type,
-          configuration_data,
-          is_primary_view === undefined ? false : is_primary_view,
-        ]
-      );
-      await client.query("COMMIT");
-      res.status(201).json(result.rows[0]);
-    } catch (dbError) {
-      await client.query("ROLLBACK");
-      if (
-        dbError.code === "23505" &&
-        dbError.constraint === "idx_unique_primary_view_per_memory"
-      ) {
-        return res.status(409).json({
-          error:
-            "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
-        });
-      }
-      throw dbError;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET all view configurations for a memory
-router.get("/:memoryId/views", authenticateToken, async (req, res, next) => {
-  const { memoryId } = req.params;
-  const userId = req.user.userId;
-  try {
-    const memoryCheck = await pool.query(
-      "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
-      [memoryId, userId]
-    );
-    if (memoryCheck.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "Memory not found or access denied." });
-    }
-    const result = await pool.query(
-      "SELECT * FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 ORDER BY name ASC",
-      [memoryId, userId]
-    );
-    res.json(result.rows);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET a specific view configuration
-router.get(
-  "/:memoryId/views/:viewId",
-  authenticateToken,
-  async (req, res, next) => {
-    const { memoryId, viewId } = req.params;
-    const userId = req.user.userId;
-    try {
-      const result = await pool.query(
-        "SELECT * FROM memory_view_configurations WHERE id = $1 AND memory_id = $2 AND user_id = $3",
-        [viewId, memoryId, userId]
-      );
-      if (result.rows.length === 0) {
-        return res
-          .status(404)
-          .json({ error: "View configuration not found or access denied." });
-      }
-      res.json(result.rows[0]);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// PUT update a specific view configuration
-const updateViewConfigurationSchema = Joi.object({
-  ...viewConfigBaseSchema,
-  configuration_data: Joi.when("view_type", {
-    is: "canvas",
-    then: canvasConfigSchema.optional(),
-    otherwise: Joi.object().optional(),
-  }),
-}).min(1);
-
-router.put(
-  "/:memoryId/views/:viewId",
-  authenticateToken,
-  async (req, res, next) => {
-    const { memoryId, viewId } = req.params;
-    const userId = req.user.userId;
-
-    try {
-      const { error, value } = updateViewConfigurationSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json({ error: error.details[0].message });
-      }
-
-      const currentView = await pool.query(
-        "SELECT view_type FROM memory_view_configurations WHERE id = $1 AND memory_id = $2 AND user_id = $3",
-        [viewId, memoryId, userId]
-      );
-      if (currentView.rows.length === 0) {
-        return res
-          .status(404)
-          .json({ error: "View configuration not found or access denied." });
-      }
-      const actualViewType = currentView.rows[0].view_type;
-
-      const newViewType = value.view_type || actualViewType;
-      let configuration_data = value.configuration_data;
-
-      if (
-        value.view_type &&
-        value.view_type !== actualViewType &&
-        !value.configuration_data
-      ) {
-        return res.status(400).json({
-          error: `Configuration data is required when changing view_type to '${value.view_type}'.`,
-        });
-      }
-
-      if (
-        configuration_data ||
-        (value.view_type && value.view_type !== actualViewType)
-      ) {
-        let specificSchema;
-        if (newViewType === "canvas") specificSchema = canvasConfigSchema;
-        else specificSchema = Joi.object();
-
-        const { error: configError } = specificSchema
-          .required()
-          .validate(configuration_data);
-        if (configError) {
-          return res.status(400).json({
-            error: `Invalid configuration_data for view_type '${newViewType}': ${configError.details[0].message}`,
-          });
-        }
-      }
-
-      if (newViewType === "canvas" && configuration_data) {
-        configuration_data = canvasViewOptimizer.optimize(configuration_data);
-        const dataSize = canvasViewOptimizer.getSize(configuration_data);
-        const maxSize = 10 * 1024 * 1024;
-        if (dataSize > maxSize) {
-          return res.status(413).json({
-            message: `Canvas data too large (${(
-              dataSize /
-              (1024 * 1024)
-            ).toFixed(2)}MB). Max size is ${(maxSize / (1024 * 1024)).toFixed(
-              2
-            )}MB.`,
-            size: dataSize,
-            limit: maxSize,
-          });
-        }
-      }
-
-      const client = await pool.connect();
-      try {
-        await client.query("BEGIN");
-
-        if (value.is_primary_view === true) {
-          await client.query(
-            "UPDATE memory_view_configurations SET is_primary_view = FALSE WHERE memory_id = $1 AND user_id = $2 AND id != $3",
-            [memoryId, userId, viewId]
-          );
-        }
-
-        const setClauses = [];
-        const queryParams = [];
-        let paramIndex = 1;
-
-        if (value.name !== undefined) {
-          setClauses.push(`name = $${paramIndex++}`);
-          queryParams.push(value.name);
-        }
-        if (value.view_type !== undefined) {
-          setClauses.push(`view_type = $${paramIndex++}`);
-          queryParams.push(value.view_type);
-        }
-        if (configuration_data !== undefined) {
-          setClauses.push(`configuration_data = $${paramIndex++}`);
-          queryParams.push(configuration_data);
-        }
-        if (value.is_primary_view !== undefined) {
-          setClauses.push(`is_primary_view = $${paramIndex++}`);
-          queryParams.push(value.is_primary_view);
-        }
-
-        if (setClauses.length === 0) {
-          await client.query("ROLLBACK");
-          client.release();
-          return res.status(304).send();
-        }
-
-        setClauses.push("updated_at = NOW()");
-        queryParams.push(viewId, memoryId, userId);
-
-        const updateQuery = `UPDATE memory_view_configurations SET ${setClauses.join(
-          ", "
-        )} WHERE id = $${paramIndex++} AND memory_id = $${paramIndex++} AND user_id = $${paramIndex++} RETURNING *`;
-
-        const result = await client.query(updateQuery, queryParams);
-
-        if (result.rows.length === 0) {
-          await client.query("ROLLBACK");
-          client.release();
-          return res.status(404).json({
-            error:
-              "View configuration not found during update, or access denied.",
-          });
-        }
-
-        await client.query("COMMIT");
-        res.json(result.rows[0]);
-      } catch (dbError) {
-        await client.query("ROLLBACK");
-        if (
-          dbError.code === "23505" &&
-          dbError.constraint === "idx_unique_primary_view_per_memory"
-        ) {
-          return res.status(409).json({
-            error:
-              "Failed to set primary view. Another view might already be primary due to a concurrent update. Please try again or ensure no other view is primary.",
-          });
-        }
-        throw dbError;
-      } finally {
-        client.release();
-      }
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// DELETE a specific view configuration
-router.delete(
-  "/:memoryId/views/:viewId",
-  authenticateToken,
-  async (req, res, next) => {
-    const { memoryId, viewId } = req.params;
-    const userId = req.user.userId;
-    try {
-      const result = await pool.query(
-        "DELETE FROM memory_view_configurations WHERE id = $1 AND memory_id = $2 AND user_id = $3 RETURNING id",
-        [viewId, memoryId, userId]
-      );
-      if (result.rowCount === 0) {
-        return res
-          .status(404)
-          .json({ error: "View configuration not found or access denied." });
-      }
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 // --- Share Links Routes ---
 
 // Schema for creating a share link
@@ -1128,6 +790,237 @@ router.delete(
       res.status(204).send(); // No Content
     } catch (error) {
       next(error);
+    }
+  }
+);
+
+// --- Memory View Configurations ---
+
+const memoryViewConfigBaseSchemaFields = {
+  name: Joi.string().min(1).max(255),
+  view_type: Joi.string().min(1).max(50),
+  configuration_data: Joi.object().required(),
+  is_primary_view: Joi.boolean().optional(),
+  client_updated_at: Joi.string().isoDate().required(),
+};
+
+const createMemoryViewConfigSchema = Joi.object({
+  ...memoryViewConfigBaseSchemaFields,
+  name: memoryViewConfigBaseSchemaFields.name.required(),
+  view_type: memoryViewConfigBaseSchemaFields.view_type.required(),
+});
+
+const updateMemoryViewConfigSchema = Joi.object({
+  ...memoryViewConfigBaseSchemaFields,
+  name: memoryViewConfigBaseSchemaFields.name.optional(),
+  view_type: memoryViewConfigBaseSchemaFields.view_type.optional(), // Allowing view_type change
+  configuration_data:
+    memoryViewConfigBaseSchemaFields.configuration_data.optional(), // Make optional for partial updates
+  is_primary_view: memoryViewConfigBaseSchemaFields.is_primary_view.optional(),
+  // client_updated_at is required for the update operation itself
+});
+
+// POST create a new view configuration for a memory
+router.post(
+  "/:memoryId/view-configurations",
+  authenticateToken,
+  async (req, res, next) => {
+    const { memoryId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const { error, value } = createMemoryViewConfigSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+
+      const {
+        name,
+        view_type,
+        configuration_data,
+        is_primary_view = false,
+        client_updated_at,
+      } = value;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        if (!(await checkMemoryOwnership(memoryId, userId))) {
+          await client.query("ROLLBACK");
+          return res
+            .status(404)
+            .json({ error: "Memory not found or access denied." });
+        }
+
+        if (is_primary_view) {
+          await client.query(
+            "UPDATE memory_view_configurations SET is_primary_view = false WHERE memory_id = $1 AND view_type = $2 AND user_id = $3",
+            [memoryId, view_type, userId]
+          );
+        }
+
+        const result = await client.query(
+          "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *",
+          [
+            memoryId,
+            userId,
+            name,
+            view_type,
+            configuration_data,
+            is_primary_view,
+            client_updated_at, // Use client_updated_at for both created_at and updated_at
+          ]
+        );
+
+        await client.query(
+          "UPDATE memories SET updated_at = $1 WHERE id = $2 AND user_id = $3",
+          [client_updated_at, memoryId, userId]
+        );
+
+        await client.query("COMMIT");
+        res.status(201).json(result.rows[0]);
+      } catch (transactionError) {
+        await client.query("ROLLBACK");
+        next(transactionError);
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      next(e); // Catch errors from Joi validation or if client.connect() fails
+    }
+  }
+);
+
+// PUT update an existing view configuration
+router.put(
+  "/:memoryId/view-configurations/:configId",
+  authenticateToken,
+  async (req, res, next) => {
+    const { memoryId, configId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const { error, value } = updateMemoryViewConfigSchema.validate(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+      }
+
+      const {
+        name,
+        view_type,
+        configuration_data,
+        is_primary_view,
+        client_updated_at,
+      } = value;
+
+      // Ensure at least one modifiable field is present besides client_updated_at
+      const updateKeys = Object.keys(value).filter(
+        (key) => key !== "client_updated_at"
+      );
+      if (updateKeys.length === 0) {
+        return res.status(400).json({
+          error:
+            "No update fields provided beyond timestamp. At least one of 'name', 'view_type', 'configuration_data', or 'is_primary_view' must be present.",
+        });
+      }
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        if (!(await checkMemoryOwnership(memoryId, userId))) {
+          await client.query("ROLLBACK");
+          return res
+            .status(404)
+            .json({ error: "Memory not found or access denied." });
+        }
+
+        const currentConfigResult = await client.query(
+          "SELECT view_type FROM memory_view_configurations WHERE id = $1 AND memory_id = $2 AND user_id = $3",
+          [configId, memoryId, userId]
+        );
+
+        if (currentConfigResult.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return res
+            .status(404)
+            .json({ error: "View configuration not found or access denied." });
+        }
+        const currentViewType = currentConfigResult.rows[0].view_type;
+
+        const updateFields = [];
+        const queryParams = [];
+        let paramIndex = 1;
+
+        if (name !== undefined) {
+          updateFields.push(`name = $${paramIndex++}`);
+          queryParams.push(name);
+        }
+
+        const effectiveViewType =
+          view_type !== undefined ? view_type : currentViewType;
+
+        if (view_type !== undefined) {
+          updateFields.push(`view_type = $${paramIndex++}`);
+          queryParams.push(view_type);
+        }
+        if (configuration_data !== undefined) {
+          updateFields.push(`configuration_data = $${paramIndex++}`);
+          queryParams.push(configuration_data);
+        }
+
+        if (is_primary_view !== undefined) {
+          updateFields.push(`is_primary_view = $${paramIndex++}`);
+          queryParams.push(is_primary_view);
+
+          if (is_primary_view) {
+            // If setting this as primary, unset other primary views of the same effective type for this memory
+            await client.query(
+              "UPDATE memory_view_configurations SET is_primary_view = false WHERE memory_id = $1 AND view_type = $2 AND id != $3 AND user_id = $4",
+              [memoryId, effectiveViewType, configId, userId]
+            );
+          }
+        }
+
+        // Always update the updated_at timestamp using client_updated_at
+        updateFields.push(`updated_at = $${paramIndex++}`);
+        queryParams.push(client_updated_at);
+
+        // Add WHERE clause parameters
+        queryParams.push(configId, memoryId, userId);
+
+        const updateQuery = `UPDATE memory_view_configurations SET ${updateFields.join(
+          ", "
+        )} WHERE id = $${paramIndex++} AND memory_id = $${paramIndex++} AND user_id = $${paramIndex++} RETURNING *`;
+
+        const result = await client.query(updateQuery, queryParams);
+
+        if (result.rows.length === 0) {
+          await client.query("ROLLBACK");
+          // This case implies the record was not found or not owned, though initial checks should catch this.
+          return res.status(404).json({
+            error:
+              "View configuration update failed or record not found post-update.",
+          });
+        }
+
+        // Update the parent memory's updated_at timestamp
+        await client.query(
+          "UPDATE memories SET updated_at = $1 WHERE id = $2 AND user_id = $3",
+          [client_updated_at, memoryId, userId]
+        );
+
+        await client.query("COMMIT");
+        res.json(result.rows[0]);
+      } catch (transactionError) {
+        await client.query("ROLLBACK");
+        next(transactionError);
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      next(e); // Catch errors from Joi validation or if client.connect() fails
     }
   }
 );

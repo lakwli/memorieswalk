@@ -125,13 +125,18 @@ class MemoryService {
         throw new Error("Authentication required");
       }
 
+      const payload = {
+        ...updates,
+        client_updated_at: new Date().toISOString(), // Add client timestamp
+      };
+
       const response = await fetch(`${API_URL}/memories/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(payload), // Send updated payload
       });
 
       if (!response.ok) {
@@ -360,6 +365,106 @@ class MemoryService {
       return data;
     } catch (error) {
       console.error(`Error creating share link for memory ${memoryId}:`, error);
+      throw error;
+    }
+  }
+
+  // New method to create a memory view configuration
+  async createMemoryViewConfiguration(memoryId, viewConfigData) {
+    try {
+      const token = authService.getAuthToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const payload = {
+        ...viewConfigData,
+        client_updated_at: new Date().toISOString(),
+      };
+
+      const response = await fetch(
+        `${API_URL}/memories/${memoryId}/view-configurations`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = `Failed to create memory view configuration (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = `${errorMessage}: ${errorData.error}`;
+          } else {
+            errorMessage = `${errorMessage}: ${response.statusText}`;
+          }
+        } catch {
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(
+        `Error creating memory view configuration for memory ${memoryId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  // New method to update a memory view configuration
+  async updateMemoryViewConfiguration(memoryId, configId, viewConfigUpdates) {
+    try {
+      const token = authService.getAuthToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const payload = {
+        ...viewConfigUpdates,
+        client_updated_at: new Date().toISOString(),
+      };
+
+      const response = await fetch(
+        `${API_URL}/memories/${memoryId}/view-configurations/${configId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = `Failed to update memory view configuration ${configId} (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = `${errorMessage}: ${errorData.error}`;
+          } else {
+            errorMessage = `${errorMessage}: ${response.statusText}`;
+          }
+        } catch {
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(
+        `Error updating memory view configuration ${configId} for memory ${memoryId}:`,
+        error
+      );
       throw error;
     }
   }

@@ -13,6 +13,17 @@ DROP TABLE IF EXISTS users CASCADE;
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- If NEW.updated_at is already being set by the statement (i.e., it's different from the old value or OLD is null for an INSERT),
+    -- and it's not null, then assume the application is intentionally setting it.
+    -- Otherwise, set it to NOW().
+    -- For INSERT operations, OLD is NULL, so NEW.updated_at IS DISTINCT FROM OLD.updated_at will be true if NEW.updated_at is not NULL.
+    -- For UPDATE operations, it checks if the application is trying to change updated_at.
+    IF NEW.updated_at IS NOT NULL AND (TG_OP = 'INSERT' OR NEW.updated_at IS DISTINCT FROM OLD.updated_at) THEN
+        -- Application is providing updated_at, so we keep it.
+        RETURN NEW;
+    END IF;
+
+    -- Application did not provide updated_at or it was null, so set it to current time.
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
