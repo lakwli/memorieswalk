@@ -12,8 +12,17 @@ import {
   Spinner,
   useTheme,
   Flex,
+  IconButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
 } from "@chakra-ui/react";
-import { SearchIcon, AddIcon } from "@chakra-ui/icons";
+import { SearchIcon, AddIcon, DeleteIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { memoryService } from "../services/memoryService";
@@ -28,6 +37,13 @@ const DashboardPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [hoveredMemoryId, setHoveredMemoryId] = useState(null);
+  const [memoryToDelete, setMemoryToDelete] = useState(null);
+  const {
+    isOpen: isDeleteModalOpen,
+    onOpen: onDeleteModalOpen,
+    onClose: onDeleteModalClose,
+  } = useDisclosure();
 
   useEffect(() => {
     const fetchMemories = async () => {
@@ -57,7 +73,6 @@ const DashboardPage = () => {
 
   const handleCreateMemory = async () => {
     try {
-      // Use a default title instead of prompting the user
       const defaultTitle = "Untitled Memory";
       const newMemory = await memoryService.createMemory(defaultTitle);
       toast({
@@ -70,7 +85,7 @@ const DashboardPage = () => {
       setMemories((prev) => [newMemory, ...prev]);
       navigate(`/memory/${newMemory.id}`);
     } catch (err) {
-      console.error("Error creating memory:", err); // Added console.error for better debugging
+      console.error("Error creating memory:", err);
       toast({
         title: "Error creating memory",
         description: err.message,
@@ -79,6 +94,42 @@ const DashboardPage = () => {
         isClosable: true,
       });
     }
+  };
+
+  const handleDeleteMemory = async () => {
+    if (!memoryToDelete) return;
+
+    try {
+      await memoryService.deleteMemory(memoryToDelete.id);
+      toast({
+        title: "Memory Deleted",
+        description: `Memory "${memoryToDelete.title}" deleted successfully.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setMemories((prevMemories) =>
+        prevMemories.filter((memory) => memory.id !== memoryToDelete.id)
+      );
+      setMemoryToDelete(null);
+      onDeleteModalClose();
+    } catch (err) {
+      console.error("Error deleting memory:", err);
+      toast({
+        title: "Error deleting memory",
+        description: err.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const openDeleteConfirmation = (e, memory) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMemoryToDelete(memory);
+    onDeleteModalOpen();
   };
 
   const filteredMemories = memories.filter((memory) =>
@@ -156,22 +207,40 @@ const DashboardPage = () => {
             borderRadius="lg"
             height="180px"
             p={4}
-            transition="transform 0.2s"
+            transition="transform 0.2s, box-shadow 0.2s"
             _hover={{
               transform: "translateY(-2px)",
-              shadow: "sm",
+              shadow: "md",
             }}
             display="flex"
             alignItems="center"
             justifyContent="center"
+            position="relative"
+            onMouseEnter={() => setHoveredMemoryId(memory.id)}
+            onMouseLeave={() => setHoveredMemoryId(null)}
           >
             <Text
               fontWeight="semibold"
               color={theme.colors.gray[800]}
               fontSize="lg"
+              textAlign="center"
             >
               {memory.title}
             </Text>
+            {hoveredMemoryId === memory.id && (
+              <IconButton
+                aria-label="Delete memory"
+                icon={<DeleteIcon />}
+                size="sm"
+                colorScheme="red"
+                variant="ghost"
+                position="absolute"
+                top="8px"
+                right="8px"
+                onClick={(e) => openDeleteConfirmation(e, memory)}
+                zIndex="1"
+              />
+            )}
           </Box>
         ))}
       </SimpleGrid>
@@ -188,7 +257,6 @@ const DashboardPage = () => {
     ).isRequired,
   };
 
-  // Create Memory Button as an action for the page header
   const createMemoryAction = (
     <Button
       variant="solid"
@@ -232,6 +300,35 @@ const DashboardPage = () => {
         </Text>
       )}
       {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
+
+      {memoryToDelete && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={onDeleteModalClose}
+          isCentered
+        >
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Confirm Deletion</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Text>
+                Are you sure you want to delete the memory titled{" "}
+                <strong>{memoryToDelete.title}</strong>? This action cannot be
+                undone.
+              </Text>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onDeleteModalClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDeleteMemory}>
+                Delete
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
     </PageLayout>
   );
 };
