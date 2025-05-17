@@ -33,7 +33,7 @@ import {
   FaSyncAlt,
   FaLayerGroup,
 } from "react-icons/fa";
-import { Stage, Layer, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Image as KonvaImage, Transformer } from "react-konva";
 import PageLayout from "../layouts/PageLayout";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -52,8 +52,10 @@ const MemoryEditorPage = () => {
   const [photos, setPhotos] = useState([]);
   const [activePhotoId, setActivePhotoId] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
-  const stageRef = useRef(null);
+  const stageRef = useRef(null); // This ref is for the <Box> container for layout purposes
+  const konvaStageRef = useRef(null); // Ref for Konva Stage instance
   const fileInputRef = useRef(null);
+  const trRef = useRef(null);
 
   useEffect(() => {
     const loadMemory = async () => {
@@ -183,6 +185,29 @@ const MemoryEditorPage = () => {
       });
     };
   }, [photos]);
+
+  useEffect(() => {
+    if (trRef.current) {
+      if (activePhotoId) {
+        const stage = konvaStageRef.current; // Use konvaStageRef
+        if (stage) {
+          const selectedNode = stage.findOne("#" + activePhotoId); // Select by ID
+          if (selectedNode) {
+            trRef.current.nodes([selectedNode]);
+          } else {
+            trRef.current.nodes([]);
+          }
+        } else {
+          trRef.current.nodes([]);
+        }
+      } else {
+        trRef.current.nodes([]);
+      }
+      if (trRef.current.getLayer()) {
+        trRef.current.getLayer().batchDraw();
+      }
+    }
+  }, [activePhotoId, photos]);
 
   const saveMemoryLayout = useCallback(async () => {
     if (!memory || !photos.length) return;
@@ -454,31 +479,39 @@ const MemoryEditorPage = () => {
     }
   };
 
-  const handleDragEnd = (e, index) => {
-    const newPhotos = photos.slice();
-    const updatedPhoto = {
-      ...newPhotos[index],
-      x: e.target.x(),
-      y: e.target.y(),
-    };
-    newPhotos[index] = updatedPhoto;
-    setPhotos(newPhotos);
-  };
+  const handlePhotoUpdate = useCallback((photoId, newAttrs) => {
+    setPhotos((prevPhotos) =>
+      prevPhotos.map((p) => (p.id === photoId ? { ...p, ...newAttrs } : p))
+    );
+  }, []);
 
-  const handleTransformEnd = (e, index) => {
-    const node = e.target;
-    const newPhotos = photos.slice();
-    const updatedPhoto = {
-      ...newPhotos[index],
-      x: node.x(),
-      y: node.y(),
-      width: node.width() * node.scaleX(),
-      height: node.height() * node.scaleY(),
-      rotation: node.rotation(),
-    };
-    newPhotos[index] = updatedPhoto;
-    setPhotos(newPhotos);
-  };
+  const handleDragEnd = useCallback(
+    (e) => {
+      const node = e.target;
+      handlePhotoUpdate(node.id(), { x: node.x(), y: node.y() });
+    },
+    [handlePhotoUpdate]
+  );
+
+  const handleTransformEnd = useCallback(
+    (e) => {
+      const node = e.target;
+      const scaleX = node.scaleX();
+      const scaleY = node.scaleY();
+
+      node.scaleX(1);
+      node.scaleY(1);
+
+      handlePhotoUpdate(node.id(), {
+        x: node.x(),
+        y: node.y(),
+        width: Math.max(20, node.width() * scaleX),
+        height: Math.max(20, node.height() * scaleY),
+        rotation: node.rotation(),
+      });
+    },
+    [handlePhotoUpdate]
+  );
 
   const handleDeleteMemory = async () => {
     const confirm = window.confirm(
@@ -751,6 +784,7 @@ const MemoryEditorPage = () => {
         >
           {viewType === "canvas" && (
             <Stage
+              ref={konvaStageRef} // Assign konvaStageRef to Konva Stage
               width={
                 stageRef.current
                   ? stageRef.current.offsetWidth
@@ -775,6 +809,7 @@ const MemoryEditorPage = () => {
                     photo.image && (
                       <KonvaImage
                         key={photo.id || `photo-${index}`}
+                        id={photo.id}
                         image={photo.image}
                         x={photo.x}
                         y={photo.y}
@@ -782,13 +817,22 @@ const MemoryEditorPage = () => {
                         height={photo.height}
                         rotation={photo.rotation || 0}
                         draggable
-                        onDragEnd={(e) => handleDragEnd(e, index)}
-                        onTransformEnd={(e) => handleTransformEnd(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onTransformEnd={handleTransformEnd}
                         onClick={() => setActivePhotoId(photo.id)}
                         onTap={() => setActivePhotoId(photo.id)}
                       />
                     )
                 )}
+                <Transformer
+                  ref={trRef}
+                  boundBoxFunc={(oldBox, newBox) => {
+                    if (newBox.width < 20 || newBox.height < 20) {
+                      return oldBox;
+                    }
+                    return newBox;
+                  }}
+                />
               </Layer>
             </Stage>
           )}
