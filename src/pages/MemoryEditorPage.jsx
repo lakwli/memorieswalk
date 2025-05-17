@@ -628,19 +628,106 @@ const MemoryEditorPage = () => {
 
   const handleTextDblClick = (e) => {
     const textNode = e.target;
-    const id = textNode.id();
+    const textNodeId = textNode.id();
 
+    // Hide the KonvaText node and the transformer
+    textNode.hide();
     trRef.current.nodes([]);
     trRef.current.getLayer().batchDraw();
 
-    const currentText = texts.find((t) => t.id === id);
-    if (!currentText) return;
+    const stage = textNode.getStage();
+    const stageBox = stage.container().getBoundingClientRect(); // Get stage container position
 
-    const newTextContent = prompt("Edit text:", currentText.text);
-    if (newTextContent !== null && newTextContent !== currentText.text) {
-      handleElementUpdate(id, "text", { text: newTextContent });
+    // Calculate position of textarea
+    // The position needs to account for stage position and scale
+    const areaPosition = {
+      x: stageBox.left + textNode.absolutePosition().x,
+      y: stageBox.top + textNode.absolutePosition().y,
+    };
+
+    // Create textarea
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+
+    textarea.value = textNode.text();
+    textarea.style.position = "absolute";
+    textarea.style.top = areaPosition.y + "px";
+    textarea.style.left = areaPosition.x + "px";
+    textarea.style.width =
+      textNode.width() * stage.scaleX() - textNode.padding() * 2 + "px";
+    textarea.style.height =
+      textNode.height() * stage.scaleY() - textNode.padding() * 2 + "px";
+    textarea.style.fontSize = textNode.fontSize() * stage.scaleY() + "px";
+    textarea.style.border = "none";
+    textarea.style.padding = "0px";
+    textarea.style.margin = "0px";
+    textarea.style.overflow = "hidden";
+    textarea.style.background = "none";
+    textarea.style.outline = "none";
+    textarea.style.resize = "none";
+    textarea.style.lineHeight = textNode.lineHeight();
+    textarea.style.fontFamily = textNode.fontFamily();
+    textarea.style.transformOrigin = "left top";
+    textarea.style.textAlign = textNode.align();
+    textarea.style.color = textNode.fill();
+    // Apply rotation - this can be complex with CSS transforms if not aligned with Konva's center
+    // For simplicity, direct rotation might be tricky. Konva handles rotation around the shape's center.
+    // textarea.style.transform = `rotate(${textNode.rotation()}deg)`; // Basic rotation, might need adjustment
+
+    textarea.focus();
+
+    function removeTextarea() {
+      if (textarea.parentNode) {
+        textarea.parentNode.removeChild(textarea);
+      }
+      window.removeEventListener("click", handleOutsideClick);
+      textNode.show();
+      trRef.current.nodes([textNode]); // Re-select the node
+      trRef.current.getLayer().batchDraw();
+      setSelectedElement({ id: textNodeId, type: "text" }); // Ensure it's re-selected in React state
     }
-    setSelectedElement({ id, type: "text" });
+
+    function setTextareaWidth() {
+      let newWidth = textNode.width() * textNode.getAbsoluteScale().x;
+      textarea.style.width = newWidth + "px";
+    }
+
+    textarea.addEventListener("keydown", function (e) {
+      // hide on enter
+      // but don't hide on shift + enter
+      if (e.key === "Enter" && !e.shiftKey) {
+        textNode.text(textarea.value);
+        handleElementUpdate(textNodeId, "text", { text: textarea.value });
+        removeTextarea();
+      }
+      // on esc do not set value back to node
+      if (e.key === "Escape") {
+        removeTextarea();
+      }
+    });
+
+    textarea.addEventListener("blur", function () {
+      textNode.text(textarea.value);
+      handleElementUpdate(textNodeId, "text", { text: textarea.value });
+      removeTextarea();
+    });
+
+    // Handle clicks outside the textarea to also remove it
+    // This needs to be robust to not trigger on the initial dblclick
+    function handleOutsideClick(e) {
+      if (e.target !== textarea) {
+        textNode.text(textarea.value);
+        handleElementUpdate(textNodeId, "text", { text: textarea.value });
+        removeTextarea();
+      }
+    }
+    // Timeout to prevent immediate removal by the same click that initiated edit
+    setTimeout(() => {
+      window.addEventListener("click", handleOutsideClick);
+    });
+
+    // TODO: Consider more robust handling for rotation and scale if needed
+    // For now, this provides basic in-place editing.
   };
 
   const handleZoom = (direction) => {
