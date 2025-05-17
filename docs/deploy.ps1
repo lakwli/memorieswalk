@@ -8,8 +8,8 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration variables - CUSTOMIZE THESE
-$GITHUB_REPO = "lakwli/memorieswalk"  # Fixed for this project
-$IMAGE_NAME = "ghcr.io/$GITHUB_REPO`:latest"
+# $GITHUB_REPO = "lakwli/memorieswalk"  # Fixed for this project - commented out for local image
+$IMAGE_NAME = "memorieswalk:latest"  # Using local image instead of GitHub Container Registry
 $CONTAINER_NAME = "memorieswalk-prod"
 $POSTGRES_CONTAINER_NAME = "memorieswalk-postgres-prod"
 
@@ -81,9 +81,22 @@ else {
     Write-Host "Docker network memorieswalk-network already exists" -ForegroundColor Yellow
 }
 
-# Pull the latest Docker image
-Write-Host "Pulling the latest Docker image..." -ForegroundColor Yellow
-docker pull $IMAGE_NAME
+# Check if the local image exists
+Write-Host "Checking for local Docker image..." -ForegroundColor Yellow
+$imageExists = docker image ls $IMAGE_NAME --format "{{.Repository}}" | Select-String -Pattern $IMAGE_NAME -Quiet
+
+if (-not $imageExists) {
+    Write-Host "WARNING: Local image $IMAGE_NAME not found. Make sure you have built it with:" -ForegroundColor Red
+    Write-Host "docker build -t $IMAGE_NAME ." -ForegroundColor Yellow
+    Write-Host "Do you want to continue anyway? (y/n)" -ForegroundColor Yellow
+    $continue = Read-Host
+    if ($continue -ne "y") {
+        Write-Host "Deployment aborted. Please build the image first." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "Local image $IMAGE_NAME found!" -ForegroundColor Green
+}
 
 # Stop and remove existing app container if it exists
 Write-Host "Stopping and removing existing app container if it exists..." -ForegroundColor Yellow
