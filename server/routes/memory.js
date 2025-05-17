@@ -94,66 +94,135 @@ router.get("/:memoryId", authenticateToken, async (req, res, next) => {
   }
 });
 
-// PUT update a memory's core details
+// PUT update a memory's core details and canvas data
 const updateMemorySchema = Joi.object({
   title: Joi.string().min(1).max(255).optional(),
   description: Joi.string().allow("").optional(),
-  thumbnail_url: Joi.string().uri().allow(null, "").optional(),
+  thumbnail_data_url: Joi.string().uri().allow(null, "").optional(), // For receiving base64 data URL
+  memory_data: Joi.object().optional(), // For Fabric.js JSON data
 });
+
 router.put("/:memoryId", authenticateToken, async (req, res, next) => {
   const { memoryId } = req.params;
+  const userId = req.user.userId; // Get userId from authenticated token
+
   try {
     const { error, value } = updateMemorySchema.validate(req.body);
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { title, description, thumbnail_url } = value;
-    if (Object.keys(value).length === 0) {
+    const { title, description, thumbnail_data_url, memory_data } = value;
+
+    if (
+      Object.keys(value).length === 0 ||
+      (title === undefined &&
+        description === undefined &&
+        thumbnail_data_url === undefined &&
+        memory_data === undefined)
+    ) {
       return res.status(400).json({ error: "No update fields provided." });
     }
 
-    const memoryCheck = await pool.query(
-      "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
-      [memoryId, req.user.userId]
-    );
-    if (memoryCheck.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "Memory not found or access denied." });
-    }
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    const updateFields = [];
-    const queryParams = [];
-    let paramIndex = 1;
+      const memoryCheck = await client.query(
+        "SELECT id FROM memories WHERE id = $1 AND user_id = $2",
+        [memoryId, userId]
+      );
+      if (memoryCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res
+          .status(404)
+          .json({ error: "Memory not found or access denied." });
+      }
 
-    if (title !== undefined) {
-      updateFields.push(`title = $${paramIndex++}`);
-      queryParams.push(title);
-    }
-    if (description !== undefined) {
-      updateFields.push(`description = $${paramIndex++}`);
-      queryParams.push(description);
-    }
-    if (thumbnail_url !== undefined) {
-      updateFields.push(`thumbnail_url = $${paramIndex++}`);
-      queryParams.push(thumbnail_url);
-    }
+      // Update title, description, thumbnail_url in 'memories' table
+      const memoryUpdateFields = [];
+      const memoryQueryParams = [];
+      let memoryParamIndex = 1;
 
-    if (updateFields.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "No valid fields to update provided." });
+      if (title !== undefined) {
+        memoryUpdateFields.push(`title = $${memoryParamIndex++}`);
+        memoryQueryParams.push(title);
+      }
+      if (description !== undefined) {
+        memoryUpdateFields.push(`description = $${memoryParamIndex++}`);
+        memoryQueryParams.push(description);
+      }
+      if (thumbnail_data_url !== undefined) {
+        memoryUpdateFields.push(`thumbnail_url = $${memoryParamIndex++}`);
+        // For now, directly storing the data URL.
+        // In a real app, you might save this as a file and store the path.
+        memoryQueryParams.push(thumbnail_data_url);
+      }
+
+      if (memoryUpdateFields.length > 0) {
+        memoryQueryParams.push(memoryId, userId);
+        const updateMemoryQuery = `UPDATE memories SET ${memoryUpdateFields.join(
+          ", "
+        )}, updated_at = NOW() WHERE id = $${memoryParamIndex++} AND user_id = $${memoryParamIndex++} RETURNING *`;
+        await client.query(updateMemoryQuery, memoryQueryParams);
+      }
+
+      // Handle memory_data (canvas data) - save to memory_view_configurations
+      if (memory_data !== undefined) {
+        // Check if a 'canvas' view configuration already exists for this memory
+        const existingCanvasView = await client.query(
+          "SELECT id FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 AND view_type = $3",
+          [memoryId, userId, "canvas"]
+        );
+
+        if (existingCanvasView.rows.length > 0) {
+          // Update existing canvas view
+          const viewConfigId = existingCanvasView.rows[0].id;
+          await client.query(
+            "UPDATE memory_view_configurations SET configuration_data = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3",
+            [memory_data, viewConfigId, userId]
+          );
+        } else {
+          // Create new canvas view configuration
+          await client.query(
+            "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view) VALUES ($1, $2, $3, $4, $5, $6)",
+            [
+              memoryId,
+              userId,
+              "Default Canvas View", // Default name
+              "canvas", // Default view_type
+              memory_data,
+              true, // Make it primary by default if it's the first canvas
+            ]
+          );
+        }
+        // We might want to fetch and add the updated/created view_configuration to the response
+      }
+
+      await client.query("COMMIT");
+
+      // Refetch the full memory details to include any updated view configurations
+      const finalMemoryResult = await client.query(
+        "SELECT * FROM memories WHERE id = $1 AND user_id = $2",
+        [memoryId, userId]
+      );
+      const finalMemory = finalMemoryResult.rows[0];
+
+      const viewsResult = await client.query(
+        "SELECT id, name, view_type, configuration_data, is_primary_view, updated_at FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2 ORDER BY name ASC",
+        [memoryId, userId]
+      );
+      finalMemory.view_configurations = viewsResult.rows;
+
+      res.json(finalMemory);
+    } catch (transactionError) {
+      await client.query("ROLLBACK");
+      next(transactionError); // Pass to error handler
+    } finally {
+      client.release();
     }
-
-    queryParams.push(memoryId, req.user.userId);
-    const updateQuery = `UPDATE memories SET ${updateFields.join(
-      ", "
-    )}, updated_at = NOW() WHERE id = $${paramIndex++} AND user_id = $${paramIndex++} RETURNING *`;
-
-    const updatedMemoryResult = await pool.query(updateQuery, queryParams);
-    res.json(updatedMemoryResult.rows[0]);
   } catch (error) {
+    // Catch errors from Joi validation or if client.connect() fails
     next(error);
   }
 });
@@ -376,11 +445,6 @@ router.get(
       }
 
       const { file_path: relativeFilePath, mime_type } = photoResult.rows[0];
-      // Ensure __dirname is available. If not, you might need to import path and url
-      // import path from 'path';
-      // import { fileURLToPath } from 'url';
-      // const __filename = fileURLToPath(import.meta.url);
-      // const __dirname = path.dirname(__filename);
       const basePrivatePhotoDir = path.join(
         __dirname,
         "../file_storage/photos"
@@ -397,11 +461,10 @@ router.get(
             console.error(
               `File not found for photoId ${photoId} at path ${absolutePhotoPath}`
             );
-            // Avoid sending JSON if headers might have been partially sent or connection closed
             if (!res.headersSent) {
               return res.status(404).json({ error: "Photo file not found." });
             }
-            return; // Stop further processing
+            return;
           }
           console.error(`Error sending file for photoId ${photoId}:`, err);
           if (!res.headersSent) {
@@ -422,7 +485,7 @@ router.get(
           error
         );
         if (!res.writableEnded) {
-          res.end(); // Attempt to gracefully close the response if possible
+          res.end();
         }
       }
     }
