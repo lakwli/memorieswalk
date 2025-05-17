@@ -91,12 +91,25 @@ This plan breaks down the development into logical phases, focusing on deliverin
 
 1.  **Backend - Photo Upload & Serving:**
 
-    - `POST /api/Memories/:id/photos` or `/api/photos?MemoriesId=:id`: Upload photo.
-      - Uses `multer` for file handling.
-      - Saves original image to `server/uploads/user_<userId>/Memories_<MemoriesId>/<filename>`.
-      - Uses `sharp` to generate a display-optimized version and a small thumbnail.
-      - Returns path/URL to the uploaded photo.
-    - Static file serving (Express middleware) for the `uploads` directory.
+    - **Photo Upload (to User's Library):** `POST /api/memories/photos`
+      - Uses `multer` (configured in `server/middleware/upload.js`) for initial file reception (e.g., to a temporary directory or `uploads/`).
+      - Processes uploaded images using `sharp` (via `server/utils/fileUtils.js#processImage`):
+        - Converts images to an optimized format (e.g., WebP).
+        - Resizes images if necessary.
+        - Saves the processed image to a private storage location: `server/file_storage/photos/<first_part_of_uuid>/<photoId>.<ext>`.
+        - The original uploaded file is typically deleted after successful processing.
+      - Stores photo metadata (including `user_id`, `file_path`, `mime_type`, dimensions, etc.) in the `photos` database table.
+      - Returns an array of objects for successfully uploaded and processed photos, including their new `id` and `file_path`.
+    - **Linking Photos to a Memory:** `POST /api/memories/:memoryId/photos`
+      - Takes a `memoryId` and an array of `photo_ids` (which should already exist in the user's photo library via the endpoint above).
+      - Creates associations in the `memory_photos` table.
+    - **Authenticated Photo Serving:** `GET /api/memories/photos/:photoId/view-authenticated`
+      - Serves a specific photo file from `server/file_storage/photos/` for an authenticated user who owns the photo.
+      - Sets appropriate `Content-Type` headers.
+    - **Public Photo Serving (via Share Links):** `GET /api/public/photos/view/:photoId?shareToken=<token>`
+      - Serves a specific photo file from `server/file_storage/photos/` if a valid `shareToken` (associated with the memory containing the photo) is provided.
+      - This endpoint is used for the public share view.
+    - **Note:** Direct static file serving from the `server/file_storage/photos/` directory is not implemented for security and access control. Photo access is managed through the dedicated API endpoints listed above.
 
 2.  **Backend - Auto-Save & Manual Save Endpoint:**
 
