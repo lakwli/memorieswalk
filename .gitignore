@@ -42,3 +42,4 @@ logs
 
 # User uploaded files
 server/file_storage/
+server/uploads/
