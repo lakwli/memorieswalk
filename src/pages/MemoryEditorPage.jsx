@@ -16,6 +16,7 @@ import {
   Text,
   Tooltip,
   useToast,
+  Icon,
 } from "@chakra-ui/react";
 import {
   ArrowBackIcon,
@@ -25,6 +26,8 @@ import {
   DeleteIcon,
   DownloadIcon,
   EditIcon,
+  AddIcon,
+  MinusIcon,
 } from "@chakra-ui/icons";
 import {
   FaShare,
@@ -39,6 +42,19 @@ import PageLayout from "../layouts/PageLayout";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
 
+const ZOOM_FACTOR = 1.2;
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 10;
+
+const ZoomToFitIcon = (props) => (
+  <Icon viewBox="0 0 20 20" {...props}>
+    <path
+      fill="currentColor"
+      d="M15 5H5v10h10V5zm2-2H3v14h14V3zm-4 6H7v2h6V9z"
+    />
+  </Icon>
+);
+
 const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,11 +68,79 @@ const MemoryEditorPage = () => {
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [activePhotoId, setActivePhotoId] = useState(null);
-  const [activeTool, setActiveTool] = useState(null);
-  const stageRef = useRef(null); // This ref is for the <Box> container for layout purposes
+  const stageContainerRef = useRef(null); // For the Box containing the Stage
   const konvaStageRef = useRef(null); // Ref for Konva Stage instance
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
+
+  const [stageScale, setStageScale] = useState(1);
+  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const [isPanningMode, setIsPanningMode] = useState(false); // For spacebar panning
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === " " && !isPanningMode) {
+        e.preventDefault();
+        setIsPanningMode(true);
+        if (konvaStageRef.current) {
+          konvaStageRef.current.draggable(true);
+        }
+        if (stageContainerRef.current) {
+          stageContainerRef.current.style.cursor = "grab";
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key === " ") {
+        setIsPanningMode(false);
+        if (konvaStageRef.current) {
+          konvaStageRef.current.draggable(false);
+        }
+        if (stageContainerRef.current) {
+          stageContainerRef.current.style.cursor = "default";
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isPanningMode]);
+
+  const handleWheel = (e) => {
+    e.evt.preventDefault();
+    const scaleBy = 1.1; // This can be different from ZOOM_FACTOR for finer mouse wheel control
+    const stage = konvaStageRef.current;
+    if (stage) {
+      const oldScale = stage.scaleX();
+      const pointer = stage.getPointerPosition();
+
+      if (!pointer) return;
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      const newScale =
+        e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+      const clampedNewScale = Math.max(
+        MIN_SCALE,
+        Math.min(newScale, MAX_SCALE)
+      );
+
+      setStageScale(clampedNewScale);
+      setStagePosition({
+        x: pointer.x - mousePointTo.x * clampedNewScale,
+        y: pointer.y - mousePointTo.y * clampedNewScale,
+      });
+    }
+  };
 
   useEffect(() => {
     const loadMemory = async () => {
@@ -86,7 +170,19 @@ const MemoryEditorPage = () => {
               },
               {}
             );
+            console.log(
+              "[loadMemory] Parsed photoLayouts from view configuration:",
+              photoLayouts
+            );
+          } else {
+            console.log(
+              "[loadMemory] No existing canvas photo layouts found in view configuration."
+            );
           }
+        } else {
+          console.log(
+            "[loadMemory] No view_configurations found on memory object."
+          );
         }
 
         const loadedPhotos = await Promise.all(
@@ -211,7 +307,12 @@ const MemoryEditorPage = () => {
   }, [activePhotoId, photos]);
 
   const saveMemoryLayout = useCallback(async () => {
-    if (!memory || !photos.length) return;
+    if (!memory || !photos.length) {
+      console.log(
+        "[saveMemoryLayout] Aborted: No memory or no photos to save."
+      );
+      return;
+    }
 
     const photoLayoutData = photos.map((p) => ({
       id: p.id,
@@ -221,6 +322,10 @@ const MemoryEditorPage = () => {
       height: p.height,
       rotation: p.rotation || 0,
     }));
+    console.log(
+      "[saveMemoryLayout] photoLayoutData to be saved:",
+      photoLayoutData
+    );
 
     try {
       setSaving(true);
@@ -489,7 +594,12 @@ const MemoryEditorPage = () => {
   const handleDragEnd = useCallback(
     (e) => {
       const node = e.target;
-      handlePhotoUpdate(node.id(), { x: node.x(), y: node.y() });
+      const newPosition = { x: node.x(), y: node.y() };
+      console.log(
+        `[handleDragEnd] Photo ID: ${node.id()}, New Position:`,
+        newPosition
+      );
+      handlePhotoUpdate(node.id(), newPosition);
     },
     [handlePhotoUpdate]
   );
@@ -500,19 +610,134 @@ const MemoryEditorPage = () => {
       const scaleX = node.scaleX();
       const scaleY = node.scaleY();
 
+      // Reset scale on node before calculating new dimensions
       node.scaleX(1);
       node.scaleY(1);
 
-      handlePhotoUpdate(node.id(), {
+      const newAttrs = {
         x: node.x(),
         y: node.y(),
         width: Math.max(20, node.width() * scaleX),
         height: Math.max(20, node.height() * scaleY),
         rotation: node.rotation(),
-      });
+      };
+      console.log(
+        `[handleTransformEnd] Photo ID: ${node.id()}, New Attributes:`,
+        newAttrs
+      );
+      handlePhotoUpdate(node.id(), newAttrs);
     },
     [handlePhotoUpdate]
   );
+
+  const handleStageDragEnd = () => {
+    if (konvaStageRef.current && isPanningMode) {
+      setStagePosition(konvaStageRef.current.position());
+    }
+  };
+
+  const handleZoom = (direction) => {
+    const stage = konvaStageRef.current;
+    const container = stageContainerRef.current;
+    if (!stage || !container) return;
+
+    const oldScale = stage.scaleX();
+    let newScale;
+
+    if (direction === "in") {
+      newScale = oldScale * ZOOM_FACTOR;
+    } else {
+      newScale = oldScale / ZOOM_FACTOR;
+    }
+    newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+
+    const viewCenterX = container.offsetWidth / 2;
+    const viewCenterY = container.offsetHeight / 2;
+
+    const pointTo = {
+      x: (viewCenterX - stage.x()) / oldScale,
+      y: (viewCenterY - stage.y()) / oldScale,
+    };
+
+    setStageScale(newScale);
+    setStagePosition({
+      x: viewCenterX - pointTo.x * newScale,
+      y: viewCenterY - pointTo.y * newScale,
+    });
+  };
+
+  const handleZoomIn = () => handleZoom("in");
+  const handleZoomOut = () => handleZoom("out");
+
+  const handleZoomToFit = () => {
+    const stage = konvaStageRef.current;
+    const container = stageContainerRef.current;
+
+    if (!stage || !container) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    if (photos.length === 0) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    photos.forEach((photo) => {
+      if (photo.image) {
+        const photoRight = photo.x + (photo.width || photo.image.width / 4);
+        const photoBottom = photo.y + (photo.height || photo.image.height / 4);
+
+        minX = Math.min(minX, photo.x);
+        minY = Math.min(minY, photo.y);
+        maxX = Math.max(maxX, photoRight);
+        maxY = Math.max(maxY, photoBottom);
+      }
+    });
+
+    if (minX === Infinity || photos.every((p) => !p.image)) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    if (contentWidth <= 0 || contentHeight <= 0) {
+      setStageScale(1);
+      const viewCenterX = container.offsetWidth / 2;
+      const viewCenterY = container.offsetHeight / 2;
+      setStagePosition({
+        x: viewCenterX - (minX + contentWidth / 2) * 1,
+        y: viewCenterY - (minY + contentHeight / 2) * 1,
+      });
+      return;
+    }
+
+    const viewWidth = container.offsetWidth;
+    const viewHeight = container.offsetHeight;
+    const padding = 50;
+
+    const scaleX = (viewWidth - 2 * padding) / contentWidth;
+    const scaleY = (viewHeight - 2 * padding) / contentHeight;
+
+    let newScale = Math.min(scaleX, scaleY);
+    newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+
+    const newStageX = viewWidth / 2 - (minX + contentWidth / 2) * newScale;
+    const newStageY = viewHeight / 2 - (minY + contentHeight / 2) * newScale;
+
+    setStageScale(newScale);
+    setStagePosition({ x: newStageX, y: newStageY });
+  };
 
   const handleDeleteMemory = async () => {
     const confirm = window.confirm(
@@ -706,33 +931,15 @@ const MemoryEditorPage = () => {
       </Tooltip>
 
       <Tooltip label="Add Text (Not Implemented)">
-        <IconButton
-          aria-label="Text"
-          icon={<FaFont />}
-          mr={2}
-          onClick={() => setActiveTool("text")}
-          disabled
-        />
+        <IconButton aria-label="Text" icon={<FaFont />} mr={2} disabled />
       </Tooltip>
 
       <Tooltip label="Draw (Not Implemented)">
-        <IconButton
-          aria-label="Draw"
-          icon={<FaPaintBrush />}
-          mr={2}
-          onClick={() => setActiveTool("draw")}
-          disabled
-        />
+        <IconButton aria-label="Draw" icon={<FaPaintBrush />} mr={2} disabled />
       </Tooltip>
 
       <Tooltip label="Rotate (Not Implemented - use transform controls)">
-        <IconButton
-          aria-label="Rotate"
-          icon={<FaSyncAlt />}
-          mr={2}
-          onClick={() => setActiveTool("rotate")}
-          disabled
-        />
+        <IconButton aria-label="Rotate" icon={<FaSyncAlt />} mr={2} disabled />
       </Tooltip>
 
       <Tooltip label="Manage Layers (Not Implemented)">
@@ -740,7 +947,6 @@ const MemoryEditorPage = () => {
           aria-label="Layers"
           icon={<FaLayerGroup />}
           mr={2}
-          onClick={() => setActiveTool("layers")}
           disabled
         />
       </Tooltip>
@@ -780,29 +986,43 @@ const MemoryEditorPage = () => {
           p={viewType === "canvas" ? 0 : 4}
           bg="gray.100"
           position="relative"
-          overflow="auto"
-          ref={stageRef}
+          overflow="hidden"
+          ref={stageContainerRef}
         >
           {viewType === "canvas" && (
             <Stage
-              ref={konvaStageRef} // Assign konvaStageRef to Konva Stage
+              ref={konvaStageRef}
               width={
-                stageRef.current
-                  ? stageRef.current.offsetWidth
+                stageContainerRef.current
+                  ? stageContainerRef.current.offsetWidth
                   : window.innerWidth - 50
               }
               height={
-                stageRef.current
-                  ? stageRef.current.offsetHeight
+                stageContainerRef.current
+                  ? stageContainerRef.current.offsetHeight
                   : window.innerHeight - 150
               }
               style={{ backgroundColor: "white" }}
               onMouseDown={(e) => {
                 const clickedOnEmpty = e.target === e.target.getStage();
-                if (clickedOnEmpty) {
+                if (clickedOnEmpty && !isPanningMode) {
                   setActivePhotoId(null);
                 }
+                if (isPanningMode && stageContainerRef.current) {
+                  stageContainerRef.current.style.cursor = "grabbing";
+                }
               }}
+              onMouseUp={() => {
+                if (isPanningMode && stageContainerRef.current) {
+                  stageContainerRef.current.style.cursor = "grab";
+                }
+              }}
+              x={stagePosition.x}
+              y={stagePosition.y}
+              scaleX={stageScale}
+              scaleY={stageScale}
+              onDragEnd={handleStageDragEnd}
+              onWheel={handleWheel}
             >
               <Layer>
                 {photos.map(
@@ -863,6 +1083,56 @@ const MemoryEditorPage = () => {
           )}
           {viewType === "timeline" && (
             <Box p={4}>Timeline View (Not Implemented)</Box>
+          )}
+          {viewType === "canvas" && (
+            <Box
+              position="absolute"
+              bottom="20px"
+              right="20px"
+              zIndex="1000"
+              boxShadow="md"
+              borderRadius="md"
+              bg="whiteAlpha.800"
+            >
+              <HStack spacing={1} p={2}>
+                <Tooltip label="Zoom Out">
+                  <IconButton
+                    icon={<MinusIcon />}
+                    onClick={handleZoomOut}
+                    size="sm"
+                    aria-label="Zoom out"
+                  />
+                </Tooltip>
+                <Tooltip label="Zoom Level">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    minW="60px"
+                    onClick={() => {}}
+                    _hover={{ bg: "gray.100" }}
+                    borderColor="gray.300"
+                  >
+                    {Math.round(stageScale * 100)}%
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Zoom In">
+                  <IconButton
+                    icon={<AddIcon />}
+                    onClick={handleZoomIn}
+                    size="sm"
+                    aria-label="Zoom in"
+                  />
+                </Tooltip>
+                <Tooltip label="Zoom to Fit">
+                  <IconButton
+                    icon={<ZoomToFitIcon />}
+                    onClick={handleZoomToFit}
+                    size="sm"
+                    aria-label="Zoom to fit"
+                  />
+                </Tooltip>
+              </HStack>
+            </Box>
           )}
         </Box>
       </Flex>
