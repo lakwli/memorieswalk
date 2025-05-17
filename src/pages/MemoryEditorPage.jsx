@@ -34,6 +34,7 @@ import {
   FaLayerGroup,
 } from "react-icons/fa";
 import { Stage, Layer, Image as KonvaImage, Transformer } from "react-konva";
+import Konva from "konva";
 import PageLayout from "../layouts/PageLayout";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -831,6 +832,26 @@ const MemoryEditorPage = () => {
                       return oldBox;
                     }
                     return newBox;
+                  }}
+                  anchorRenderer={(anchorNode, anchorName, transformer) => {
+                    if (anchorName === "rotater") {
+                      const anchorSize =
+                        transformer.getAttr("anchorSize") || 10;
+                      const rotateSymbol = new Konva.Text({
+                        text: "↻",
+                        fontSize: anchorSize * 1.8,
+                        fill:
+                          transformer.getAttr("anchorStroke") ||
+                          "rgb(0, 161, 255)",
+                        width: anchorSize * 2,
+                        height: anchorSize * 2,
+                        offsetX: anchorSize,
+                        offsetY: anchorSize,
+                        listening: true,
+                      });
+                      return rotateSymbol;
+                    }
+                    return anchorNode;
                   }}
                 />
               </Layer>
