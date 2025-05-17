@@ -1,7 +1,44 @@
+# Node modules
 node_modules/
-server/node_modules/
+*/node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Build files
 dist/
-*.log
+build/
+**/dist/
+**/build/
+
+# Version control
 .git/
 .gitignore
+**/.git/
+**/.gitignore
+
+# Docker
+Dockerfile
+docker-compose*
+
+# Dev environment
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test files
+coverage/
+**/coverage/
+**/__tests__/
+**/tests/
+
+# OS files
 .DS_Store
+Thumbs.db

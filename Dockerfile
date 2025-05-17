@@ -1,4 +1,4 @@
-FROM node:22-slim as frontend-builder
+FROM node:22-slim AS frontend-builder
 
 WORKDIR /app
 COPY package*.json ./
