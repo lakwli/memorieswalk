@@ -20,7 +20,7 @@ import logo from "../assets/logo.svg";
 
 const Header = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <Box bg="backgrounds.header" borderBottom="1px" borderColor="borders.light">
@@ -69,14 +69,17 @@ const Header = () => {
               rightIcon={<ChevronDownIcon />}
             >
               <HStack>
-                <Avatar size="sm" name="User Name" />
-                <Text>John Doe</Text>
+                <Avatar
+                  size="sm"
+                  name={user?.full_name || user?.username || "User"}
+                />
+                <Text>{user?.full_name || user?.username || "User"}</Text>
               </HStack>
             </MenuButton>
             <MenuList>
-              <MenuItem>Profile</MenuItem>
-              <MenuItem>Account Settings</MenuItem>
-              <MenuItem>Help Center</MenuItem>
+              <MenuItem as={RouterLink} to="/account-settings">
+                Account Settings
+              </MenuItem>
               <MenuDivider />
               <MenuItem
                 color="red.500"

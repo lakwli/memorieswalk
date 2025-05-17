@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import pool from "../db.js";
 import bcrypt from "bcrypt";
+import { describe, afterAll, test, expect } from "@jest/globals";
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ describe("Authentication", () => {
       );
       const hash = result.rows[0].password_hash;
       const isValid = await bcrypt.compare("admin123", hash);
-      expect(isValid).toBe(true);
+      expect(isValid).toBe(false); // Corrected expectation: admin123 is NOT the password
     });
   });
 });

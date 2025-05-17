@@ -1,0 +1,9 @@
+
+
+
+docker ps -a
+docker rm 
+docker rmi memorieswalk_devcontainer-app
+docker rmi postgres
+docker volume ls
+docker volume rm memorieswalk_devcontainer_postgres_data

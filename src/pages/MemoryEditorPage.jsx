@@ -1,47 +1,66 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  useToast,
   Box,
-  Button,
   Flex,
-  Heading,
+  Text,
+  Button,
+  Spinner,
+  HStack,
   IconButton,
+  Input,
+  Image,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  Spinner,
-  Text,
-  Tooltip,
-  useToast,
-  HStack,
+  MenuDivider,
   Select,
-  SimpleGrid,
+  Tooltip,
+  Avatar,
 } from "@chakra-ui/react";
 import {
-  AttachmentIcon,
-  DownloadIcon,
-  DeleteIcon,
+  Stage,
+  Layer,
+  Image as KonvaImage,
+  Transformer,
+  Text as KonvaText,
+} from "react-konva";
+import {
+  FaSave,
+  FaEllipsisV,
+  FaSearchPlus,
+  FaSearchMinus,
+  FaExpandArrowsAlt,
+  FaCompressArrowsAlt,
+  FaMousePointer,
+  FaHandPaper,
+} from "react-icons/fa";
+import { MdTextFields } from "react-icons/md";
+import {
   ArrowBackIcon,
   EditIcon,
   CheckIcon,
   CloseIcon,
+  AttachmentIcon,
+  DeleteIcon,
 } from "@chakra-ui/icons";
-import {
-  FaFont,
-  FaPaintBrush,
-  FaShare,
-  FaLayerGroup,
-  FaSyncAlt,
-} from "react-icons/fa";
-import MasterLayout from "../layouts/MasterLayout";
-import { memoryService } from "../services/memoryService";
+import { useAuth } from "../context/AuthContext";
+import memoryService from "../services/memoryService";
+import LogoSvg from "../assets/logo.svg";
+import Konva from "konva";
 import ErrorBoundary from "../components/ErrorBoundary";
+
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 10;
+const ZOOM_FACTOR = 1.2;
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user, logout } = useAuth();
   const [memory, setMemory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,8 +69,123 @@ const MemoryEditorPage = () => {
   const [viewType, setViewType] = useState("canvas");
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState([]);
-  const [activePhoto, setActivePhoto] = useState(null);
+  const [texts, setTexts] = useState([]);
+  const [selectedElement, setSelectedElement] = useState(null);
+  const stageContainerRef = useRef(null);
+  const konvaStageRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const trRef = useRef(null);
+
+  const [stageScale, setStageScale] = useState(1);
+  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const [isPanningMode, setIsPanningMode] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === " " && !editingTitle) {
+        e.preventDefault();
+        if (!isPanningMode) {
+          setIsPanningMode(true);
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key === " ") {
+        if (activeTool !== "pan") {
+          setIsPanningMode(false);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [editingTitle, activeTool, isPanningMode]);
+
+  useEffect(() => {
+    if (activeTool === "pan") {
+      if (!isPanningMode) {
+        setIsPanningMode(true);
+      }
+    }
+  }, [activeTool, isPanningMode]);
+
+  useEffect(() => {
+    if (stageContainerRef.current) {
+      if (isPanningMode) {
+        stageContainerRef.current.style.cursor = "grab";
+      } else if (activeTool === "text") {
+        stageContainerRef.current.style.cursor = "text";
+      } else {
+        stageContainerRef.current.style.cursor = "default";
+      }
+    }
+  }, [isPanningMode, activeTool]);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        toast({
+          title: "Fullscreen Error",
+          description: `Could not enable fullscreen mode: ${err.message}`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const handleWheel = (e) => {
+    e.evt.preventDefault();
+    const scaleBy = 1.1;
+    const stage = konvaStageRef.current;
+    if (stage) {
+      const oldScale = stage.scaleX();
+      const pointer = stage.getPointerPosition();
+
+      if (!pointer) return;
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      const newScale =
+        e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+      const clampedNewScale = Math.max(
+        MIN_SCALE,
+        Math.min(newScale, MAX_SCALE)
+      );
+
+      setStageScale(clampedNewScale);
+      setStagePosition({
+        x: pointer.x - mousePointTo.x * clampedNewScale,
+        y: pointer.y - mousePointTo.y * clampedNewScale,
+      });
+    }
+  };
 
   useEffect(() => {
     const loadMemory = async () => {
@@ -60,13 +194,116 @@ const MemoryEditorPage = () => {
         const data = await memoryService.getMemory(id);
         setMemory(data);
         setTitle(data.title);
-        setViewType(data.view_type || "canvas");
+        const currentViewConfig = Array.isArray(data.view_configurations)
+          ? data.view_configurations.find(
+              (vc) => vc.view_type === "canvas" && vc.is_primary_view
+            )
+          : null;
 
-        // Load photos for this memory
+        setViewType(currentViewConfig?.view_type || data.view_type || "canvas");
+
         const photoData = await memoryService.getPhotosForMemory(id);
-        setPhotos(photoData);
+
+        let photoLayouts = {};
+        if (
+          currentViewConfig &&
+          currentViewConfig.configuration_data &&
+          currentViewConfig.configuration_data.photos
+        ) {
+          currentViewConfig.configuration_data.photos.forEach((layout) => {
+            photoLayouts[layout.id] = layout;
+          });
+        }
+
+        const loadedPhotos = await Promise.all(
+          photoData.map((photo) => {
+            return new Promise((resolve) => {
+              const img = new window.Image();
+              img.crossOrigin = "anonymous";
+
+              (async () => {
+                let objectURL = null;
+                try {
+                  const blob =
+                    await memoryService.getPhotoBlobViewAuthenticated(photo.id);
+                  objectURL = URL.createObjectURL(blob);
+                  img.src = objectURL;
+
+                  img.onload = () => {
+                    const layout = photoLayouts[String(photo.id)] || {};
+                    resolve({
+                      id: String(photo.id),
+                      image: img,
+                      objectURL,
+                      x: layout.x || 50,
+                      y: layout.y || 50,
+                      width: layout.width || img.naturalWidth / 4,
+                      height: layout.height || img.naturalHeight / 4,
+                      rotation: layout.rotation || 0,
+                      filename: photo.metadata?.name || `photo-${photo.id}`,
+                    });
+                  };
+                  img.onerror = (errEvent) => {
+                    console.error(
+                      `Image load error for photo ${photo.id}:`,
+                      errEvent,
+                      "Error type:",
+                      errEvent.type
+                    );
+                    toast({
+                      title: "Image Load Error",
+                      description: `Could not display image ${
+                        photo.metadata?.name || photo.id
+                      } (type: ${errEvent.type}).`,
+                      status: "warning",
+                      duration: 4000,
+                      isClosable: true,
+                    });
+                    if (objectURL) URL.revokeObjectURL(objectURL);
+                    resolve(null);
+                  };
+                } catch (fetchErr) {
+                  console.error(
+                    "Failed to fetch image blob:",
+                    fetchErr,
+                    "Photo ID:",
+                    photo.id
+                  );
+                  toast({
+                    title: "Image Fetch Error",
+                    description: `Could not load image data for ${
+                      photo.metadata?.name || photo.id
+                    }: ${fetchErr.message}`,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                  });
+                  if (objectURL) URL.revokeObjectURL(objectURL);
+                  resolve({ ...photo, image: null, x: 50, y: 50 });
+                }
+              })();
+            });
+          })
+        );
+        setPhotos(loadedPhotos.filter((p) => p.image));
+
+        if (
+          currentViewConfig &&
+          currentViewConfig.configuration_data &&
+          currentViewConfig.configuration_data.texts
+        ) {
+          setTexts(
+            currentViewConfig.configuration_data.texts.map((text) => ({
+              ...text,
+              id: String(
+                text.id || `text-${Math.random().toString(36).substr(2, 9)}`
+              ),
+            }))
+          );
+        } else {
+          setTexts([]);
+        }
       } catch (err) {
-        console.error("Error loading memory:", err);
         setError(err.message);
         toast({
           title: "Error",
@@ -83,29 +320,145 @@ const MemoryEditorPage = () => {
     loadMemory();
   }, [id, toast]);
 
-  const saveMemory = useCallback(async () => {
+  useEffect(() => {
+    return () => {
+      photos.forEach((photo) => {
+        if (photo.objectURL) {
+          URL.revokeObjectURL(photo.objectURL);
+        }
+      });
+    };
+  }, [photos]);
+
+  useEffect(() => {
+    if (trRef.current) {
+      if (selectedElement && selectedElement.id) {
+        const stage = konvaStageRef.current;
+        if (stage) {
+          const selectedNode = stage.findOne("#" + selectedElement.id);
+          if (selectedNode) {
+            trRef.current.nodes([selectedNode]);
+          } else {
+            trRef.current.nodes([]);
+          }
+        } else {
+          trRef.current.nodes([]);
+        }
+      } else {
+        trRef.current.nodes([]);
+      }
+      if (trRef.current.getLayer()) {
+        trRef.current.getLayer().batchDraw();
+      }
+    }
+  }, [selectedElement, photos, texts]);
+
+  const saveMemoryLayout = useCallback(async () => {
+    if (!memory) {
+      return;
+    }
+
+    const photoLayoutData = photos.map((p) => ({
+      id: p.id,
+      x: p.x,
+      y: p.y,
+      width: p.width,
+      height: p.height,
+      rotation: p.rotation || 0,
+    }));
+
+    const textLayoutData = texts.map((t) => ({
+      id: t.id,
+      x: t.x,
+      y: t.y,
+      text: t.text,
+      fontSize: t.fontSize,
+      fontFamily: t.fontFamily,
+      fill: t.fill,
+      rotation: t.rotation || 0,
+      width: t.width,
+      wrap: t.wrap,
+      align: t.align,
+    }));
+
+    try {
+      setSaving(true);
+      let viewConfig = memory.view_configurations?.find(
+        (vc) => vc.view_type === "canvas" && vc.is_primary_view
+      );
+
+      const configuration_data = {
+        photos: photoLayoutData,
+        texts: textLayoutData,
+      };
+
+      if (viewConfig) {
+        await memoryService.updateMemoryViewConfiguration(
+          memory.id,
+          viewConfig.id,
+          {
+            configuration_data,
+          }
+        );
+      } else {
+        viewConfig = await memoryService.createMemoryViewConfiguration(
+          memory.id,
+          {
+            name: "Primary Canvas Layout",
+            view_type: "canvas",
+            configuration_data,
+            is_primary_view: true,
+          }
+        );
+        setMemory((prev) => ({
+          ...prev,
+          view_configurations: [
+            ...(prev.view_configurations || []),
+            viewConfig,
+          ],
+        }));
+      }
+
+      toast({
+        title: "Layout Saved",
+        description: "Canvas layout saved successfully.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Layout Save Error",
+        description: `Failed to save canvas layout: ${err.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [memory, photos, texts, toast]);
+
+  const saveMemoryDetails = useCallback(async () => {
     if (!memory) return;
 
     try {
       setSaving(true);
       const updates = {
         title,
-        view_type: viewType,
-        memory_data: memory.memory_data, // Preserve existing memory data
       };
 
       const updatedMemory = await memoryService.updateMemory(id, updates);
-      setMemory(updatedMemory);
+      setMemory((prev) => ({ ...prev, ...updatedMemory }));
 
       toast({
         title: "Saved",
-        description: "Memory saved successfully",
+        description: "Memory details saved successfully",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (err) {
-      console.error("Error saving memory:", err);
       toast({
         title: "Error",
         description: `Failed to save memory: ${err.message}`,
@@ -116,7 +469,14 @@ const MemoryEditorPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [id, memory, title, toast, viewType]);
+  }, [id, memory, title, toast]);
+
+  const handleSaveAll = async () => {
+    await saveMemoryDetails();
+    if (viewType === "canvas") {
+      await saveMemoryLayout();
+    }
+  };
 
   const handleTitleSave = () => {
     if (title.trim() === "") {
@@ -124,89 +484,366 @@ const MemoryEditorPage = () => {
       setEditingTitle(false);
       return;
     }
-
-    saveMemory();
+    if (title !== memory.title) {
+      saveMemoryDetails();
+    }
     setEditingTitle(false);
   };
 
-  const handleViewTypeChange = (e) => {
-    setViewType(e.target.value);
-    saveMemory();
+  const handleViewTypeChange = async (newViewType) => {
+    if (viewType === "canvas" && newViewType !== "canvas") {
+      const confirmSave = window.confirm(
+        "Save current canvas layout before switching view?"
+      );
+      if (confirmSave) {
+        await saveMemoryLayout();
+      }
+    }
+    setViewType(newViewType);
   };
 
-  const handleShareMemory = async () => {
-    try {
-      const shareData = await memoryService.createShareLink(id);
-      const shareUrl = `${window.location.origin}/shared/${shareData.token}`;
+  const triggerPhotoUpload = () => {
+    fileInputRef.current?.click();
+  };
 
-      // Copy to clipboard
-      await navigator.clipboard.writeText(shareUrl);
+  const handleElementUpdate = useCallback(
+    (elementId, elementType, newAttrs) => {
+      if (elementType === "photo") {
+        setPhotos((prevPhotos) =>
+          prevPhotos.map((p) =>
+            p.id === elementId ? { ...p, ...newAttrs } : p
+          )
+        );
+      } else if (elementType === "text") {
+        setTexts((prevTexts) =>
+          prevTexts.map((t) => (t.id === elementId ? { ...t, ...newAttrs } : t))
+        );
+      }
+    },
+    []
+  );
 
-      toast({
-        title: "Link Copied",
-        description: "Share link copied to clipboard",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      console.error("Error creating share link:", err);
-      toast({
-        title: "Error",
-        description: `Failed to create share link: ${err.message}`,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+  const handleDragEnd = useCallback(
+    (e) => {
+      const node = e.target;
+      const id = String(node.id());
+      const type = node.hasName("photo-image") ? "photo" : "text";
+      const newPosition = { x: node.x(), y: node.y() };
+      handleElementUpdate(id, type, newPosition);
+    },
+    [handleElementUpdate]
+  );
+
+  const handleTransformEnd = useCallback(
+    (e) => {
+      const node = e.target;
+      const scaleX = node.scaleX();
+      const scaleY = node.scaleY();
+      const id = String(node.id());
+      const type = node.hasName("photo-image") ? "photo" : "text";
+
+      node.scaleX(1);
+      node.scaleY(1);
+
+      let newAttrs;
+      if (type === "photo") {
+        newAttrs = {
+          x: node.x(),
+          y: node.y(),
+          width: Math.max(20, node.width() * scaleX),
+          height: Math.max(20, node.height() * scaleY),
+          rotation: node.rotation(),
+        };
+      } else {
+        const newFontSize = node.fontSize() * scaleY;
+        newAttrs = {
+          x: node.x(),
+          y: node.y(),
+          rotation: node.rotation(),
+          fontSize: newFontSize,
+        };
+      }
+      handleElementUpdate(id, type, newAttrs);
+    },
+    [handleElementUpdate]
+  );
+
+  const handleStageDragEnd = () => {
+    if (konvaStageRef.current) {
+      setStagePosition(konvaStageRef.current.position());
     }
   };
 
-  const handlePhotoUpload = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.multiple = true;
+  const handleStageClick = (e) => {
+    if (e.target === e.target.getStage()) {
+      if (activeTool === "text") {
+        const stage = konvaStageRef.current;
+        const pointer = stage.getPointerPosition();
+        if (!pointer) return;
 
-    input.onchange = async (e) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-
-      // In a real app, you'd upload to server/S3 etc
-      // Here we'll create client-side URLs for demo
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Create photo object
-        const newPhoto = {
-          file_path: URL.createObjectURL(file),
-          // In a real app, you'd extract this data from EXIF
-          location_lat: null,
-          location_lng: null,
-          captured_place: null,
-          captured_at: null,
-          metadata: {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-          },
+        const newTextId = `text-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 5)}`;
+        const newText = {
+          id: newTextId,
+          x: pointer.x,
+          y: pointer.y,
+          text: "New Text",
+          fontSize: 24,
+          fontFamily: "Arial",
+          fill: "#000000",
+          draggable: true,
+          rotation: 0,
+          width: 200,
+          wrap: "char",
+          align: "left",
         };
-
-        try {
-          const savedPhoto = await memoryService.addPhotoToMemory(id, newPhoto);
-          setPhotos((prev) => [...prev, savedPhoto]);
-        } catch (err) {
-          console.error("Error uploading photo:", err);
-          toast({
-            title: "Error",
-            description: `Failed to upload photo: ${err.message}`,
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-          });
-        }
+        setTexts((prevTexts) => [...prevTexts, newText]);
+        setSelectedElement({ id: newTextId, type: "text" });
+        setActiveTool(null);
+      } else {
+        setSelectedElement(null);
       }
+      return;
+    }
+
+    const clickedOnTransformer =
+      e.target.getParent() instanceof Konva.Transformer;
+    if (clickedOnTransformer) {
+      return;
+    }
+
+    const id = e.target.id();
+    const isPhoto = e.target.hasName("photo-image");
+    const isText = e.target.hasName("text-element");
+
+    if (isPhoto) {
+      setSelectedElement({ id, type: "photo" });
+    } else if (isText) {
+      setSelectedElement({ id, type: "text" });
+    } else {
+      setSelectedElement(null);
+    }
+  };
+
+  const handleTextDblClick = (e) => {
+    const textNode = e.target;
+    const textNodeId = textNode.id();
+
+    // Hide the KonvaText node and the transformer
+    textNode.hide();
+    trRef.current.nodes([]);
+    trRef.current.getLayer().batchDraw();
+
+    const stage = textNode.getStage();
+    const stageBox = stage.container().getBoundingClientRect(); // Get stage container position
+
+    // Calculate position of textarea
+    // The position needs to account for stage position and scale
+    const areaPosition = {
+      x: stageBox.left + textNode.absolutePosition().x,
+      y: stageBox.top + textNode.absolutePosition().y,
     };
 
-    input.click();
+    // Create textarea
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+
+    textarea.value = textNode.text();
+    textarea.style.position = "absolute";
+    textarea.style.top = areaPosition.y + "px";
+    textarea.style.left = areaPosition.x + "px";
+    textarea.style.width =
+      textNode.width() * stage.scaleX() - textNode.padding() * 2 + "px";
+    textarea.style.height =
+      textNode.height() * stage.scaleY() - textNode.padding() * 2 + "px";
+    textarea.style.fontSize = textNode.fontSize() * stage.scaleY() + "px";
+    textarea.style.border = "none";
+    textarea.style.padding = "0px";
+    textarea.style.margin = "0px";
+    textarea.style.overflow = "hidden";
+    textarea.style.background = "none";
+    textarea.style.outline = "none";
+    textarea.style.resize = "none";
+    textarea.style.lineHeight = textNode.lineHeight();
+    textarea.style.fontFamily = textNode.fontFamily();
+    textarea.style.transformOrigin = "left top";
+    textarea.style.textAlign = textNode.align();
+    textarea.style.color = textNode.fill();
+    // Apply rotation - this can be complex with CSS transforms if not aligned with Konva's center
+    // For simplicity, direct rotation might be tricky. Konva handles rotation around the shape's center.
+    // textarea.style.transform = `rotate(${textNode.rotation()}deg)`; // Basic rotation, might need adjustment
+
+    textarea.focus();
+
+    function removeTextarea() {
+      if (textarea.parentNode) {
+        textarea.parentNode.removeChild(textarea);
+      }
+      window.removeEventListener("click", handleOutsideClick);
+      textNode.show();
+      trRef.current.nodes([textNode]); // Re-select the node
+      trRef.current.getLayer().batchDraw();
+      setSelectedElement({ id: textNodeId, type: "text" }); // Ensure it's re-selected in React state
+    }
+
+    function setTextareaWidth() {
+      let newWidth = textNode.width() * textNode.getAbsoluteScale().x;
+      textarea.style.width = newWidth + "px";
+    }
+
+    textarea.addEventListener("keydown", function (e) {
+      // hide on enter
+      // but don't hide on shift + enter
+      if (e.key === "Enter" && !e.shiftKey) {
+        textNode.text(textarea.value);
+        handleElementUpdate(textNodeId, "text", { text: textarea.value });
+        removeTextarea();
+      }
+      // on esc do not set value back to node
+      if (e.key === "Escape") {
+        removeTextarea();
+      }
+    });
+
+    textarea.addEventListener("blur", function () {
+      textNode.text(textarea.value);
+      handleElementUpdate(textNodeId, "text", { text: textarea.value });
+      removeTextarea();
+    });
+
+    // Handle clicks outside the textarea to also remove it
+    // This needs to be robust to not trigger on the initial dblclick
+    function handleOutsideClick(e) {
+      if (e.target !== textarea) {
+        textNode.text(textarea.value);
+        handleElementUpdate(textNodeId, "text", { text: textarea.value });
+        removeTextarea();
+      }
+    }
+    // Timeout to prevent immediate removal by the same click that initiated edit
+    setTimeout(() => {
+      window.addEventListener("click", handleOutsideClick);
+    });
+
+    // TODO: Consider more robust handling for rotation and scale if needed
+    // For now, this provides basic in-place editing.
+  };
+
+  const handleZoom = (direction) => {
+    const stage = konvaStageRef.current;
+    const container = stageContainerRef.current;
+    if (!stage || !container) return;
+
+    const oldScale = stage.scaleX();
+    let newScale;
+
+    if (direction === "in") {
+      newScale = oldScale * ZOOM_FACTOR;
+    } else {
+      newScale = oldScale / ZOOM_FACTOR;
+    }
+    newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+
+    const viewCenterX = container.offsetWidth / 2;
+    const viewCenterY = container.offsetHeight / 2;
+
+    const pointTo = {
+      x: (viewCenterX - stage.x()) / oldScale,
+      y: (viewCenterY - stage.y()) / oldScale,
+    };
+
+    setStageScale(newScale);
+    setStagePosition({
+      x: viewCenterX - pointTo.x * newScale,
+      y: viewCenterY - pointTo.y * newScale,
+    });
+  };
+
+  const handleZoomIn = () => handleZoom("in");
+  const handleZoomOut = () => handleZoom("out");
+
+  const handleZoomToFit = () => {
+    const stage = konvaStageRef.current;
+    const container = stageContainerRef.current;
+
+    if (!stage || !container) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    if (photos.length === 0 && texts.length === 0) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+
+    photos.forEach((photo) => {
+      if (photo.image) {
+        const photoRight = photo.x + (photo.width || photo.image.width / 4);
+        const photoBottom = photo.y + (photo.height || photo.image.height / 4);
+
+        minX = Math.min(minX, photo.x);
+        minY = Math.min(minY, photo.y);
+        maxX = Math.max(maxX, photoRight);
+        maxY = Math.max(maxY, photoBottom);
+      }
+    });
+
+    texts.forEach((text) => {
+      const textRight = text.x + text.width;
+      const textBottom = text.y + text.height;
+
+      minX = Math.min(minX, text.x);
+      minY = Math.min(minY, text.y);
+      maxX = Math.max(maxX, textRight);
+      maxY = Math.max(maxY, textBottom);
+    });
+
+    if (
+      minX === Infinity ||
+      (photos.every((p) => !p.image) && texts.length === 0)
+    ) {
+      setStageScale(1);
+      setStagePosition({ x: 0, y: 0 });
+      return;
+    }
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    if (contentWidth <= 0 || contentHeight <= 0) {
+      setStageScale(1);
+      const viewCenterX = container.offsetWidth / 2;
+      const viewCenterY = container.offsetHeight / 2;
+      setStagePosition({
+        x: viewCenterX - (minX + contentWidth / 2) * 1,
+        y: viewCenterY - (minY + contentHeight / 2) * 1,
+      });
+      return;
+    }
+
+    const viewWidth = container.offsetWidth;
+    const viewHeight = container.offsetHeight;
+    const padding = 50;
+
+    const scaleX = (viewWidth - 2 * padding) / contentWidth;
+    const scaleY = (viewHeight - 2 * padding) / contentHeight;
+
+    let newScale = Math.min(scaleX, scaleY);
+    newScale = Math.max(MIN_SCALE, Math.min(newScale, MAX_SCALE));
+
+    const newStageX = viewWidth / 2 - (minX + contentWidth / 2) * newScale;
+    const newStageY = viewHeight / 2 - (minY + contentHeight / 2) * newScale;
+
+    setStageScale(newScale);
+    setStagePosition({ x: newStageX, y: newStageY });
   };
 
   const handleDeleteMemory = async () => {
@@ -226,7 +863,6 @@ const MemoryEditorPage = () => {
       });
       navigate("/dashboard");
     } catch (err) {
-      console.error("Error deleting memory:", err);
       toast({
         title: "Error",
         description: `Failed to delete memory: ${err.message}`,
@@ -239,333 +875,411 @@ const MemoryEditorPage = () => {
 
   if (loading) {
     return (
-      <MasterLayout>
-        <Flex justify="center" align="center" height="200px">
-          <Spinner
-            thickness="4px"
-            speed="0.65s"
-            emptyColor="gray.200"
-            color="brand.primary"
-            size="xl"
-          />
-        </Flex>
-      </MasterLayout>
+      <Flex justify="center" align="center" height="100vh" bg="gray.50">
+        <Spinner
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="brand.primary"
+          size="xl"
+        />
+      </Flex>
     );
   }
 
   if (error) {
     return (
-      <MasterLayout>
-        <Box textAlign="center" p={8}>
-          <Heading size="md" mb={4} color="red.500">
-            Error Loading Memory
-          </Heading>
-          <Text>{error}</Text>
-          <Button mt={4} onClick={() => navigate("/dashboard")}>
-            Back to Dashboard
-          </Button>
-        </Box>
-      </MasterLayout>
+      <Flex
+        direction="column"
+        justify="center"
+        align="center"
+        height="100vh"
+        bg="gray.50"
+        p={8}
+      >
+        <Text color="red.500" fontSize="xl" mb={4}>
+          Error loading memory: {error}
+        </Text>
+        <Button onClick={() => navigate("/dashboard")} colorScheme="blue">
+          Back to Dashboard
+        </Button>
+      </Flex>
     );
   }
 
-  return (
-    <MasterLayout>
-      <Box>
-        {/* Header */}
-        <Flex
-          bg="backgrounds.header"
-          px={4}
-          py={2}
-          alignItems="center"
-          justifyContent="space-between"
-          borderBottom="1px solid"
-          borderColor="borders.light"
-        >
+  const EditorTopBar = () => (
+    <Flex
+      as="header"
+      align="center"
+      justify="space-between"
+      p={2}
+      bg="backgrounds.header"
+      borderBottom="1px solid"
+      borderColor="borders.light"
+      h="60px"
+    >
+      <HStack spacing={3}>
+        <Tooltip label="Back to Dashboard">
           <IconButton
             aria-label="Back to dashboard"
             icon={<ArrowBackIcon />}
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            mr={2}
           />
+        </Tooltip>
+        <Image src={LogoSvg} alt="Memora Logo" h="30px" />
+      </HStack>
 
-          {editingTitle ? (
-            <Flex alignItems="center">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  border: "1px solid #E2E8F0",
-                  padding: "0 8px",
-                  borderRadius: "4px",
-                }}
-                autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
-              />
-              <IconButton
-                aria-label="Save"
-                icon={<CheckIcon />}
-                size="sm"
-                ml={2}
-                onClick={handleTitleSave}
-              />
-              <IconButton
-                aria-label="Cancel"
-                icon={<CloseIcon />}
-                size="sm"
-                ml={2}
-                onClick={() => {
-                  setTitle(memory.title);
-                  setEditingTitle(false);
-                }}
-              />
-            </Flex>
-          ) : (
-            <Flex alignItems="center">
-              <Heading size="md" mr={2}>
-                {title}
-              </Heading>
-              <IconButton
-                aria-label="Edit title"
-                icon={<EditIcon />}
-                size="xs"
-                variant="ghost"
-                onClick={() => setEditingTitle(true)}
-              />
-            </Flex>
-          )}
-
-          <HStack spacing={2}>
-            <Select
-              value={viewType}
-              onChange={handleViewTypeChange}
-              w="150px"
-              size="sm"
-            >
-              <option value="canvas">Canvas View</option>
-              <option value="grid">Grid View</option>
-              <option value="places">Places View</option>
-              <option value="timeline">Timeline View</option>
-            </Select>
-
-            <Button
-              leftIcon={<FaShare />}
-              onClick={handleShareMemory}
-              size="sm"
-              colorScheme="blue"
-            >
-              Share
-            </Button>
-
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                icon={<DeleteIcon />}
-                variant="ghost"
-                aria-label="Options"
-                size="sm"
-              />
-              <MenuList>
-                <MenuItem icon={<DeleteIcon />} onClick={handleDeleteMemory}>
-                  Delete Memory
-                </MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </Flex>
-
-        {/* Toolbar */}
-        <Flex
-          bg="backgrounds.toolbarTranslucent"
-          p={2}
-          alignItems="center"
-          position="sticky"
-          top="0"
-          zIndex="10"
-          boxShadow="sm"
-          borderBottom="1px solid"
-          borderColor="borders.light"
-        >
-          <Tooltip label="Upload Photos">
-            <IconButton
-              aria-label="Upload"
-              icon={<AttachmentIcon />}
-              mr={2}
-              isActive={activeTool === "upload"}
-              onClick={handlePhotoUpload}
-            />
-          </Tooltip>
-
-          <Tooltip label="Add Text">
-            <IconButton
-              aria-label="Text"
-              icon={<FaFont />}
-              mr={2}
-              isActive={activeTool === "text"}
-              onClick={() => setActiveTool("text")}
-            />
-          </Tooltip>
-
-          <Tooltip label="Draw">
-            <IconButton
-              aria-label="Draw"
-              icon={<FaPaintBrush />}
-              mr={2}
-              isActive={activeTool === "draw"}
-              onClick={() => setActiveTool("draw")}
-            />
-          </Tooltip>
-
-          <Tooltip label="Rotate">
-            <IconButton
-              aria-label="Rotate"
-              icon={<FaSyncAlt />}
-              mr={2}
-              isActive={activeTool === "rotate"}
-              onClick={() => setActiveTool("rotate")}
-            />
-          </Tooltip>
-
-          <Tooltip label="Manage Layers">
-            <IconButton
-              aria-label="Layers"
-              icon={<FaLayerGroup />}
-              mr={2}
-              isActive={activeTool === "layers"}
-              onClick={() => setActiveTool("layers")}
-            />
-          </Tooltip>
-
-          <Box flex="1" />
-
-          <Button
-            leftIcon={<DownloadIcon />}
+      {editingTitle ? (
+        <Flex alignItems="center" flex="1" mx={4} maxW="500px">
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fontWeight="bold"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTitleSave();
+              if (e.key === "Escape") {
+                setTitle(memory.title);
+                setEditingTitle(false);
+              }
+            }}
+            onBlur={handleTitleSave}
+            size="md"
             mr={2}
+            bg="white"
+          />
+          <IconButton
+            aria-label="Save Title"
+            icon={<CheckIcon />}
             size="sm"
-            variant="outline"
-          >
-            Download
-          </Button>
-
-          <Button
-            leftIcon={saving ? <Spinner size="sm" /> : null}
-            onClick={saveMemory}
+            onClick={handleTitleSave}
             colorScheme="green"
+          />
+          <IconButton
+            aria-label="Cancel Title Edit"
+            icon={<CloseIcon />}
             size="sm"
+            ml={2}
+            onClick={() => {
+              setTitle(memory.title);
+              setEditingTitle(false);
+            }}
+            variant="ghost"
+          />
+        </Flex>
+      ) : (
+        <Flex
+          alignItems="center"
+          onClick={() => setEditingTitle(true)}
+          cursor="pointer"
+          mx={4}
+          flex="1"
+          minW="200px"
+          justifyContent="center"
+        >
+          <Text fontSize="xl" fontWeight="bold" mr={2} noOfLines={1}>
+            {title || "Untitled Memory"}
+          </Text>
+          <IconButton
+            aria-label="Edit title"
+            icon={<EditIcon />}
+            size="xs"
+            variant="ghost"
+          />
+        </Flex>
+      )}
+
+      <HStack spacing={2}>
+        <Tooltip label="Upload Photos">
+          <IconButton
+            aria-label="Upload Photos"
+            icon={<AttachmentIcon />}
+            onClick={triggerPhotoUpload}
+            size="md"
+          />
+        </Tooltip>
+        <Tooltip label="Save All Changes">
+          <Button
+            leftIcon={<FaSave />}
+            onClick={handleSaveAll}
+            colorScheme="green"
+            size="md"
             isLoading={saving}
             disabled={saving}
           >
             {saving ? "Saving..." : "Save"}
           </Button>
-        </Flex>
+        </Tooltip>
 
-        {/* Canvas/Workspace */}
-        <Box
-          bg="backgrounds.canvasArea"
-          minHeight="calc(100vh - 120px)"
-          p={4}
-          position="relative"
-          overflow={viewType === "canvas" ? "auto" : "visible"}
-        >
-          {viewType === "canvas" && (
-            <Box width="3000px" height="3000px" position="relative" bg="white">
-              {/* This is where the canvas items would be rendered */}
-              {photos.map((photo, index) => (
-                <Box
-                  key={photo.id || index}
-                  position="absolute"
-                  left={100 + index * 50}
-                  top={100 + index * 30}
-                  cursor="move"
-                  width="200px"
-                  height="150px"
-                  boxShadow="md"
-                  onClick={() => setActivePhoto(photo)}
-                  border={activePhoto === photo ? "2px solid blue" : "none"}
-                >
-                  <img
-                    src={photo.file_path}
-                    alt="Memory"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {viewType === "grid" && (
-            <SimpleGrid columns={3} spacing={4}>
-              {photos.map((photo, index) => (
-                <Box
-                  key={photo.id || index}
-                  boxShadow="md"
-                  borderRadius="md"
-                  overflow="hidden"
-                >
-                  <img
-                    src={photo.file_path}
-                    alt="Memory"
-                    style={{
-                      width: "100%",
-                      aspectRatio: "3/2",
-                      objectFit: "cover",
-                    }}
-                  />
-                </Box>
-              ))}
-            </SimpleGrid>
-          )}
-
-          {viewType === "places" && (
-            <Box p={4}>
-              <Text fontSize="lg" mb={4}>
-                Places View - Coming Soon
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            icon={<FaEllipsisV />}
+            variant="ghost"
+            aria-label="More options"
+            size="md"
+          />
+          <MenuList>
+            <MenuItem isDisabled>Download (Not Implemented)</MenuItem>
+            <MenuItem isDisabled>Share (Not Implemented)</MenuItem>
+            <MenuItem onClick={handleDeleteMemory} icon={<DeleteIcon />}>
+              Delete Memory
+            </MenuItem>
+            <Box px={3} py={2}>
+              <Text fontSize="sm" color="gray.500">
+                View Type:
               </Text>
-              <Text>This view will organize photos by location on a map.</Text>
+              <Select
+                value={viewType}
+                onChange={(e) => handleViewTypeChange(e.target.value)}
+                size="sm"
+                mt={1}
+              >
+                <option value="canvas">Canvas View</option>
+                <option value="grid">Grid View</option>
+                <option value="places">Places View</option>
+                <option value="timeline">Timeline View</option>
+              </Select>
             </Box>
-          )}
+          </MenuList>
+        </Menu>
 
-          {viewType === "timeline" && (
-            <Box p={4}>
-              <Text fontSize="lg" mb={4}>
-                Timeline View - Coming Soon
-              </Text>
-              <Text>This view will organize photos chronologically.</Text>
-            </Box>
-          )}
-
-          {photos.length === 0 && (
-            <Flex
-              direction="column"
-              align="center"
-              justify="center"
-              height="300px"
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            icon={<Avatar size="sm" name={user?.full_name || user?.username} />}
+            variant="ghost"
+            aria-label="User options"
+            size="md"
+            borderRadius="full"
+          />
+          <MenuList>
+            <MenuItem onClick={() => navigate("/account-settings")}>
+              Account Settings
+            </MenuItem>
+            <MenuDivider />
+            <MenuItem
+              color="red.500"
+              onClick={() => {
+                logout();
+                toast({
+                  title: "Logged Out",
+                  description: "You have been successfully logged out.",
+                  status: "info",
+                  duration: 3000,
+                  isClosable: true,
+                });
+                navigate("/login");
+              }}
             >
-              <Text mb={4} color="gray.500">
-                No photos added to this memory yet
-              </Text>
-              <Button leftIcon={<AttachmentIcon />} onClick={handlePhotoUpload}>
-                Add Photos
-              </Button>
-            </Flex>
-          )}
-        </Box>
-      </Box>
-    </MasterLayout>
+              Sign Out
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      </HStack>
+    </Flex>
+  );
+
+  const EditorControls = () => (
+    <Flex
+      direction="column"
+      p={2}
+      bg="gray.100"
+      borderRight="1px solid"
+      borderColor="gray.300"
+      width="60px"
+      alignItems="center"
+    >
+      <Tooltip label="Select/Pan Tool" placement="right">
+        <IconButton
+          aria-label="Select/Pan Tool"
+          icon={isPanningMode ? <FaHandPaper /> : <FaMousePointer />}
+          onClick={() => {
+            setActiveTool(activeTool === "pan" ? null : "pan");
+            setIsPanningMode((prev) => !prev);
+          }}
+          colorScheme={activeTool === "pan" || isPanningMode ? "blue" : "gray"}
+          variant={activeTool === "pan" || isPanningMode ? "solid" : "outline"}
+          mb={2}
+        />
+      </Tooltip>
+      <Tooltip label="Add Text" placement="right">
+        <IconButton
+          aria-label="Add Text"
+          icon={<MdTextFields />}
+          onClick={() => {
+            setActiveTool("text");
+            setIsPanningMode(false);
+          }}
+          colorScheme={activeTool === "text" ? "blue" : "gray"}
+          variant={activeTool === "text" ? "solid" : "outline"}
+          mb={2}
+        />
+      </Tooltip>
+      <Box flexGrow={1} />
+      <Tooltip label="Zoom In" placement="right">
+        <IconButton
+          icon={<FaSearchPlus />}
+          onClick={handleZoomIn}
+          aria-label="Zoom In"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip label="Zoom Out" placement="right">
+        <IconButton
+          icon={<FaSearchMinus />}
+          onClick={handleZoomOut}
+          aria-label="Zoom Out"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip label="Zoom to Fit" placement="right">
+        <IconButton
+          icon={<FaExpandArrowsAlt />}
+          onClick={handleZoomToFit}
+          aria-label="Zoom to Fit"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip
+        label={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        placement="right"
+      >
+        <IconButton
+          icon={isFullScreen ? <FaCompressArrowsAlt /> : <FaExpandArrowsAlt />}
+          onClick={toggleFullScreen}
+          aria-label="Toggle Fullscreen"
+          variant="outline"
+          mb={2}
+        />
+      </Tooltip>
+    </Flex>
+  );
+
+  return (
+    <ErrorBoundary>
+      <Flex direction="column" height="100vh" bg="backgrounds.main">
+        <EditorTopBar />
+        <Flex flex="1" overflow="hidden">
+          <EditorControls />
+          <Box
+            ref={stageContainerRef}
+            flex="1"
+            position="relative"
+            bg="gray.200"
+            overflow="hidden"
+            onDrop={(e) => {
+              e.preventDefault();
+              if (
+                activeTool === "text" &&
+                e.dataTransfer.types.includes("text/plain")
+              ) {
+                const droppedText = e.dataTransfer.getData("text/plain");
+                const stage = konvaStageRef.current;
+                const dropPosition = stage.getPointerPosition() || {
+                  x: 50,
+                  y: 50,
+                };
+
+                const newTextId = `text-${Date.now()}-${Math.random()
+                  .toString(36)
+                  .substr(2, 5)}`;
+                const newText = {
+                  id: newTextId,
+                  x: dropPosition.x,
+                  y: dropPosition.y,
+                  text: droppedText,
+                  fontSize: 24,
+                  fontFamily: "Arial",
+                  fill: "#000000",
+                  draggable: true,
+                  rotation: 0,
+                  width: 200,
+                  wrap: "char",
+                  align: "left",
+                };
+                setTexts((prevTexts) => [...prevTexts, newText]);
+                setSelectedElement({ id: newTextId, type: "text" });
+                setActiveTool(null);
+              }
+            }}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <Stage
+              ref={konvaStageRef}
+              width={
+                stageContainerRef.current?.clientWidth || window.innerWidth
+              }
+              height={
+                stageContainerRef.current?.clientHeight || window.innerHeight
+              }
+              scaleX={stageScale}
+              scaleY={stageScale}
+              x={stagePosition.x}
+              y={stagePosition.y}
+              onWheel={handleWheel}
+              draggable={isPanningMode}
+              onDragEnd={handleStageDragEnd}
+              onClick={handleStageClick}
+              onDblClick={handleTextDblClick}
+            >
+              <Layer>
+                {photos.map((photo) => (
+                  <KonvaImage
+                    key={photo.id}
+                    id={String(photo.id)}
+                    image={photo.image}
+                    x={photo.x}
+                    y={photo.y}
+                    width={photo.width}
+                    height={photo.height}
+                    rotation={photo.rotation}
+                    draggable
+                    onDragEnd={handleDragEnd}
+                    onTransformEnd={handleTransformEnd}
+                    name="photo-image"
+                  />
+                ))}
+                {texts.map((text) => (
+                  <KonvaText
+                    key={text.id}
+                    id={String(text.id)}
+                    x={text.x}
+                    y={text.y}
+                    text={text.text}
+                    fontSize={text.fontSize}
+                    fontFamily={text.fontFamily}
+                    fill={text.fill}
+                    draggable
+                    rotation={text.rotation}
+                    onDragEnd={handleDragEnd}
+                    onTransformEnd={handleTransformEnd}
+                    name="text-element"
+                    width={text.width}
+                    wrap={text.wrap || "char"}
+                    align={text.align || "left"}
+                  />
+                ))}
+                <Transformer
+                  ref={trRef}
+                  boundBoxFunc={(oldBox, newBox) => {
+                    if (newBox.width < 10 || newBox.height < 10) {
+                      return oldBox;
+                    }
+                    return newBox;
+                  }}
+                />
+              </Layer>
+            </Stage>
+          </Box>
+        </Flex>
+      </Flex>
+    </ErrorBoundary>
   );
 };
 
-export default function WrappedMemoryEditor() {
-  return (
-    <ErrorBoundary>
-      <MemoryEditorPage />
-    </ErrorBoundary>
-  );
-}
+export default MemoryEditorPage;
