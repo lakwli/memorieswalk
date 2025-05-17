@@ -1,44 +1,55 @@
-FROM node:22-slim AS frontend-builder
-
+# Multi-stage build for MemoriesWalk application
+FROM node:18-slim AS frontend-builder
 WORKDIR /app
+
+# Copy package.json and install dependencies
 COPY package*.json ./
 RUN npm install
-COPY . .
-RUN npm run build
 
-FROM node:22-slim
+# Copy frontend source code and build it
+COPY src/ ./src/
+COPY index.html ./
+COPY *.js *.json ./
 
-# Create app directory
+# Build the frontend - ensure it succeeds
+RUN npm run build && echo "Frontend build completed successfully!"
+
+# Verify the build output exists
+RUN ls -la dist || (echo "ERROR: Frontend build failed - dist directory not created" && exit 1)
+
+# Stage 2: Setup server with frontend files
+FROM node:18-slim
 WORKDIR /app
 
-# Install required packages
+# Install PostgreSQL client for database initialization
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -m appuser
-
-# Copy backend files
-COPY --chown=appuser:appuser server/package*.json ./server/
+# Set up the server
 WORKDIR /app/server
-RUN npm install --production --legacy-peer-deps
+COPY server/package*.json ./
+RUN npm install --production
 
-WORKDIR /app
-COPY --chown=appuser:appuser server ./server
+# Copy server files
+COPY server/ ./
 
-# Copy built frontend files from the build stage
-COPY --from=frontend-builder --chown=appuser:appuser /app/dist ./dist
+# Copy the built frontend from the first stage to the public directory
+COPY --from=frontend-builder /app/dist /app/public
 
-# Create directories for persistent data
-RUN mkdir -p /app/server/file_storage && chown -R appuser:appuser /app/server/file_storage
+# Create and set permissions for file storage directory
+RUN mkdir -p file_storage && chmod 777 file_storage
 
-# Switch to non-root user
-USER appuser
+# Copy database directory
+COPY database/ /app/database/
 
-# Expose the application port
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expose the port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "server/index.js"]
+# Start the server - use the index.js entry point
+CMD ["node", "index.js"]

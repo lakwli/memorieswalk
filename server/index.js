@@ -4,16 +4,14 @@ import cors from "cors";
 import process from "process";
 import pool from "./db.js";
 import authRoutes from "./routes/auth.js";
-// import canvasRoutes from "./routes/canvas.js"; // To be removed or refactored
-import memoryRoutes from "./routes/memory.js"; // This is the main refactored route
-// import memoryRoutesDetailed from "./routes/memoryRoutes.js"; // Likely obsolete or merged into memoryRoutes
-import userRoutes from "./routes/userRoutes.js"; // Add this line
-import publicShareRoutes from './routes/publicShareRoutes.js'; // Import public share routes
-import errorHandler from "./middleware/errorHandler.js"; // Import ES Module error handler
+import memoryRoutes from "./routes/memory.js";
+import userRoutes from "./routes/userRoutes.js";
+import publicShareRoutes from './routes/publicShareRoutes.js';
+import errorHandler from "./middleware/errorHandler.js";
 
-import serveStatic from "serve-static"; // Added for static file serving
-import path from "path"; // Added for path manipulation
-import { fileURLToPath } from "url"; // Added to get __dirname in ES modules
+import serveStatic from "serve-static";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -33,33 +31,50 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "10mb" })); // Increased limit for potential base64 or large JSON payloads, adjust as needed
+app.use(express.json({ limit: "10mb" }));
 
-// Static file serving from public directory (for photos, etc.)
-// The path stored in DB for photos is relative to `public` e.g. `photos/ab/abcdef.webp`
-// So, `/media/photos/ab/abcdef.webp` will serve `/workspace/server/public/photos/ab/abcdef.webp`
+// Static file serving for media files (photos, etc.)
 const publicPath = path.join(__dirname, "public");
 app.use(
-  "/media", // Changed from /uploads to /media for a more general name
+  "/media",
   serveStatic(publicPath, {
-    maxAge: "1d", // Cache for 1 day
+    maxAge: "1d",
   })
 );
 
 // API routes
 app.use("/api/auth", authRoutes);
-// app.use("/api/canvases", canvasRoutes); // Remove or refactor if canvas logic is now part of memory views
-app.use("/api/memories", memoryRoutes); // Main route for memories, photos, and views
-// app.use("/api/memories", memoryRoutesDetailed); // Remove if functionality merged
-app.use("/api/users", userRoutes); // Add this line
-app.use('/api/public', publicShareRoutes); // Mount public share routes
+app.use("/api/memories", memoryRoutes);
+app.use("/api/users", userRoutes);
+app.use('/api/public', publicShareRoutes);
 
-// Basic health check endpoint
-app.get("/", (req, res) => {
+// API health check endpoint
+app.get("/api", (req, res) => {
   res.json({ status: "API is running" });
 });
 
-// Add error handling middleware - MUST be after all routes and other app.use calls
+// In production, serve frontend static files
+if (process.env.NODE_ENV === 'production') {
+  console.log('Running in production mode - serving frontend files');
+  const frontendPath = path.join(__dirname, "..", "public");
+  app.use(express.static(frontendPath));
+  
+  // Catch-all route for SPA frontend - must be after all other routes
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+} else {
+  // In development, just return API info at the root
+  app.get("/", (req, res) => {
+    res.json({ 
+      status: "API is running in development mode",
+      message: "Connect your frontend application to the API endpoints",
+      endpoints: ["/api", "/api/auth", "/api/memories", "/api/users", "/api/public"]
+    });
+  });
+}
+
+// Add error handling middleware - MUST be after all routes
 app.use(errorHandler);
 
 // Start server only if this file is run directly

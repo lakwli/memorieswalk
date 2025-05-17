@@ -127,14 +127,21 @@ if ! docker ps -q -f name=$POSTGRES_CONTAINER_NAME | grep -q .; then
         -e POSTGRES_DB="$DB_NAME" \
         -v $HOST_DB_DIR:/var/lib/postgresql/data \
         --network memorieswalk-network \
+        --network-alias postgres \
         -p 5432:5432 \
         postgres:latest
     
     echo -e "${YELLOW}Waiting for PostgreSQL to initialize...${NC}"
     sleep 10
-    echo -e "${GREEN}PostgreSQL container started successfully with user '$POSTGRES_USER' and database '$POSTGRES_DB'${NC}"
+    echo -e "${GREEN}PostgreSQL container started successfully with user '$DB_USER' and database '$DB_NAME'${NC}"
 else
     echo -e "${YELLOW}PostgreSQL container already running${NC}"
+    
+    # Make sure the container is on the right network with the alias
+    if ! docker network inspect memorieswalk-network | grep -q "\"$POSTGRES_CONTAINER_NAME\""; then
+        echo -e "${YELLOW}Reconnecting PostgreSQL container to memorieswalk-network...${NC}"
+        docker network connect --alias postgres memorieswalk-network $POSTGRES_CONTAINER_NAME
+    fi
 fi
 
 # Start the application container (which runs backend server but also serves frontend files)

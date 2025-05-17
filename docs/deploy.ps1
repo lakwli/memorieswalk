@@ -83,7 +83,7 @@ else {
 
 # Check if the local image exists
 Write-Host "Checking for local Docker image..." -ForegroundColor Yellow
-$imageExists = docker image ls $IMAGE_NAME --format "{{.Repository}}" | Select-String -Pattern $IMAGE_NAME -Quiet
+$imageExists = docker image ls --format "{{.Repository}}:{{.Tag}}" | Select-String -Pattern $IMAGE_NAME -Quiet
 
 if (-not $imageExists) {
     Write-Host "WARNING: Local image $IMAGE_NAME not found. Make sure you have built it with:" -ForegroundColor Red
@@ -100,8 +100,11 @@ if (-not $imageExists) {
 
 # Stop and remove existing app container if it exists
 Write-Host "Stopping and removing existing app container if it exists..." -ForegroundColor Yellow
+$ErrorActionPreference_Original = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
 docker stop $CONTAINER_NAME 2>$null
 docker rm $CONTAINER_NAME 2>$null
+$ErrorActionPreference = $ErrorActionPreference_Original
 
 # Load database credentials from server.env
 Write-Host "Loading database credentials from server.env..." -ForegroundColor Yellow
@@ -124,28 +127,17 @@ if (Test-Path $SERVER_ENV_PATH) {
             $DB_NAME = $matches[1]
         }
     }
-    
-    # Verify we have the required variables
-    if (-not $DB_USER -or -not $DB_PASSWORD -or -not $DB_NAME) {
-        Write-Host "WARNING: Missing database credentials in server.env. Using defaults." -ForegroundColor Yellow
-        $DB_USER = "node"
-        $DB_PASSWORD = "node"
-        $DB_NAME = "memorieswalk"
-    }
-    else {
-        Write-Host "Successfully loaded database credentials from server.env" -ForegroundColor Green
-    }
-}
-else {
-    Write-Host "WARNING: server.env not found. Using default database credentials." -ForegroundColor Yellow
 }
 
 # Check if postgres container is running, if not, start it
 $postgresRunning = docker ps -q -f name=$POSTGRES_CONTAINER_NAME
 if (-not $postgresRunning) {
     Write-Host "Starting PostgreSQL container..." -ForegroundColor Yellow
+    $ErrorActionPreference_Original = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
     docker stop $POSTGRES_CONTAINER_NAME 2>$null
     docker rm $POSTGRES_CONTAINER_NAME 2>$null
+    $ErrorActionPreference = $ErrorActionPreference_Original
     
     docker run -d `
         --name $POSTGRES_CONTAINER_NAME `
@@ -155,12 +147,12 @@ if (-not $postgresRunning) {
         -e POSTGRES_DB="$DB_NAME" `
         -v "${HOST_DB_DIR}:/var/lib/postgresql/data" `
         --network memorieswalk-network `
+        --network-alias postgres `
         -p 5432:5432 `
         postgres:latest
     
     Write-Host "Waiting for PostgreSQL to initialize..." -ForegroundColor Yellow
     Start-Sleep -Seconds 10
-    Write-Host "PostgreSQL container started successfully with user '$DB_USER' and database '$DB_NAME'" -ForegroundColor Green
 }
 else {
     Write-Host "PostgreSQL container already running" -ForegroundColor Yellow
@@ -182,48 +174,21 @@ docker run -d `
 $SCHEMA_FILE = "$BASE_DIR\schema.sql"
 $NEED_DB_INIT = $false
 
-# Wait a moment for containers to fully start
-Write-Host "Waiting for containers to fully start..." -ForegroundColor Yellow
-Start-Sleep -Seconds 5
-
-# Check if this is the first deployment by checking if the database tables exist
-Write-Host "Checking if database initialization is needed..." -ForegroundColor Yellow
-try {
-    $DB_TABLE_COUNT = docker exec -i $POSTGRES_CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" | ForEach-Object { $_.Trim() }
-    
-    if ([int]$DB_TABLE_COUNT -lt 5) {
-        Write-Host "This appears to be a fresh installation. Database initialization is needed." -ForegroundColor Yellow
-        $NEED_DB_INIT = $true
-        
-        # Copy schema.sql to the host if it doesn't exist
-        if (-not (Test-Path $SCHEMA_FILE)) {
-            Write-Host "Copying schema.sql from application container..." -ForegroundColor Yellow
-            docker cp "${CONTAINER_NAME}:/app/database/schema.sql" $SCHEMA_FILE
-            
-            if (-not (Test-Path $SCHEMA_FILE)) {
-                Write-Host "Warning: Could not find schema.sql in the container" -ForegroundColor Red
-                Write-Host "Continuing anyway. You may need to initialize the database manually." -ForegroundColor Yellow
-                $NEED_DB_INIT = $false
-            }
-        }
-        
-        # Initialize the database if needed and if we have the schema file
-        if ($NEED_DB_INIT -and (Test-Path $SCHEMA_FILE)) {
-            Write-Host "Initializing database with schema..." -ForegroundColor Yellow
-            Get-Content $SCHEMA_FILE | docker exec -i $POSTGRES_CONTAINER_NAME psql -U $DB_USER -d $DB_NAME
-            Write-Host "Database initialization completed successfully!" -ForegroundColor Green
-        }
-    }
-    else {
-        Write-Host "Database is already initialized. Skipping initialization." -ForegroundColor Green
-    }
-} catch {
-    Write-Host "Error checking database tables. You may need to initialize the database manually." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-}
-
 Write-Host "Deployment completed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "You can now access the application at:" -ForegroundColor Green
 Write-Host "http://localhost:3000" -ForegroundColor Green
 Write-Host "Note: In production, both frontend and backend are served from port 3000" -ForegroundColor Green
+
+# Provide guidance on troubleshooting
+Write-Host ""
+Write-Host "If the application is not working properly, try the following:" -ForegroundColor Yellow
+Write-Host "1. Check container logs: docker logs $CONTAINER_NAME" -ForegroundColor Yellow
+Write-Host "2. Inspect server files in the container:" -ForegroundColor Yellow
+Write-Host "   docker exec $CONTAINER_NAME find /app -name '*.js' | grep -v 'node_modules'" -ForegroundColor Yellow
+Write-Host "3. Make sure PostgreSQL is accessible to the app container:" -ForegroundColor Yellow
+Write-Host "   docker exec $CONTAINER_NAME ping -c 3 postgres" -ForegroundColor Yellow
+Write-Host "4. Verify database connection:" -ForegroundColor Yellow
+Write-Host "   docker exec $CONTAINER_NAME env | grep DB_" -ForegroundColor Yellow
+Write-Host "5. Restart the container if needed:" -ForegroundColor Yellow
+Write-Host "   docker restart $CONTAINER_NAME" -ForegroundColor Yellow
