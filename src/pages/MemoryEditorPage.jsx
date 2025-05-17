@@ -51,10 +51,14 @@ import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
 import Konva from "konva";
 import ErrorBoundary from "../components/ErrorBoundary";
+import TextPropertiesToolbar from "../components/TextPropertiesToolbar";
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 10;
 const ZOOM_FACTOR = 1.2;
+
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 144;
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
@@ -292,14 +296,22 @@ const MemoryEditorPage = () => {
           currentViewConfig.configuration_data &&
           currentViewConfig.configuration_data.texts
         ) {
-          setTexts(
-            currentViewConfig.configuration_data.texts.map((text) => ({
+          const loadedTexts = currentViewConfig.configuration_data.texts.map(
+            (text) => ({
               ...text,
               id: String(
                 text.id || `text-${Math.random().toString(36).substr(2, 9)}`
               ),
-            }))
+              type: "text",
+              fontStyle: text.fontStyle || "normal",
+              textDecoration: text.textDecoration || "",
+              fontSize: Math.max(
+                MIN_FONT_SIZE,
+                Math.min(text.fontSize || 24, MAX_FONT_SIZE)
+              ),
+            })
           );
+          setTexts(loadedTexts);
         } else {
           setTexts([]);
         }
@@ -379,6 +391,8 @@ const MemoryEditorPage = () => {
       width: t.width,
       wrap: t.wrap,
       align: t.align,
+      fontStyle: t.fontStyle,
+      textDecoration: t.textDecoration,
     }));
 
     try {
@@ -516,7 +530,19 @@ const MemoryEditorPage = () => {
         );
       } else if (elementType === "text") {
         setTexts((prevTexts) =>
-          prevTexts.map((t) => (t.id === elementId ? { ...t, ...newAttrs } : t))
+          prevTexts.map((t) => {
+            if (t.id === elementId) {
+              const updatedText = { ...t, ...newAttrs };
+              if (typeof updatedText.fontSize === "number") {
+                updatedText.fontSize = Math.max(
+                  MIN_FONT_SIZE,
+                  Math.min(updatedText.fontSize, MAX_FONT_SIZE)
+                );
+              }
+              return updatedText;
+            }
+            return t;
+          })
         );
       }
     },
@@ -555,7 +581,12 @@ const MemoryEditorPage = () => {
           rotation: node.rotation(),
         };
       } else {
-        const newFontSize = node.fontSize() * scaleY;
+        let newFontSize = node.fontSize() * scaleY;
+        newFontSize = Math.max(
+          MIN_FONT_SIZE,
+          Math.min(newFontSize, MAX_FONT_SIZE)
+        );
+
         newAttrs = {
           x: node.x(),
           y: node.y(),
@@ -586,10 +617,11 @@ const MemoryEditorPage = () => {
           .substr(2, 5)}`;
         const newText = {
           id: newTextId,
+          type: "text",
           x: pointer.x,
           y: pointer.y,
           text: "New Text",
-          fontSize: 24,
+          fontSize: Math.max(MIN_FONT_SIZE, Math.min(24, MAX_FONT_SIZE)),
           fontFamily: "Arial",
           fill: "#000000",
           draggable: true,
@@ -597,6 +629,8 @@ const MemoryEditorPage = () => {
           width: 200,
           wrap: "char",
           align: "left",
+          fontStyle: "normal",
+          textDecoration: "",
         };
         setTexts((prevTexts) => [...prevTexts, newText]);
         setSelectedElement({ id: newTextId, type: "text" });
@@ -630,22 +664,18 @@ const MemoryEditorPage = () => {
     const textNode = e.target;
     const textNodeId = textNode.id();
 
-    // Hide the KonvaText node and the transformer
     textNode.hide();
     trRef.current.nodes([]);
     trRef.current.getLayer().batchDraw();
 
     const stage = textNode.getStage();
-    const stageBox = stage.container().getBoundingClientRect(); // Get stage container position
+    const stageBox = stage.container().getBoundingClientRect();
 
-    // Calculate position of textarea
-    // The position needs to account for stage position and scale
     const areaPosition = {
       x: stageBox.left + textNode.absolutePosition().x,
       y: stageBox.top + textNode.absolutePosition().y,
     };
 
-    // Create textarea
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
 
@@ -670,9 +700,15 @@ const MemoryEditorPage = () => {
     textarea.style.transformOrigin = "left top";
     textarea.style.textAlign = textNode.align();
     textarea.style.color = textNode.fill();
-    // Apply rotation - this can be complex with CSS transforms if not aligned with Konva's center
-    // For simplicity, direct rotation might be tricky. Konva handles rotation around the shape's center.
-    // textarea.style.transform = `rotate(${textNode.rotation()}deg)`; // Basic rotation, might need adjustment
+
+    const fontStyle = textNode.fontStyle() || "normal";
+    if (fontStyle.includes("bold")) {
+      textarea.style.fontWeight = "bold";
+    }
+    if (fontStyle.includes("italic")) {
+      textarea.style.fontStyle = "italic";
+    }
+    textarea.style.textDecoration = textNode.textDecoration() || "";
 
     textarea.focus();
 
@@ -682,25 +718,17 @@ const MemoryEditorPage = () => {
       }
       window.removeEventListener("click", handleOutsideClick);
       textNode.show();
-      trRef.current.nodes([textNode]); // Re-select the node
+      trRef.current.nodes([textNode]);
       trRef.current.getLayer().batchDraw();
-      setSelectedElement({ id: textNodeId, type: "text" }); // Ensure it's re-selected in React state
-    }
-
-    function setTextareaWidth() {
-      let newWidth = textNode.width() * textNode.getAbsoluteScale().x;
-      textarea.style.width = newWidth + "px";
+      setSelectedElement({ id: textNodeId, type: "text" });
     }
 
     textarea.addEventListener("keydown", function (e) {
-      // hide on enter
-      // but don't hide on shift + enter
       if (e.key === "Enter" && !e.shiftKey) {
         textNode.text(textarea.value);
         handleElementUpdate(textNodeId, "text", { text: textarea.value });
         removeTextarea();
       }
-      // on esc do not set value back to node
       if (e.key === "Escape") {
         removeTextarea();
       }
@@ -712,8 +740,6 @@ const MemoryEditorPage = () => {
       removeTextarea();
     });
 
-    // Handle clicks outside the textarea to also remove it
-    // This needs to be robust to not trigger on the initial dblclick
     function handleOutsideClick(e) {
       if (e.target !== textarea) {
         textNode.text(textarea.value);
@@ -721,13 +747,9 @@ const MemoryEditorPage = () => {
         removeTextarea();
       }
     }
-    // Timeout to prevent immediate removal by the same click that initiated edit
     setTimeout(() => {
       window.addEventListener("click", handleOutsideClick);
     });
-
-    // TODO: Consider more robust handling for rotation and scale if needed
-    // For now, this provides basic in-place editing.
   };
 
   const handleZoom = (direction) => {
@@ -1090,6 +1112,7 @@ const MemoryEditorPage = () => {
       borderColor="gray.300"
       width="60px"
       alignItems="center"
+      zIndex={1}
     >
       <Tooltip label="Select/Pan Tool" placement="right">
         <IconButton
@@ -1160,10 +1183,31 @@ const MemoryEditorPage = () => {
     </Flex>
   );
 
+  const selectedTextElement =
+    selectedElement?.type === "text"
+      ? texts.find((t) => t.id === selectedElement.id)
+      : null;
+
   return (
     <ErrorBoundary>
       <Flex direction="column" height="100vh" bg="backgrounds.main">
         <EditorTopBar />
+        {selectedTextElement && (
+          <Box
+            p={2}
+            bg="gray.50"
+            borderBottom="1px solid"
+            borderColor="borders.light"
+            boxShadow="sm"
+          >
+            <TextPropertiesToolbar
+              element={selectedTextElement}
+              onUpdate={(newAttrs) => {
+                handleElementUpdate(selectedElement.id, "text", newAttrs);
+              }}
+            />
+          </Box>
+        )}
         <Flex flex="1" overflow="hidden">
           <EditorControls />
           <Box
@@ -1190,10 +1234,14 @@ const MemoryEditorPage = () => {
                   .substr(2, 5)}`;
                 const newText = {
                   id: newTextId,
+                  type: "text",
                   x: dropPosition.x,
                   y: dropPosition.y,
                   text: droppedText,
-                  fontSize: 24,
+                  fontSize: Math.max(
+                    MIN_FONT_SIZE,
+                    Math.min(24, MAX_FONT_SIZE)
+                  ),
                   fontFamily: "Arial",
                   fill: "#000000",
                   draggable: true,
@@ -1201,6 +1249,8 @@ const MemoryEditorPage = () => {
                   width: 200,
                   wrap: "char",
                   align: "left",
+                  fontStyle: "normal",
+                  textDecoration: "",
                 };
                 setTexts((prevTexts) => [...prevTexts, newText]);
                 setSelectedElement({ id: newTextId, type: "text" });
@@ -1256,6 +1306,8 @@ const MemoryEditorPage = () => {
                     fill={text.fill}
                     draggable
                     rotation={text.rotation}
+                    fontStyle={text.fontStyle}
+                    textDecoration={text.textDecoration}
                     onDragEnd={handleDragEnd}
                     onTransformEnd={handleTransformEnd}
                     name="text-element"
