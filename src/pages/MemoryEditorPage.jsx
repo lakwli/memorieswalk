@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Avatar, // Added Avatar
+  Avatar,
   Box,
   Button,
   Flex,
@@ -11,7 +11,7 @@ import {
   Input,
   Menu,
   MenuButton,
-  MenuDivider, // Added MenuDivider
+  MenuDivider,
   MenuItem,
   MenuList,
   Select,
@@ -40,6 +40,7 @@ import {
   FaLayerGroup,
   FaPaintBrush,
   FaSave,
+  FaRegHandPaper,
 } from "react-icons/fa";
 import { Stage, Layer, Image as KonvaImage, Transformer } from "react-konva";
 import Konva from "konva";
@@ -57,7 +58,7 @@ const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const { user, logout } = useAuth(); // Assuming useAuth provides a logout function and user object
+  const { user, logout } = useAuth();
   const [memory, setMemory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -88,6 +89,54 @@ const MemoryEditorPage = () => {
     };
   }, []);
 
+  // Effect for Spacebar interaction with panning mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === " " && !editingTitle) {
+        e.preventDefault();
+        if (!isPanningMode) {
+          setIsPanningMode(true);
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key === " ") {
+        if (activeTool !== "pan") {
+          setIsPanningMode(false);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [editingTitle, activeTool, isPanningMode]);
+
+  // Effect to manage isPanningMode based on activeTool
+  useEffect(() => {
+    if (activeTool === "pan") {
+      if (!isPanningMode) {
+        setIsPanningMode(true);
+      }
+    }
+  }, [activeTool, isPanningMode]);
+
+  // Effect for managing cursor style based on panning mode
+  useEffect(() => {
+    if (stageContainerRef.current) {
+      if (isPanningMode) {
+        stageContainerRef.current.style.cursor = "grab";
+      } else {
+        stageContainerRef.current.style.cursor = "default";
+      }
+    }
+  }, [isPanningMode, activeTool]);
+
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
@@ -105,35 +154,6 @@ const MemoryEditorPage = () => {
       }
     }
   };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === " " && !isPanningMode && !editingTitle) {
-        e.preventDefault();
-        setIsPanningMode(true);
-        if (stageContainerRef.current) {
-          stageContainerRef.current.style.cursor = "grab";
-        }
-      }
-    };
-
-    const handleKeyUp = (e) => {
-      if (e.key === " ") {
-        setIsPanningMode(false);
-        if (stageContainerRef.current) {
-          stageContainerRef.current.style.cursor = "default";
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [isPanningMode, editingTitle]);
 
   const handleWheel = (e) => {
     e.evt.preventDefault();
@@ -208,9 +228,9 @@ const MemoryEditorPage = () => {
                   img.src = objectURL;
 
                   img.onload = () => {
-                    const layout = photoLayouts[String(photo.id)] || {}; // Ensure photo.id is string for lookup
+                    const layout = photoLayouts[String(photo.id)] || {};
                     resolve({
-                      id: String(photo.id), // Ensure ID is a string
+                      id: String(photo.id),
                       image: img,
                       objectURL,
                       x: layout.x || 50,
@@ -226,7 +246,7 @@ const MemoryEditorPage = () => {
                       `Image load error for photo ${photo.id}:`,
                       errEvent,
                       "Error type:",
-                      errEvent.type // Use errEvent.type
+                      errEvent.type
                     );
                     toast({
                       title: "Image Load Error",
@@ -238,12 +258,12 @@ const MemoryEditorPage = () => {
                       isClosable: true,
                     });
                     if (objectURL) URL.revokeObjectURL(objectURL);
-                    resolve(null); // Resolve with null if image fails to load
+                    resolve(null);
                   };
                 } catch (fetchErr) {
                   console.error(
                     "Failed to fetch image blob:",
-                    fetchErr, // Log the fetch error
+                    fetchErr,
                     "Photo ID:",
                     photo.id
                   );
@@ -644,9 +664,22 @@ const MemoryEditorPage = () => {
   );
 
   const handleStageDragEnd = () => {
-    if (konvaStageRef.current && isPanningMode) {
+    if (konvaStageRef.current) {
       setStagePosition(konvaStageRef.current.position());
     }
+  };
+
+  const handleStageClick = (e) => {
+    if (e.target === e.target.getStage()) {
+      setActivePhotoId(null);
+      return;
+    }
+
+    if (!e.target.hasName("photo-image")) {
+      return;
+    }
+    const id = e.target.id();
+    setActivePhotoId(id);
   };
 
   const handleZoom = (direction) => {
@@ -1081,6 +1114,23 @@ const MemoryEditorPage = () => {
           w="100%"
         />
       </Tooltip>
+      <Tooltip label="Pan View (Spacebar)" placement="right">
+        <IconButton
+          aria-label="Pan tool"
+          icon={<FaRegHandPaper />}
+          size="lg"
+          variant={isPanningMode ? "solid" : "outline"}
+          colorScheme={isPanningMode ? "blue" : "gray"}
+          onClick={() => {
+            toast({
+              title: "Hold Spacebar to Pan",
+              status: "info",
+              duration: 2000,
+              isClosable: true,
+            });
+          }}
+        />
+      </Tooltip>
       <Tooltip label="Draw (Not Implemented)" placement="right">
         <IconButton
           aria-label="Draw"
@@ -1130,6 +1180,7 @@ const MemoryEditorPage = () => {
           ref={stageContainerRef}
           id="stage-container"
           ml={viewType === "canvas" ? EDITOR_TOOLS_PALETTE_WIDTH : "0px"}
+          style={{ cursor: isPanningMode ? "grab" : "default" }}
         >
           {viewType === "canvas" &&
             konvaStageRef &&
@@ -1160,6 +1211,7 @@ const MemoryEditorPage = () => {
                 draggable={isPanningMode}
                 onDragEnd={handleStageDragEnd}
                 onWheel={handleWheel}
+                onClick={handleStageClick}
               >
                 <Layer>
                   {photos.map(
