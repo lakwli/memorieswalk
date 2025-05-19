@@ -86,6 +86,104 @@ const MemoryEditorPage = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
 
+  const handleFileUpload = useCallback(
+    async (e) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      try {
+        const uploadedPhotos = await memoryService.uploadPhotosToLibrary(files);
+        if (uploadedPhotos && uploadedPhotos.length > 0) {
+          // Link the uploaded photos to this memory
+          const photoIds = uploadedPhotos.map((photo) => photo.id);
+          await memoryService.linkPhotosToMemory(id, photoIds);
+
+          // Refresh photos for memory
+          const photoData = await memoryService.getPhotosForMemory(id);
+
+          const newPhotos = await Promise.all(
+            photoData
+              .filter(
+                (photo) =>
+                  !photos.some(
+                    (existing) => String(existing.id) === String(photo.id)
+                  )
+              )
+              .map((photo) => {
+                return new Promise((resolve) => {
+                  const img = new window.Image();
+                  img.crossOrigin = "anonymous";
+
+                  (async () => {
+                    let objectURL = null;
+                    try {
+                      const blob =
+                        await memoryService.getPhotoBlobViewAuthenticated(
+                          photo.id
+                        );
+                      objectURL = URL.createObjectURL(blob);
+                      img.src = objectURL;
+
+                      img.onload = () => {
+                        resolve({
+                          id: String(photo.id),
+                          image: img,
+                          objectURL,
+                          x: 50,
+                          y: 50,
+                          width: img.naturalWidth / 4,
+                          height: img.naturalHeight / 4,
+                          rotation: 0,
+                          filename: photo.metadata?.name || `photo-${photo.id}`,
+                        });
+                      };
+                      img.onerror = (errEvent) => {
+                        console.error(
+                          `Image load error for photo ${photo.id}:`,
+                          errEvent
+                        );
+                        if (objectURL) URL.revokeObjectURL(objectURL);
+                        resolve(null);
+                      };
+                    } catch (fetchErr) {
+                      console.error("Failed to fetch image blob:", fetchErr);
+                      if (objectURL) URL.revokeObjectURL(objectURL);
+                      resolve(null);
+                    }
+                  })();
+                });
+              })
+          );
+
+          setPhotos((prev) => [
+            ...prev,
+            ...newPhotos.filter((p) => p !== null),
+          ]);
+
+          toast({
+            title: "Photos Uploaded",
+            description: `Successfully uploaded ${uploadedPhotos.length} photos`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Upload Error",
+          description: `Failed to upload photos: ${err.message}`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        // Clear the file input
+        e.target.value = "";
+      }
+    },
+    [id, photos, toast]
+  );
+
   useEffect(() => {
     const handleFullScreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
@@ -1329,6 +1427,16 @@ const MemoryEditorPage = () => {
             </Stage>
           </Box>
         </Flex>
+
+        {/* Hidden file input for photo uploads */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handleFileUpload}
+          accept="image/*"
+          multiple
+        />
       </Flex>
     </ErrorBoundary>
   );
