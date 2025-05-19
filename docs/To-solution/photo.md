@@ -91,19 +91,7 @@ The canvas save operation becomes the key point where photo states transition:
    - POST `/api/memories/photos`: Uploads photos
    - PUT `/api/memories/:memoryId`: Updates memory and canvas
 
-### Storage Structure Changes
-
-Current:
-
-```
-/workspace/server/
-├── uploads/              # Current upload directory
-│   └── user_1/          # User-specific folders
-└── file_storage/        # Current permanent storage
-    └── photos/         # All photos stored here
-```
-
-Target:
+### Storage Structure
 
 ```
 /workspace/server/file_storage/
@@ -113,11 +101,11 @@ Target:
     └── {uuid}.jpg      # Photos saved with canvas
 ```
 
-Key Changes:
+Key Design Points:
 
-- Repurpose storage structure for state management
-- Use UUID-based organization instead of user folders
-- Clear separation between temp and permanent storage
+- UUID-based file naming for consistent tracking
+- State reflected in directory structure
+- Clean separation of temporary and permanent storage
 
 ### Target Implementation
 
