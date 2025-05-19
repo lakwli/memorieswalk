@@ -6,7 +6,7 @@ import pool from "./db.js";
 import authRoutes from "./routes/auth.js";
 import memoryRoutes from "./routes/memory.js";
 import userRoutes from "./routes/userRoutes.js";
-import publicShareRoutes from './routes/publicShareRoutes.js';
+import publicShareRoutes from "./routes/publicShareRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 import serveStatic from "serve-static";
@@ -46,7 +46,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryRoutes);
 app.use("/api/users", userRoutes);
-app.use('/api/public', publicShareRoutes);
+app.use("/api/public", publicShareRoutes);
 
 // API health check endpoint
 app.get("/api", (req, res) => {
@@ -54,11 +54,11 @@ app.get("/api", (req, res) => {
 });
 
 // In production, serve frontend static files
-if (process.env.NODE_ENV === 'production') {
-  console.log('Running in production mode - serving frontend files');
+if (process.env.NODE_ENV === "production") {
+  console.log("Running in production mode - serving frontend files");
   const frontendPath = path.join(__dirname, "..", "public");
   app.use(express.static(frontendPath));
-  
+
   // Catch-all route for SPA frontend - must be after all other routes
   app.get("*", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
@@ -66,10 +66,16 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   // In development, just return API info at the root
   app.get("/", (req, res) => {
-    res.json({ 
+    res.json({
       status: "API is running in development mode",
       message: "Connect your frontend application to the API endpoints",
-      endpoints: ["/api", "/api/auth", "/api/memories", "/api/users", "/api/public"]
+      endpoints: [
+        "/api",
+        "/api/auth",
+        "/api/memories",
+        "/api/users",
+        "/api/public",
+      ],
     });
   });
 }
