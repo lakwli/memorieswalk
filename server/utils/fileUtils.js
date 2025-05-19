@@ -1,20 +1,11 @@
-// Create file: server/utils/fileUtils.js
-
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import process from "process";
+import { FILE_STORAGE_CONFIG } from "../config.js";
 
-// Import shared config paths
-const TEMP_PHOTOS_DIR = path.join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../file_storage/temp_photos"
-);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { TEMP_PHOTOS_DIR } = FILE_STORAGE_CONFIG;
 
 // Ensure upload directory exists
 function ensureDir(dirPath) {
@@ -27,9 +18,7 @@ function ensureDir(dirPath) {
 // Get upload directory path
 function getUploadDir(userId, memoryId) {
   // Use temp_photos directory for uploads as they start as temporary files
-  const baseUploadDir =
-    process.env.UPLOAD_DIR ||
-    path.join(__dirname, "../file_storage/temp_photos");
+  const baseUploadDir = process.env.UPLOAD_DIR || TEMP_PHOTOS_DIR;
   const userDir = path.join(baseUploadDir, `user_${userId}`);
   const memoryDir = path.join(userDir, `memory_${memoryId}`);
 

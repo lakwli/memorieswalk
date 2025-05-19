@@ -1,14 +1,10 @@
 import fs from "fs-extra";
 import path from "path";
-import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
 import { processImage } from "../utils/fileUtils.js";
+import { FILE_STORAGE_CONFIG } from "../config.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const TEMP_PHOTOS_DIR = path.join(__dirname, "../file_storage/temp_photos");
-const PERMANENT_PHOTOS_DIR = path.join(__dirname, "../file_storage/photos");
+const { TEMP_PHOTOS_DIR, PERMANENT_PHOTOS_DIR } = FILE_STORAGE_CONFIG;
 
 // Ensure directories exist
 fs.ensureDirSync(TEMP_PHOTOS_DIR);
