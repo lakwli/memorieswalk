@@ -317,6 +317,35 @@ const MemoryEditorPage = () => {
     handleZoom(direction);
   };
 
+  // Save just the title
+  const saveTitle = useCallback(async () => {
+    if (!memory) return;
+
+    try {
+      setSaving(true);
+      await memoryService.updateMemoryTitle(memory.id, title);
+      toast({
+        title: "Success",
+        description: "Title updated successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Save Error",
+        description: `Failed to save title: ${err.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      // Revert to original title if save fails
+      setTitle(memory.title);
+    } finally {
+      setSaving(false);
+    }
+  }, [memory, title, toast]);
+
   // Save memory with photo states
   const saveMemoryLayout = useCallback(async () => {
     if (!memory) return;
@@ -504,7 +533,10 @@ const MemoryEditorPage = () => {
                 />
                 <IconButton
                   icon={<CheckIcon />}
-                  onClick={() => setEditingTitle(false)}
+                  onClick={() => {
+                    setEditingTitle(false);
+                    saveTitle();
+                  }}
                   aria-label="Save title"
                   colorScheme="green"
                 />

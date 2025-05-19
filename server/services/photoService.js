@@ -83,12 +83,18 @@ async function makePermanent(photoId) {
   await fs.ensureDir(path.join(PERMANENT_PHOTOS_DIR, firstPartOfUuid));
   await fs.move(tempPath, permanentPath, { overwrite: true });
 
+  // Explicitly remove the temporary file after moving
+  try {
+    await fs.remove(tempPath);
+  } catch (error) {
+    console.error(`Failed to remove temporary file: ${tempPath}`, error);
+  }
+
   // Clean up empty temp directory if it exists
   const tempDir = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid);
   try {
     await fs.rmdir(tempDir);
   } catch (error) {
-    // Ignore errors removing temp dir
     console.warn(`Failed to remove temp directory: ${tempDir}`, error);
   }
 }

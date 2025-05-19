@@ -310,6 +310,43 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
   }
 });
 
+// Update only memory title
+router.patch("/:id/title", authenticateToken, async (req, res, next) => {
+  const { id: memoryId } = req.params;
+  const userId = req.user.userId;
+  const { title } = req.body;
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Check ownership
+    const hasAccess = await checkMemoryOwnership(memoryId, userId, client);
+    if (!hasAccess) {
+      await client.query("ROLLBACK");
+      return res
+        .status(404)
+        .json({ error: "Memory not found or access denied." });
+    }
+
+    // Update only the title
+    await client.query(
+      "UPDATE memories SET title = $1, updated_at = NOW() WHERE id = $2",
+      [title, memoryId]
+    );
+
+    await client.query("COMMIT");
+
+    // Return minimal success response
+    res.status(200).json({ success: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    next(error);
+  } finally {
+    client.release();
+  }
+});
+
 // Delete memory
 router.delete("/:id", authenticateToken, async (req, res, next) => {
   const { id: memoryId } = req.params;
