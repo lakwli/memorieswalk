@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.js";
 import memoryRoutes from "./routes/memory.js";
 import userRoutes from "./routes/userRoutes.js";
 import publicShareRoutes from "./routes/publicShareRoutes.js";
+import photoRoutes from "./routes/photos.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 import serveStatic from "serve-static";
@@ -47,6 +48,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/public", publicShareRoutes);
+app.use("/api/photos", photoRoutes);
 
 // API health check endpoint
 app.get("/api", (req, res) => {
@@ -75,6 +77,7 @@ if (process.env.NODE_ENV === "production") {
         "/api/memories",
         "/api/users",
         "/api/public",
+        "/api/photos",
       ],
     });
   });

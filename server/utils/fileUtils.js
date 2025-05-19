@@ -7,6 +7,12 @@ import { v4 as uuidv4 } from "uuid";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
+// Import shared config paths
+const TEMP_PHOTOS_DIR = path.join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../file_storage/temp_photos"
+);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -20,8 +26,10 @@ function ensureDir(dirPath) {
 
 // Get upload directory path
 function getUploadDir(userId, memoryId) {
+  // Use temp_photos directory for uploads as they start as temporary files
   const baseUploadDir =
-    process.env.UPLOAD_DIR || path.join(__dirname, "../uploads");
+    process.env.UPLOAD_DIR ||
+    path.join(__dirname, "../file_storage/temp_photos");
   const userDir = path.join(baseUploadDir, `user_${userId}`);
   const memoryDir = path.join(userDir, `memory_${memoryId}`);
 
@@ -35,8 +43,9 @@ function generateUniqueFilename(originalName) {
 }
 
 // Process image (create optimized and thumbnail versions)
-async function processImage(originalPath, options = {}) {
+async function processImage(options = {}) {
   const {
+    inputPath: originalPath,
     targetDir,
     baseName,
     width = 2000,
@@ -44,10 +53,14 @@ async function processImage(originalPath, options = {}) {
     quality = 85,
   } = options;
 
-  console.log(`[processImage] Received originalPath: ${originalPath}`);
-  console.log(
-    `[processImage] Options: ${{ targetDir, baseName, width, height, quality }}`
-  );
+  console.log("[processImage] Received parameters:", {
+    originalPath,
+    targetDir,
+    baseName,
+    width,
+    height,
+    quality,
+  });
 
   if (!targetDir || !baseName) {
     console.error("[processImage] Error: targetDir and baseName are required.");

@@ -1,20 +1,19 @@
-// Create file: server/middleware/upload.js
-
 import multer from "multer";
-// import path from "path"; // Removed unused import
-import { getUploadDir, generateUniqueFilename } from "../utils/fileUtils.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import { generateUniqueFilename } from "../utils/fileUtils.js";
+
+const TEMP_PHOTOS_DIR = path.join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../file_storage/temp_photos"
+);
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     try {
-      const userId = req.user.userId; // Corrected: req.user.userId
-      // For general photo uploads, memoryId might not be present in req.params
-      // We can adjust getUploadDir or how it handles an undefined memoryId if needed
-      // For now, let's ensure userId is correct. If memoryId is undefined,
-      // getUploadDir will create a path like 'user_X/memory_undefined'
-      const memoryId = req.params.id;
-      const dir = getUploadDir(userId, memoryId);
+      const dir = TEMP_PHOTOS_DIR;
       cb(null, dir);
     } catch (error) {
       cb(error);

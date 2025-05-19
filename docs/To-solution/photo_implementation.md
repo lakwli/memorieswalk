@@ -31,6 +31,28 @@ flowchart TB
     Current --> Enhancement
 ```
 
+## What is expected:
+
+Photo upload:
+Frontend uploads photo and marks as "N" state
+Photo is stored in temp directory
+The photo showing is handle by photoRetrieveService that refer to temp location or permanent location based on state is N or P (this case is temp)
+No DB record yet
+
+Memory save:
+Frontend preserves "N" state when sending to backend
+Backend (in memory.js) now:
+Creates photo record in DB
+Links photo to memory
+Moves file from temp to permanent storage
+All in one transaction
+
+After save:
+Frontend reloads photos from backend
+Photo state is P
+The photo showing is handle by photoRetrieveService that refer to temp location or permanent location based on state is N or P (this case is permanent)
+Shows photos with their correct states from backend
+
 ## Data Structures
 
 ### Memory Object with Photos
