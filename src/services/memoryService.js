@@ -38,6 +38,27 @@ export const memoryService = {
     }
   },
 
+  updateMemoryTitle: async (id, title) => {
+    console.log("memoryService.updateMemoryTitle called:", {
+      id,
+      title,
+    });
+    try {
+      const response = await api.patch(`/memories/${id}/title`, { title });
+      console.log("updateMemoryTitle response:", {
+        status: response.status,
+        data: response.data,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("updateMemoryTitle error:", {
+        message: error.message,
+        response: error.response?.data,
+      });
+      throw error;
+    }
+  },
+
   deleteMemory: async (id) => {
     await api.delete(`/memories/${id}`);
   },
