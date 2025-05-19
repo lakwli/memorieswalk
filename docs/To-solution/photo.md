@@ -45,7 +45,7 @@ When users upload photos to a canvas, we need to:
 The canvas save operation becomes the key point where photo states transition:
 
 1. New photos are moved to permanent storage
-2. Removed photos are marked for cleanup
+2. Removed photos handled as defined in Cleanup Processes section
 3. Existing photos maintain their state
 4. All changes happen in a single transaction
 
@@ -64,16 +64,18 @@ The canvas save operation becomes the key point where photo states transition:
 
 ### Cleanup Processes
 
-1. Temporary Photo Cleanup
+1. Direct Photo Cleanup
 
-   - Removes unsaved photos after 24 hours
-   - Cleans both database records and files
-   - Runs as a scheduled background task
+   - When removing photo from canvas:
+     - Check if photo has other canvas links
+     - If no links, delete photo record and file
+     - All handled in save transaction
 
-2. Removed Photo Cleanup
-   - Checks for photos with no canvas links
-   - Deletes orphaned photos
-   - Maintains storage efficiency
+2. Benefits
+   - Immediate cleanup of unused photos
+   - No background jobs needed
+   - Simple and reliable implementation
+   - Clear transaction boundaries
 
 ## Changes from Current to Target Implementation
 
@@ -130,10 +132,8 @@ Key Design Points:
      - Updates canvas configuration
      - Manages timestamps
    - Adding:
-     - Photo state transitions (N->P, P->R)
-     - File movements between storage locations
-     - Link creation and removal
-     - All in single transaction
+     - Photo operations as defined in Canvas Save Operation section
+     - All within single transaction
 
 4. Key Improvements
    - Better state management
