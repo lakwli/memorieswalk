@@ -57,41 +57,62 @@ async function retrievePhoto(photoId, state) {
 }
 
 /**
- * Makes a photo permanent by moving it from temp to permanent storage
+ * Handles photo move from temporary storage to permanent storage
  * @param {string} photoId - The photo ID
+ * @returns {Promise<void>}
  */
 async function makePermanent(photoId) {
   const firstPartOfUuid = photoId.split("-")[0];
   const fileName = `${photoId}.webp`;
 
-  const tempPath = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid, fileName);
-  const permanentPath = path.join(
-    PERMANENT_PHOTOS_DIR,
-    firstPartOfUuid,
-    fileName
-  );
-
-  // Ensure source exists and destination directory exists
-  if (!(await fs.pathExists(tempPath))) {
-    throw new Error("Temporary photo not found");
-  }
-
-  await fs.ensureDir(path.join(PERMANENT_PHOTOS_DIR, firstPartOfUuid));
-  await fs.move(tempPath, permanentPath, { overwrite: true });
-
-  // Explicitly remove the temporary file after moving
-  try {
-    await fs.remove(tempPath);
-  } catch (error) {
-    console.error(`Failed to remove temporary file: ${tempPath}`, error);
-  }
-
-  // Clean up empty temp directory if it exists
   const tempDir = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid);
+  const tempFilePath = path.join(tempDir, fileName);
+
+  const permanentDir = path.join(PERMANENT_PHOTOS_DIR, firstPartOfUuid);
+  const permanentFilePath = path.join(permanentDir, fileName);
+
+  // Check if file exists in temp directory
+  if (!(await fs.pathExists(tempFilePath))) {
+    throw new Error(`Photo file not found in temporary directory: ${tempFilePath}`);
+  }
+
+  // Ensure permanent directory exists
+  await fs.ensureDir(permanentDir);
+
+  // Move file
+  await fs.move(tempFilePath, permanentFilePath, { overwrite: true });
+}
+
+/**
+ * Remove a photo from temporary storage
+ * @param {string} photoId - The photo ID to remove
+ * @returns {Promise<void>}
+ */
+async function removeTemporary(photoId) {
+  const firstPartOfUuid = photoId.split("-")[0];
+  const fileName = `${photoId}.webp`;
+  const tempDir = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid);
+  const tempFilePath = path.join(tempDir, fileName);
+
+  console.log(`Attempting to remove temporary photo: ${tempFilePath}`);
+  
   try {
-    await fs.rmdir(tempDir);
+    if (await fs.pathExists(tempFilePath)) {
+      await fs.unlink(tempFilePath);
+      console.log(`Successfully removed temporary photo: ${tempFilePath}`);
+      
+      // Try to remove the directory if it's empty
+      const dirFiles = await fs.readdir(tempDir);
+      if (dirFiles.length === 0) {
+        await fs.rmdir(tempDir);
+        console.log(`Removed empty directory: ${tempDir}`);
+      }
+    } else {
+      console.log(`Temporary photo not found: ${tempFilePath}`);
+    }
   } catch (error) {
-    console.warn(`Failed to remove temp directory: ${tempDir}`, error);
+    console.error(`Error removing temporary photo ${photoId}:`, error);
+    // Don't throw - we want to continue even if file removal fails
   }
 }
 
@@ -147,4 +168,5 @@ export default {
   makePermanent,
   removePermanent,
   removeTemp,
+  removeTemporary,
 };

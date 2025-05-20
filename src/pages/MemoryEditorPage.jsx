@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import PropTypes from 'prop-types';
 import { useParams, useNavigate } from "react-router-dom";
 import {
   useToast,
@@ -10,6 +11,12 @@ import {
   IconButton,
   Input,
   Spinner,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
 import {
   Stage,
@@ -17,6 +24,8 @@ import {
   Image as KonvaImage,
   Transformer,
   Text as KonvaText,
+  Circle,
+  Group,
 } from "react-konva";
 import { FaSave } from "react-icons/fa";
 import {
@@ -25,7 +34,6 @@ import {
   CheckIcon,
   CloseIcon,
   AttachmentIcon,
-  DeleteIcon,
 } from "@chakra-ui/icons";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -35,6 +43,39 @@ const MAX_SCALE = 10;
 const ZOOM_FACTOR = 1.2;
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 144;
+
+// DeleteButton component for photos
+const DeleteButton = ({ x, y, onClick }) => {
+  return (
+    <Group x={x} y={y}>
+      <Circle
+        radius={15}
+        fill="rgba(255, 0, 0, 0.7)"
+        stroke="white"
+        strokeWidth={2}
+        onClick={onClick}
+        onTap={onClick}
+      />
+      <KonvaText
+        text="✕"
+        fontSize={16}
+        fill="white"
+        align="center"
+        verticalAlign="middle"
+        x={-5}
+        y={-8}
+        onClick={onClick}
+        onTap={onClick}
+      />
+    </Group>
+  );
+};
+
+DeleteButton.propTypes = {
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  onClick: PropTypes.func.isRequired
+};
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
@@ -52,6 +93,9 @@ const MemoryEditorPage = () => {
   const [stageScale, setStageScale] = useState(1);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [isPanningMode, setIsPanningMode] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const cancelRef = useRef();
 
   const stageContainerRef = useRef(null);
   const konvaStageRef = useRef(null);
@@ -509,7 +553,32 @@ const MemoryEditorPage = () => {
     }
   }, [memory, photos, texts, title, toast]);
 
-  // We'll implement handleDeletePhoto later when core functionality is working
+  // Handle photo deletion
+  const handleDeletePhoto = useCallback((photoToDelete) => {
+    if (!photoToDelete) return;
+
+    // Mark the photo as removed in photoStates
+    photoStates.current[photoToDelete.id] = "R";
+    
+    // Clean up object URL to prevent memory leak
+    if (photoToDelete.objectURL) {
+      URL.revokeObjectURL(photoToDelete.objectURL);
+    }
+    
+    // Remove the photo from the photos array
+    setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photoToDelete.id));
+    
+    // Clear selection since we're removing the selected element
+    setSelectedElement(null);
+    
+    toast({
+      title: "Photo Removed",
+      description: "Photo will be permanently removed when you save",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  }, [toast]);
 
   if (loading) {
     return (
@@ -648,32 +717,43 @@ const MemoryEditorPage = () => {
           >
             <Layer>
               {photos.map((photo) => (
-                <KonvaImage
-                  key={photo.id}
-                  id={photo.id}
-                  image={photo.image}
-                  x={photo.x}
-                  y={photo.y}
-                  width={photo.width}
-                  height={photo.height}
-                  rotation={photo.rotation}
-                  draggable={!isPanningMode}
-                  onClick={() => setSelectedElement(photo)}
-                  onDragEnd={(e) => {
-                    const node = e.target;
-                    setPhotos((prev) =>
-                      prev.map((p) =>
-                        p.id === photo.id
-                          ? {
-                              ...p,
-                              x: node.x(),
-                              y: node.y(),
-                            }
-                          : p
-                      )
-                    );
-                  }}
-                />
+                <React.Fragment key={photo.id}>
+                  <KonvaImage
+                    id={photo.id}
+                    image={photo.image}
+                    x={photo.x}
+                    y={photo.y}
+                    width={photo.width}
+                    height={photo.height}
+                    rotation={photo.rotation}
+                    draggable={!isPanningMode}
+                    onClick={() => setSelectedElement(photo)}
+                    onDragEnd={(e) => {
+                      const node = e.target;
+                      setPhotos((prev) =>
+                        prev.map((p) =>
+                          p.id === photo.id
+                            ? {
+                                ...p,
+                                x: node.x(),
+                                y: node.y(),
+                              }
+                            : p
+                        )
+                      );
+                    }}
+                  />
+                  {selectedElement?.id === photo.id && (
+                    <DeleteButton
+                      x={photo.x + photo.width - 10}
+                      y={photo.y - 15}
+                      onClick={() => {
+                        setPhotoToDelete(photo);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                    />
+                  )}
+                </React.Fragment>
               ))}
               {texts.map((text) => (
                 <KonvaText
@@ -772,6 +852,40 @@ const MemoryEditorPage = () => {
             </Layer>
           </Stage>
         </Box>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          isOpen={isDeleteDialogOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setIsDeleteDialogOpen(false)}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Delete Photo
+              </AlertDialogHeader>
+              <AlertDialogBody>
+                Are you sure you want to delete this photo? This action cannot
+                be undone.
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="red"
+                  onClick={() => {
+                    handleDeletePhoto(photoToDelete);
+                    setIsDeleteDialogOpen(false);
+                  }}
+                  ml={3}
+                >
+                  Delete
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </Box>
     </ErrorBoundary>
   );

@@ -295,24 +295,55 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       }
 
       // Handle removed photos (R) - look up state in photoStates object by photo ID
-      const removedPhotos = photos.filter((p) => photoStates[p.id] === "R");
-      for (const photo of removedPhotos) {
-        // Remove memory-photo link
-        await client.query(
-          "DELETE FROM memory_photos WHERE memory_id = $1 AND photo_id = $2",
-          [memoryId, photo.id]
-        );
+      const removedPhotoIds = Object.entries(photoStates)
+        .filter(([_, state]) => state === "R")
+        .map(([id]) => id);
+        
+      console.log("Removed photos to process:", {
+        count: removedPhotoIds.length,
+        ids: removedPhotoIds,
+      });
 
-        // Check if photo has other memory links
-        const linksResult = await client.query(
-          "SELECT COUNT(*) as link_count FROM memory_photos WHERE photo_id = $1",
-          [photo.id]
-        );
+      for (const photoId of removedPhotoIds) {
+        console.log(`Processing removal of photo ${photoId}`);
+        
+        try {
+          // First check if this photo exists in the database
+          const photoExistsResult = await client.query(
+            "SELECT COUNT(*) as exists_count FROM photos WHERE id = $1",
+            [photoId]
+          );
+          
+          const photoExistsInDb = parseInt(photoExistsResult.rows[0].exists_count) > 0;
+          console.log(`Photo ${photoId} exists in DB: ${photoExistsInDb}`);
+          
+          if (photoExistsInDb) {
+            // Remove memory-photo link
+            await client.query(
+              "DELETE FROM memory_photos WHERE memory_id = $1 AND photo_id = $2",
+              [memoryId, photoId]
+            );
 
-        // If no other links exist, remove the photo completely
-        if (linksResult.rows[0].link_count === 0) {
-          await client.query("DELETE FROM photos WHERE id = $1", [photo.id]);
-          await photoService.removePermanent(photo.id);
+            // Check if photo has other memory links
+            const linksResult = await client.query(
+              "SELECT COUNT(*) as link_count FROM memory_photos WHERE photo_id = $1",
+              [photoId]
+            );
+
+            // If no other links exist, remove the photo completely
+            if (parseInt(linksResult.rows[0].link_count) === 0) {
+              await client.query("DELETE FROM photos WHERE id = $1", [photoId]);
+              await photoService.removePermanent(photoId);
+            }
+          } else {
+            // Photo doesn't exist in DB, must be a new upload that was removed before saving
+            console.log(`Photo ${photoId} was newly uploaded but removed before saving, cleaning temporary file`);
+            // Just remove from temporary storage (no DB cleanup needed)
+            await photoService.removeTemporary(photoId);
+          }
+        } catch (error) {
+          console.error(`Error processing removal for photo ${photoId}:`, error);
+          // Continue with other photo removals even if one fails
         }
       }
     }
