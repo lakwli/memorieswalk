@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   useToast,
@@ -74,7 +74,7 @@ const DeleteButton = ({ x, y, onClick }) => {
 DeleteButton.propTypes = {
   x: PropTypes.number.isRequired,
   y: PropTypes.number.isRequired,
-  onClick: PropTypes.func.isRequired
+  onClick: PropTypes.func.isRequired,
 };
 
 const MemoryEditorPage = () => {
@@ -554,31 +554,36 @@ const MemoryEditorPage = () => {
   }, [memory, photos, texts, title, toast]);
 
   // Handle photo deletion
-  const handleDeletePhoto = useCallback((photoToDelete) => {
-    if (!photoToDelete) return;
+  const handleDeletePhoto = useCallback(
+    (photoToDelete) => {
+      if (!photoToDelete) return;
 
-    // Mark the photo as removed in photoStates
-    photoStates.current[photoToDelete.id] = "R";
-    
-    // Clean up object URL to prevent memory leak
-    if (photoToDelete.objectURL) {
-      URL.revokeObjectURL(photoToDelete.objectURL);
-    }
-    
-    // Remove the photo from the photos array
-    setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photoToDelete.id));
-    
-    // Clear selection since we're removing the selected element
-    setSelectedElement(null);
-    
-    toast({
-      title: "Photo Removed",
-      description: "Photo will be permanently removed when you save",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
-  }, [toast]);
+      // Mark the photo as removed in photoStates
+      photoStates.current[photoToDelete.id] = "R";
+
+      // Clean up object URL to prevent memory leak
+      if (photoToDelete.objectURL) {
+        URL.revokeObjectURL(photoToDelete.objectURL);
+      }
+
+      // Remove the photo from the photos array
+      setPhotos((prevPhotos) =>
+        prevPhotos.filter((p) => p.id !== photoToDelete.id)
+      );
+
+      // Clear selection since we're removing the selected element
+      setSelectedElement(null);
+
+      toast({
+        title: "Photo Removed",
+        description: "Photo will be permanently removed when you save",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    [toast]
+  );
 
   if (loading) {
     return (
@@ -869,7 +874,10 @@ const MemoryEditorPage = () => {
                 be undone.
               </AlertDialogBody>
               <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
+                <Button
+                  ref={cancelRef}
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button

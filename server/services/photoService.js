@@ -73,7 +73,9 @@ async function makePermanent(photoId) {
 
   // Check if file exists in temp directory
   if (!(await fs.pathExists(tempFilePath))) {
-    throw new Error(`Photo file not found in temporary directory: ${tempFilePath}`);
+    throw new Error(
+      `Photo file not found in temporary directory: ${tempFilePath}`
+    );
   }
 
   // Ensure permanent directory exists
@@ -95,12 +97,12 @@ async function removeTemporary(photoId) {
   const tempFilePath = path.join(tempDir, fileName);
 
   console.log(`Attempting to remove temporary photo: ${tempFilePath}`);
-  
+
   try {
     if (await fs.pathExists(tempFilePath)) {
       await fs.unlink(tempFilePath);
       console.log(`Successfully removed temporary photo: ${tempFilePath}`);
-      
+
       // Try to remove the directory if it's empty
       const dirFiles = await fs.readdir(tempDir);
       if (dirFiles.length === 0) {

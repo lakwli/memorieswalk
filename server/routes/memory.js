@@ -298,7 +298,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       const removedPhotoIds = Object.entries(photoStates)
         .filter(([_, state]) => state === "R")
         .map(([id]) => id);
-        
+
       console.log("Removed photos to process:", {
         count: removedPhotoIds.length,
         ids: removedPhotoIds,
@@ -306,17 +306,18 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
 
       for (const photoId of removedPhotoIds) {
         console.log(`Processing removal of photo ${photoId}`);
-        
+
         try {
           // First check if this photo exists in the database
           const photoExistsResult = await client.query(
             "SELECT COUNT(*) as exists_count FROM photos WHERE id = $1",
             [photoId]
           );
-          
-          const photoExistsInDb = parseInt(photoExistsResult.rows[0].exists_count) > 0;
+
+          const photoExistsInDb =
+            parseInt(photoExistsResult.rows[0].exists_count) > 0;
           console.log(`Photo ${photoId} exists in DB: ${photoExistsInDb}`);
-          
+
           if (photoExistsInDb) {
             // Remove memory-photo link
             await client.query(
@@ -337,12 +338,17 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
             }
           } else {
             // Photo doesn't exist in DB, must be a new upload that was removed before saving
-            console.log(`Photo ${photoId} was newly uploaded but removed before saving, cleaning temporary file`);
+            console.log(
+              `Photo ${photoId} was newly uploaded but removed before saving, cleaning temporary file`
+            );
             // Just remove from temporary storage (no DB cleanup needed)
             await photoService.removeTemporary(photoId);
           }
         } catch (error) {
-          console.error(`Error processing removal for photo ${photoId}:`, error);
+          console.error(
+            `Error processing removal for photo ${photoId}:`,
+            error
+          );
           // Continue with other photo removals even if one fails
         }
       }
