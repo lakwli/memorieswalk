@@ -1,3 +1,9 @@
-after save, the temp file is not been removed.
 I have resize, and move to another location. but it was not saved.
-center configuratin of location (temp, permanent)
+after save, picture become big and in differnet location.
+the loading of dashboard is slow, is it load the whole memory full set? or just the memory title with snapshot?
+viewALL doesn't work.
+to support photo remove. (to test if temp is removed)
+
+to test:
+remove memory : photo, photo link, permanent file should be removed.
+test the photo files if deleted (it seems that few rounds )

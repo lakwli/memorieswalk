@@ -25,6 +25,7 @@ import {
   CheckIcon,
   CloseIcon,
   AttachmentIcon,
+  DeleteIcon,
 } from "@chakra-ui/icons";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -56,6 +57,8 @@ const MemoryEditorPage = () => {
   const konvaStageRef = useRef(null);
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
+  // UseRef for photo states to avoid canvas refreshes on state changes
+  const photoStates = useRef({});
 
   // Update transformer when selection changes
   useEffect(() => {
@@ -96,6 +99,9 @@ const MemoryEditorPage = () => {
                   img.src = objectURL;
 
                   img.onload = () => {
+                    // Store state in photoStates ref instead of the photo object itself
+                    photoStates.current[photo.id] = "N"; // New photo state
+
                     resolve({
                       ...photo,
                       image: img,
@@ -105,8 +111,7 @@ const MemoryEditorPage = () => {
                       width: img.naturalWidth / 4,
                       height: img.naturalHeight / 4,
                       rotation: 0,
-                      isNew: true, // Mark as new photo
-                      state: "N", // Initial state is New
+                      // No isNew flag - use photoStates.current[id] === "N" instead
                       originalWidth: img.naturalWidth,
                       originalHeight: img.naturalHeight,
                       size: blob.size,
@@ -160,6 +165,9 @@ const MemoryEditorPage = () => {
         setMemory(data);
         setTitle(data.title);
 
+        // Clear any previous photoStates
+        photoStates.current = {};
+
         // Load existing photos (check both "P" and "N" states)
         if (data.photos && Array.isArray(data.photos)) {
           const loadedPhotos = await Promise.all(
@@ -172,6 +180,7 @@ const MemoryEditorPage = () => {
                   try {
                     // Try permanent storage first, then temp if needed
                     let blob;
+                    let photoState = "P"; // Default to Persisted
                     try {
                       blob = await memoryService.getPhoto(photo.id, "P");
                     } catch (error) {
@@ -180,7 +189,11 @@ const MemoryEditorPage = () => {
                         error
                       );
                       blob = await memoryService.getPhoto(photo.id, "N");
+                      photoState = "N"; // If loaded from temp, it's New
                     }
+
+                    // Store photo state in the ref object
+                    photoStates.current[photo.id] = photoState;
 
                     const objectURL = URL.createObjectURL(blob);
                     img.src = objectURL;
@@ -195,7 +208,7 @@ const MemoryEditorPage = () => {
                         width: photo.width || img.naturalWidth / 4,
                         height: photo.height || img.naturalHeight / 4,
                         rotation: photo.rotation || 0,
-                        state: photo.state || "P",
+                        // state removed from the photo object
                       });
                     };
 
@@ -346,14 +359,15 @@ const MemoryEditorPage = () => {
     }
   }, [memory, title, toast]);
 
-  // Save memory with photo states
+  // Save memory with separate photo states management
   const saveMemoryLayout = useCallback(async () => {
     if (!memory) return;
 
-    // Prepare photo data with complete metadata for backend
+    // Prepare photo data with only rendering properties
+    // The state information is passed separately in the photoStates object
     const photoData = photos.map((p) => ({
       id: p.id,
-      state: p.state, // Keep original state from upload or backend
+      // state removed - it's now in photoStates.current[p.id]
       x: p.x,
       y: p.y,
       width: p.width,
@@ -382,82 +396,65 @@ const MemoryEditorPage = () => {
 
     try {
       setSaving(true);
+      // Combine the photos array (rendering data) with separate photoStates (persistence state)
+      // into a payload for the server
       const updateData = {
         title,
         canvas: {
-          photos: photoData,
+          photos: photoData, // Photos with rendering properties
           texts: textData,
         },
+        photoStates: photoStates.current, // Add the entire photoStates object separately
       };
       console.log("Sending update to backend:", {
         memoryId: memory.id,
-        updateData: JSON.stringify(updateData),
+        updateData: JSON.stringify({
+          ...updateData,
+          photoStates:
+            JSON.stringify(photoStates.current).substring(0, 100) + "...", // Truncate for log readability
+        }),
         photosCount: photoData.length,
-        newPhotos: photoData.filter((p) => p.state === "N").length,
+        newPhotos: Object.values(photoStates.current).filter(
+          (state) => state === "N"
+        ).length,
       });
 
       await memoryService.updateMemory(memory.id, updateData);
 
-      // Clear current photos since we'll reload from backend
+      // Update photo states after successful save
+      // All photos are now persisted
+      // Log before update for debugging
+      console.log("Photo states before update:", { ...photoStates.current });
+
+      const updatedPhotoStates = { ...photoStates.current };
       photos.forEach((p) => {
-        if (p.objectURL) {
-          URL.revokeObjectURL(p.objectURL);
+        if (updatedPhotoStates[p.id] === "N") {
+          // New photos become Persisted
+          updatedPhotoStates[p.id] = "P";
+        }
+        // Remove any "R" (removed) states - they're gone after save
+        if (updatedPhotoStates[p.id] === "R") {
+          delete updatedPhotoStates[p.id];
         }
       });
+      photoStates.current = updatedPhotoStates;
 
-      // Reload memory data after successful save to ensure consistency
-      const updatedMemory = await memoryService.getMemory(memory.id);
-      setMemory(updatedMemory);
+      // Log after update for debugging
+      console.log("Photo states after update:", { ...photoStates.current });
 
-      const loadedPhotos = await Promise.all(
-        updatedMemory.photos.map((photo) => {
-          return new Promise((resolve) => {
-            const img = new window.Image();
-            img.crossOrigin = "anonymous";
-
-            (async () => {
-              try {
-                // Try permanent storage first, then temp if needed
-                let blob;
-                try {
-                  blob = await memoryService.getPhoto(photo.id, "P");
-                } catch (error) {
-                  console.error(
-                    "Failed to load from permanent storage:",
-                    error
-                  );
-                  blob = await memoryService.getPhoto(photo.id, "N");
-                }
-                const objectURL = URL.createObjectURL(blob);
-                img.src = objectURL;
-
-                img.onload = () => {
-                  resolve({
-                    ...photo,
-                    image: img,
-                    objectURL,
-                    x: photo.x || 50,
-                    y: photo.y || 50,
-                    width: photo.width || img.naturalWidth / 4,
-                    height: photo.height || img.naturalHeight / 4,
-                    rotation: photo.rotation || 0,
-                    state: photo.state, // Keep state from backend response
-                  });
-                };
-
-                img.onerror = () => {
-                  URL.revokeObjectURL(objectURL);
-                  resolve(null);
-                };
-              } catch (err) {
-                console.error("Failed to load photo:", err);
-                resolve(null);
-              }
-            })();
-          });
-        })
-      );
-      setPhotos(loadedPhotos.filter((p) => p !== null));
+      // Instead of reloading photos, just update the memory metadata
+      // This prevents unnecessary canvas refreshes
+      try {
+        const updatedMemory = await memoryService.getMemory(memory.id);
+        // Update only the memory metadata without triggering photo reloading
+        setMemory((prevMemory) => ({
+          ...updatedMemory,
+          photos: prevMemory.photos, // Keep the current photo references
+        }));
+      } catch (error) {
+        console.error("Failed to refresh memory metadata:", error);
+        // Not critical, so we continue
+      }
 
       toast({
         title: "Success",
@@ -478,6 +475,8 @@ const MemoryEditorPage = () => {
       setSaving(false);
     }
   }, [memory, photos, texts, title, toast]);
+
+  // We'll implement handleDeletePhoto later when core functionality is working
 
   if (loading) {
     return (

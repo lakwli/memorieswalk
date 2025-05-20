@@ -165,6 +165,9 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
     const photos = canvas?.photos || [];
     console.log("Extracted photos:", photos);
 
+    // In the frontend implementation, each photo object already contains its state
+    // States: "N" = New (temporary storage), "P" = Persisted, "R" = Removed
+
     // 1. Update memory details
     await client.query(
       "UPDATE memories SET title = $1, description = $2, updated_at = NOW() WHERE id = $3",
@@ -179,13 +182,19 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
 
     // 3. Process photos based on their states
     if (Array.isArray(photos)) {
+      // Extract photoStates from request body if present
+      const photoStates = req.body.photoStates || {};
+
       console.log("Processing photos:", {
         totalPhotos: photos.length,
-        photoStates: photos.map((p) => ({ id: p.id, state: p.state })),
+        photoStates: Object.entries(photoStates).map(([id, state]) => ({
+          id,
+          state,
+        })),
       });
 
-      // Handle new photos (N)
-      const newPhotos = photos.filter((p) => p.state === "N");
+      // Handle new photos (N) - look up state in photoStates object by photo ID
+      const newPhotos = photos.filter((p) => photoStates[p.id] === "N");
       console.log("New photos to process:", {
         count: newPhotos.length,
         ids: newPhotos.map((p) => p.id),
@@ -247,8 +256,8 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
         console.log(`Photo ${photo.id} - step 4: Processing complete`);
       }
 
-      // Handle removed photos (R)
-      const removedPhotos = photos.filter((p) => p.state === "R");
+      // Handle removed photos (R) - look up state in photoStates object by photo ID
+      const removedPhotos = photos.filter((p) => photoStates[p.id] === "R");
       for (const photo of removedPhotos) {
         // Remove memory-photo link
         await client.query(
