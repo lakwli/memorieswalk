@@ -168,6 +168,27 @@ const MemoryEditorPage = () => {
         // Clear any previous photoStates
         photoStates.current = {};
 
+        // Create a map of photo configurations from canvas_config
+        const photoConfigMap = {};
+        if (
+          data.canvas_config &&
+          data.canvas_config.photos &&
+          Array.isArray(data.canvas_config.photos)
+        ) {
+          data.canvas_config.photos.forEach((photoConfig) => {
+            if (photoConfig.id) {
+              photoConfigMap[photoConfig.id] = photoConfig;
+            }
+          });
+        }
+
+        console.log("Canvas config:", {
+          hasCanvasConfig: !!data.canvas_config,
+          hasPhotosArray: !!(data.canvas_config && data.canvas_config.photos),
+          photoCount: data.canvas_config?.photos?.length || 0,
+          configMap: photoConfigMap,
+        });
+
         // Load existing photos (check both "P" and "N" states)
         if (data.photos && Array.isArray(data.photos)) {
           const loadedPhotos = await Promise.all(
@@ -199,16 +220,27 @@ const MemoryEditorPage = () => {
                     img.src = objectURL;
 
                     img.onload = () => {
+                      // Get photo configuration from the canvas_config if available
+                      const photoConfig = photoConfigMap[photo.id] || {};
+                      console.log(`Config for photo ${photo.id}:`, photoConfig);
+
+                      // Use configuration values from canvas_config for position and display dimensions,
+                      // while using the photo record for original dimensions and size
                       resolve({
                         ...photo,
                         image: img,
                         objectURL,
-                        x: photo.x || 50,
-                        y: photo.y || 50,
-                        width: photo.width || img.naturalWidth / 4,
-                        height: photo.height || img.naturalHeight / 4,
-                        rotation: photo.rotation || 0,
-                        // state removed from the photo object
+                        // Use canvas config positioning first, then fallback to defaults
+                        x: photoConfig.x || 50,
+                        y: photoConfig.y || 50,
+                        width: photoConfig.width || img.naturalWidth / 4,
+                        height: photoConfig.height || img.naturalHeight / 4,
+                        rotation: photoConfig.rotation || 0,
+                        // originalWidth and originalHeight come from the photo record now, with fallback to actual image dimensions
+                        originalWidth: photo.originalWidth || img.naturalWidth,
+                        originalHeight:
+                          photo.originalHeight || img.naturalHeight,
+                        size: photo.size || 0,
                       });
                     };
 
@@ -363,20 +395,21 @@ const MemoryEditorPage = () => {
   const saveMemoryLayout = useCallback(async () => {
     if (!memory) return;
 
-    // Prepare photo data with only rendering properties
+    // Prepare photo data with all necessary rendering properties
     // The state information is passed separately in the photoStates object
-    const photoData = photos.map((p) => ({
-      id: p.id,
-      // state removed - it's now in photoStates.current[p.id]
-      x: p.x,
-      y: p.y,
-      width: p.width,
-      height: p.height,
-      rotation: p.rotation || 0,
-      originalWidth: p.originalWidth,
-      originalHeight: p.originalHeight,
-      size: p.size,
-    }));
+    const photoData = photos.map((p) => {
+      // Only send position and presentation data to the view configuration
+      return {
+        id: p.id,
+        // state removed - it's now in photoStates.current[p.id]
+        x: p.x,
+        y: p.y,
+        // These are the display dimensions (scaled)
+        width: p.width,
+        height: p.height,
+        rotation: p.rotation || 0,
+      };
+    });
 
     const textData = texts.map((t) => ({
       id: t.id,
@@ -672,7 +705,70 @@ const MemoryEditorPage = () => {
                   }}
                 />
               ))}
-              <Transformer ref={trRef} />
+              <Transformer
+                ref={trRef}
+                boundBoxFunc={(oldBox, newBox) => {
+                  // Limit minimum size
+                  if (newBox.width < 5 || newBox.height < 5) {
+                    return oldBox;
+                  }
+                  return newBox;
+                }}
+                onTransformEnd={(e) => {
+                  // Update the selected element's position and size
+                  const node = e.target;
+                  if (!selectedElement) return;
+
+                  const scaleX = node.scaleX();
+                  const scaleY = node.scaleY();
+
+                  // Always reset scale to 1 to avoid compounding scales
+                  node.scaleX(1);
+                  node.scaleY(1);
+
+                  if (selectedElement.type === "text") {
+                    // Handle text element transform
+                    setTexts((prev) =>
+                      prev.map((t) =>
+                        t.id === selectedElement.id
+                          ? {
+                              ...t,
+                              x: node.x(),
+                              y: node.y(),
+                              rotation: node.rotation(),
+                              width: node.width() * scaleX,
+                            }
+                          : t
+                      )
+                    );
+                  } else {
+                    // Handle photo element transform
+                    console.log("Transform completed:", {
+                      id: selectedElement.id,
+                      width: Math.round(node.width() * scaleX),
+                      height: Math.round(node.height() * scaleY),
+                      x: node.x(),
+                      y: node.y(),
+                      rotation: node.rotation(),
+                    });
+
+                    setPhotos((prev) =>
+                      prev.map((p) =>
+                        p.id === selectedElement.id
+                          ? {
+                              ...p,
+                              x: node.x(),
+                              y: node.y(),
+                              width: Math.round(node.width() * scaleX),
+                              height: Math.round(node.height() * scaleY),
+                              rotation: node.rotation(),
+                            }
+                          : p
+                      )
+                    );
+                  }
+                }}
+              />
             </Layer>
           </Stage>
         </Box>

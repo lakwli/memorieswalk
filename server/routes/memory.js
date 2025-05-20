@@ -110,9 +110,9 @@ router.get("/:id", authenticateToken, async (req, res, next) => {
 
     const memory = memoryResult.rows[0];
 
-    // Get associated photos
+    // Get associated photos with complete metadata
     const photosResult = await client.query(
-      `SELECT p.id, p.file_path, p.captured_at, p.width, p.height 
+      `SELECT p.id, p.file_path, p.captured_at, p.width, p.height, p.size_bytes, p.metadata
              FROM photos p 
              JOIN memory_photos mp ON p.id = mp.photo_id 
              WHERE mp.memory_id = $1 
@@ -121,6 +121,9 @@ router.get("/:id", authenticateToken, async (req, res, next) => {
     );
     memory.photos = photosResult.rows.map((photo) => ({
       ...photo,
+      originalWidth: photo.width,
+      originalHeight: photo.height,
+      size: photo.size_bytes,
       state: "P", // Mark as permanent since they're from the database
     }));
 
@@ -175,10 +178,45 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
     );
 
     // 2. Update canvas configuration
-    await client.query(
-      "UPDATE memory_view_configurations SET configuration_data = $1 WHERE memory_id = $2",
-      [canvas, memoryId]
+    // Strip original dimensions and size from photo objects in canvas before saving to view_configurations
+    const cleanCanvas = { ...canvas };
+
+    if (cleanCanvas.photos && Array.isArray(cleanCanvas.photos)) {
+      cleanCanvas.photos = cleanCanvas.photos.map((photo) => {
+        // Pick only the display/position properties we need for view configuration
+        const { id, x, y, width, height, rotation } = photo;
+
+        // Log the original and stripped photo data for debugging
+        console.log(`Stripping photo ${id} metadata:`, {
+          original: photo,
+          stripped: { id, x, y, width, height, rotation },
+        });
+
+        return { id, x, y, width, height, rotation };
+      });
+    }
+
+    // Check if a view configuration exists, if not create one
+    const viewConfigCheck = await client.query(
+      "SELECT id FROM memory_view_configurations WHERE memory_id = $1 AND user_id = $2",
+      [memoryId, userId]
     );
+
+    if (viewConfigCheck.rowCount === 0) {
+      // Create a new view configuration
+      console.log("No existing view configuration found, creating new one");
+      await client.query(
+        "INSERT INTO memory_view_configurations (memory_id, user_id, name, view_type, configuration_data, is_primary_view) VALUES ($1, $2, $3, $4, $5, $6)",
+        [memoryId, userId, "Default View", "canvas", cleanCanvas, true]
+      );
+    } else {
+      // Update existing view configuration
+      console.log("Updating existing view configuration");
+      await client.query(
+        "UPDATE memory_view_configurations SET configuration_data = $1 WHERE memory_id = $2",
+        [cleanCanvas, memoryId]
+      );
+    }
 
     // 3. Process photos based on their states
     if (Array.isArray(photos)) {
@@ -306,7 +344,27 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       [memoryId]
     );
 
-    res.json(updatedMemory.rows[0]);
+    // Get associated photos with complete metadata
+    const updatedPhotos = await client.query(
+      `SELECT p.id, p.file_path, p.captured_at, p.width, p.height, p.size_bytes, p.metadata
+             FROM photos p 
+             JOIN memory_photos mp ON p.id = mp.photo_id 
+             WHERE mp.memory_id = $1 
+             ORDER BY mp.added_at ASC`,
+      [memoryId]
+    );
+
+    // Build complete memory object with photo data
+    const memory = updatedMemory.rows[0];
+    memory.photos = updatedPhotos.rows.map((photo) => ({
+      ...photo,
+      originalWidth: photo.width,
+      originalHeight: photo.height,
+      size: photo.size_bytes,
+      state: "P", // Mark as permanent since they're from the database
+    }));
+
+    res.json(memory);
   } catch (error) {
     console.error("Error in memory update:", {
       error: error.message,
