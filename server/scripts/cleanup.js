@@ -11,6 +11,7 @@
  */
 
 import fs from "fs";
+import process from "process";
 import path from "path";
 import { promisify } from "util";
 import { pool } from "../db.js";
@@ -25,8 +26,8 @@ const unlink = promisify(fs.unlink);
 const stat = promisify(fs.stat);
 
 /**
- * Delete all files in a directory (non-recursive)
- * @param {string} directory - Directory path
+ * Delete all files and subdirectories in a directory (recursive)
+ * @param {string} directory - Directory path (recursive)
  */
 async function cleanDirectory(directory) {
   try {
@@ -35,7 +36,7 @@ async function cleanDirectory(directory) {
     // Check if directory exists
     try {
       await stat(directory);
-    } catch (err) {
+    } catch {
       console.log(`Directory ${directory} does not exist. Skipping.`);
       return;
     }
@@ -43,22 +44,27 @@ async function cleanDirectory(directory) {
     // Get all files
     const files = await readdir(directory, { withFileTypes: true });
 
-    // Delete each file (skip directories)
+    // Delete each file or directory
     let deletedCount = 0;
     for (const file of files) {
       const filePath = path.join(directory, file.name);
 
-      // Skip directories
       if (file.isDirectory()) {
-        console.log(`Skipping directory: ${filePath}`);
-        continue;
-      }
-
-      try {
-        await unlink(filePath);
-        deletedCount++;
-      } catch (err) {
-        console.error(`Failed to delete file ${filePath}:`, err);
+        // Recursively clean subdirectory
+        await cleanDirectory(filePath);
+        try {
+          await fs.promises.rmdir(filePath); // Remove the empty directory
+          console.log(`Deleted directory: ${filePath}`);
+        } catch (err) {
+          console.error(`Failed to delete directory ${filePath}:`, err);
+        }
+      } else {
+        try {
+          await unlink(filePath);
+          deletedCount++;
+        } catch (err) {
+          console.error(`Failed to delete file ${filePath}:`, err);
+        }
       }
     }
 
@@ -122,8 +128,8 @@ async function performCleanup() {
 
     console.log("Cleanup completed successfully!");
     process.exit(0);
-  } catch (err) {
-    console.error("Cleanup failed:", err);
+  } catch {
+    console.error("Cleanup failed");
     process.exit(1);
   }
 }
