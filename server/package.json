@@ -19,8 +19,6 @@
     "fs-extra": "^11.2.0"
   },
   "scripts": {
-    "prestart": "node scripts/ensureDirectories.js",
-    "predev": "node scripts/ensureDirectories.js",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"

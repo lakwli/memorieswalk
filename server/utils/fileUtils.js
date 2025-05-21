@@ -15,6 +15,41 @@ function ensureDir(dirPath) {
   return dirPath;
 }
 
+/**
+ * Ensures that specified directories exist, creating them if necessary
+ * @param {string[]} directories - Array of directory paths to ensure exist
+ * @param {Object} options - Options for directory creation
+ * @param {boolean} options.silent - Whether to suppress console output (default: false)
+ * @param {boolean} options.recursive - Whether to create parent directories (default: true)
+ * @returns {Object} - Statistics about the operation (created, existing, failed)
+ */
+export function ensureDirectoriesExist(directories = [], options = {}) {
+  const { silent = false, recursive = true } = options;
+  const stats = { created: 0, existing: 0, failed: 0 };
+
+  if (!silent) console.log("Ensuring required directories exist...");
+
+  // Create each directory if it doesn't exist
+  for (const dir of directories) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive });
+        stats.created++;
+        if (!silent) console.log(`Created directory: ${dir}`);
+      } else {
+        stats.existing++;
+        if (!silent) console.log(`Directory already exists: ${dir}`);
+      }
+    } catch (error) {
+      stats.failed++;
+      if (!silent) console.error(`Failed to create directory: ${dir}`, error);
+    }
+  }
+
+  if (!silent) console.log("Directory check completed.");
+  return stats;
+}
+
 // Get upload directory path
 function getUploadDir(userId, memoryId) {
   // Use temp_photos directory for uploads as they start as temporary files

@@ -1,5 +1,4 @@
 viewALL doesn't work.
-remove temp file after save.
 
 to test:
 remove photo : , photo link, permanent file should be removed. photo (if no more link)
