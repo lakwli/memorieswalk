@@ -167,6 +167,71 @@ async function deleteFile(filePath) {
   return false; // Indicate invalid path or no action taken
 }
 
+// New function to delete a file and its parent directory if empty
+async function deleteFileAndEmptyParent(filePath) {
+  if (filePath && typeof filePath === "string") {
+    try {
+      if (fs.existsSync(filePath)) {
+        try {
+          await fs.promises.unlink(filePath); // Delete the file
+          console.log(
+            `[deleteFileAndEmptyParent] File deleted successfully: ${filePath}`
+          );
+        } catch (fileError) {
+          console.error(
+            `[deleteFileAndEmptyParent] Failed to delete file: ${filePath}`,
+            fileError
+          );
+          throw fileError;
+        }
+        const parentDir = path.dirname(filePath);
+        console.log(
+          `[deleteFileAndEmptyParent] Checking parent directory: ${parentDir}`
+        );
+        let remainingFiles;
+        try {
+          remainingFiles = await fs.promises.readdir(parentDir);
+          console.log(
+            `[deleteFileAndEmptyParent] Directory contents before deletion: ${remainingFiles}`
+          );
+        } catch (readError) {
+          console.error(
+            `[deleteFileAndEmptyParent] Failed to read directory contents: ${parentDir}`,
+            readError
+          );
+          throw readError;
+        }
+        console.log(
+          `[deleteFileAndEmptyParent] Remaining files in directory: ${remainingFiles}`
+        );
+        if (remainingFiles.length === 0) {
+          try {
+            await fs.promises.rmdir(parentDir); // Remove the directory if empty
+            console.log(
+              `[deleteFileAndEmptyParent] Folder deleted successfully: ${parentDir}`
+            );
+          } catch (folderError) {
+            console.error(
+              `[deleteFileAndEmptyParent] Failed to delete folder: ${parentDir}`,
+              folderError
+            );
+            throw folderError;
+          }
+          console.log(
+            `[deleteFileAndEmptyParent] Removed empty directory: ${parentDir}`
+          );
+        }
+      }
+    } catch (err) {
+      console.error(
+        `Error deleting file or directory ${filePath}:`,
+        err.message
+      );
+      throw err; // Re-throw for the caller to handle
+    }
+  }
+}
+
 export {
   ensureDir,
   getUploadDir,
@@ -174,4 +239,5 @@ export {
   processImage,
   deleteFiles, // Export renamed function
   deleteFile, // Export new function
+  deleteFileAndEmptyParent, // Export new utility
 };
