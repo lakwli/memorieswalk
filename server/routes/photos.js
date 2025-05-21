@@ -106,7 +106,7 @@ router.delete("/temp/:id", authenticateToken, async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    await photoService.removeTemp(id);
+    await photoService.removeTemporary(id);
     res.status(204).send();
   } catch (error) {
     next(error);

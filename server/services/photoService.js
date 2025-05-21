@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { processImage } from "../utils/fileUtils.js";
+import { processImage, deleteFileAndEmptyParent } from "../utils/fileUtils.js";
 import { FILE_STORAGE_CONFIG } from "../config.js";
 
 const { TEMP_PHOTOS_DIR, PERMANENT_PHOTOS_DIR } = FILE_STORAGE_CONFIG;
@@ -13,7 +13,15 @@ fs.ensureDirSync(PERMANENT_PHOTOS_DIR);
 /**
  * Handles photo upload to temporary storage
  * @param {Object} file - The uploaded file
- * @returns {Promise<{id: string, path: string}>}
+ * @returns {Promise<{id: string, path: string}>  // Clean up the empty directory in temp
+  console.log(`[makePermanent] Attempting to call deleteFileAndEmptyParent with path: ${tempFilePath}`);
+  try {
+    await deleteFileAndEmptyParent(tempFilePath);
+    console.log(`Cleaned up empty directory in temp: ${tempDir}`);
+  } catch (error) {
+    console.error(`[makePermanent] Error cleaning up temp directory ${tempDir}:`, error);
+  }
+}
  */
 async function saveToTemp(file) {
   const photoId = uuidv4();
@@ -83,6 +91,29 @@ async function makePermanent(photoId) {
 
   // Move file
   await fs.move(tempFilePath, permanentFilePath, { overwrite: true });
+
+  // Clean up the empty directory in temp
+  console.log(
+    `[makePermanent] Checking if temp directory is empty: ${tempDir}`
+  );
+  try {
+    const remainingFiles = await fs.readdir(tempDir);
+    if (remainingFiles.length === 0) {
+      await fs.rmdir(tempDir);
+      console.log(
+        `[makePermanent] Successfully removed empty temp directory: ${tempDir}`
+      );
+    } else {
+      console.log(
+        `[makePermanent] Temp directory not empty, skipping removal: ${tempDir}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[makePermanent] Error cleaning up temp directory ${tempDir}:`,
+      error
+    );
+  }
 }
 
 /**
@@ -93,28 +124,19 @@ async function makePermanent(photoId) {
 async function removeTemporary(photoId) {
   const firstPartOfUuid = photoId.split("-")[0];
   const fileName = `${photoId}.webp`;
-  const tempDir = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid);
-  const tempFilePath = path.join(tempDir, fileName);
+  const tempFilePath = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid, fileName);
 
-  console.log(`Attempting to remove temporary photo: ${tempFilePath}`);
+  console.log(
+    `[removeTemporary] Attempting to call deleteFileAndEmptyParent with path: ${tempFilePath}`
+  );
 
   try {
-    if (await fs.pathExists(tempFilePath)) {
-      await fs.unlink(tempFilePath);
-      console.log(`Successfully removed temporary photo: ${tempFilePath}`);
-
-      // Try to remove the directory if it's empty
-      const dirFiles = await fs.readdir(tempDir);
-      if (dirFiles.length === 0) {
-        await fs.rmdir(tempDir);
-        console.log(`Removed empty directory: ${tempDir}`);
-      }
-    } else {
-      console.log(`Temporary photo not found: ${tempFilePath}`);
-    }
+    await deleteFileAndEmptyParent(tempFilePath);
+    console.log(
+      `Successfully removed temporary photo and cleaned up directory: ${tempFilePath}`
+    );
   } catch (error) {
     console.error(`Error removing temporary photo ${photoId}:`, error);
-    // Don't throw - we want to continue even if file removal fails
   }
 }
 
@@ -127,17 +149,13 @@ async function removePermanent(photoId) {
   const fileName = `${photoId}.webp`;
   const filePath = path.join(PERMANENT_PHOTOS_DIR, firstPartOfUuid, fileName);
 
-  if (await fs.pathExists(filePath)) {
-    await fs.remove(filePath);
-
-    // Try to remove empty directory
-    const dirPath = path.join(PERMANENT_PHOTOS_DIR, firstPartOfUuid);
-    try {
-      await fs.rmdir(dirPath);
-    } catch (error) {
-      // Ignore errors removing directory
-      console.warn(`Failed to remove empty directory: ${dirPath}`, error);
-    }
+  try {
+    await deleteFileAndEmptyParent(filePath);
+    console.log(
+      `Successfully removed permanent photo and cleaned up directory: ${filePath}`
+    );
+  } catch (error) {
+    console.error(`Error removing permanent photo ${photoId}:`, error);
   }
 }
 
@@ -145,30 +163,11 @@ async function removePermanent(photoId) {
  * Removes a photo from temporary storage
  * @param {string} photoId - The photo ID
  */
-async function removeTemp(photoId) {
-  const firstPartOfUuid = photoId.split("-")[0];
-  const fileName = `${photoId}.webp`;
-  const filePath = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid, fileName);
-
-  if (await fs.pathExists(filePath)) {
-    await fs.remove(filePath);
-
-    // Try to remove empty directory
-    const dirPath = path.join(TEMP_PHOTOS_DIR, firstPartOfUuid);
-    try {
-      await fs.rmdir(dirPath);
-    } catch (error) {
-      // Ignore errors removing directory
-      console.warn(`Failed to remove empty directory: ${dirPath}`, error);
-    }
-  }
-}
 
 export default {
   saveToTemp,
   retrievePhoto,
   makePermanent,
   removePermanent,
-  removeTemp,
   removeTemporary,
 };
