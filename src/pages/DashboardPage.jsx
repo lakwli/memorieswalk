@@ -25,7 +25,7 @@ import {
 import { SearchIcon, AddIcon, DeleteIcon } from "@chakra-ui/icons";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import { memoryService } from "../services/memoryService";
+import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
 import PageLayout from "../layouts/PageLayout";
 
@@ -51,7 +51,7 @@ const DashboardPage = () => {
         console.log("Dashboard: Attempting to fetch memories");
         setIsLoading(true);
         setError(null);
-        const fetchedMemories = await memoryService.getMemories();
+        const fetchedMemories = await memoryService.getAllMemories();
         console.log("Dashboard: Memories fetched:", fetchedMemories);
         setMemories(fetchedMemories);
       } catch (err) {
@@ -74,7 +74,9 @@ const DashboardPage = () => {
   const handleCreateMemory = async () => {
     try {
       const defaultTitle = "Untitled Memory";
-      const newMemory = await memoryService.createMemory(defaultTitle);
+      const newMemory = await memoryService.createMemory({
+        title: defaultTitle,
+      });
       toast({
         title: "Memory Created",
         description: `Memory "${newMemory.title}" created successfully.`,

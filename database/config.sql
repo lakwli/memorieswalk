@@ -1,1 +1,0 @@
-select * FROM memory_view_configurations

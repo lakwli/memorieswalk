@@ -3,7 +3,7 @@ import { ProtectedRoute } from "../components/ProtectedRoute";
 import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
 import MemoryEditorPage from "../pages/MemoryEditorPage";
-import AccountSettingsPage from "../pages/AccountSettingsPage"; // Import the new page
+import AccountSettingsPage from "../pages/AccountSettingsPage";
 
 function AppRoutes() {
   return (
@@ -25,7 +25,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* Add new route for account settings */}
       <Route
         path="/account-settings"
         element={
@@ -35,6 +34,7 @@ function AppRoutes() {
         }
       />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/memories" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

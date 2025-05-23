@@ -1,14 +1,11 @@
-// Create file: server/utils/fileUtils.js
-
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import process from "process";
+import { FILE_STORAGE_CONFIG } from "../config.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { TEMP_PHOTOS_DIR } = FILE_STORAGE_CONFIG;
 
 // Ensure upload directory exists
 function ensureDir(dirPath) {
@@ -18,10 +15,45 @@ function ensureDir(dirPath) {
   return dirPath;
 }
 
+/**
+ * Ensures that specified directories exist, creating them if necessary
+ * @param {string[]} directories - Array of directory paths to ensure exist
+ * @param {Object} options - Options for directory creation
+ * @param {boolean} options.silent - Whether to suppress console output (default: false)
+ * @param {boolean} options.recursive - Whether to create parent directories (default: true)
+ * @returns {Object} - Statistics about the operation (created, existing, failed)
+ */
+export function ensureDirectoriesExist(directories = [], options = {}) {
+  const { silent = false, recursive = true } = options;
+  const stats = { created: 0, existing: 0, failed: 0 };
+
+  if (!silent) console.log("Ensuring required directories exist...");
+
+  // Create each directory if it doesn't exist
+  for (const dir of directories) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive });
+        stats.created++;
+        if (!silent) console.log(`Created directory: ${dir}`);
+      } else {
+        stats.existing++;
+        if (!silent) console.log(`Directory already exists: ${dir}`);
+      }
+    } catch (error) {
+      stats.failed++;
+      if (!silent) console.error(`Failed to create directory: ${dir}`, error);
+    }
+  }
+
+  if (!silent) console.log("Directory check completed.");
+  return stats;
+}
+
 // Get upload directory path
 function getUploadDir(userId, memoryId) {
-  const baseUploadDir =
-    process.env.UPLOAD_DIR || path.join(__dirname, "../uploads");
+  // Use temp_photos directory for uploads as they start as temporary files
+  const baseUploadDir = process.env.UPLOAD_DIR || TEMP_PHOTOS_DIR;
   const userDir = path.join(baseUploadDir, `user_${userId}`);
   const memoryDir = path.join(userDir, `memory_${memoryId}`);
 
@@ -35,8 +67,9 @@ function generateUniqueFilename(originalName) {
 }
 
 // Process image (create optimized and thumbnail versions)
-async function processImage(originalPath, options = {}) {
+async function processImage(options = {}) {
   const {
+    inputPath: originalPath,
     targetDir,
     baseName,
     width = 2000,
@@ -44,10 +77,14 @@ async function processImage(originalPath, options = {}) {
     quality = 85,
   } = options;
 
-  console.log(`[processImage] Received originalPath: ${originalPath}`);
-  console.log(
-    `[processImage] Options: ${{ targetDir, baseName, width, height, quality }}`
-  );
+  console.log("[processImage] Received parameters:", {
+    originalPath,
+    targetDir,
+    baseName,
+    width,
+    height,
+    quality,
+  });
 
   if (!targetDir || !baseName) {
     console.error("[processImage] Error: targetDir and baseName are required.");
@@ -165,6 +202,71 @@ async function deleteFile(filePath) {
   return false; // Indicate invalid path or no action taken
 }
 
+// New function to delete a file and its parent directory if empty
+async function deleteFileAndEmptyParent(filePath) {
+  if (filePath && typeof filePath === "string") {
+    try {
+      if (fs.existsSync(filePath)) {
+        try {
+          await fs.promises.unlink(filePath); // Delete the file
+          console.log(
+            `[deleteFileAndEmptyParent] File deleted successfully: ${filePath}`
+          );
+        } catch (fileError) {
+          console.error(
+            `[deleteFileAndEmptyParent] Failed to delete file: ${filePath}`,
+            fileError
+          );
+          throw fileError;
+        }
+        const parentDir = path.dirname(filePath);
+        console.log(
+          `[deleteFileAndEmptyParent] Checking parent directory: ${parentDir}`
+        );
+        let remainingFiles;
+        try {
+          remainingFiles = await fs.promises.readdir(parentDir);
+          console.log(
+            `[deleteFileAndEmptyParent] Directory contents before deletion: ${remainingFiles}`
+          );
+        } catch (readError) {
+          console.error(
+            `[deleteFileAndEmptyParent] Failed to read directory contents: ${parentDir}`,
+            readError
+          );
+          throw readError;
+        }
+        console.log(
+          `[deleteFileAndEmptyParent] Remaining files in directory: ${remainingFiles}`
+        );
+        if (remainingFiles.length === 0) {
+          try {
+            await fs.promises.rmdir(parentDir); // Remove the directory if empty
+            console.log(
+              `[deleteFileAndEmptyParent] Folder deleted successfully: ${parentDir}`
+            );
+          } catch (folderError) {
+            console.error(
+              `[deleteFileAndEmptyParent] Failed to delete folder: ${parentDir}`,
+              folderError
+            );
+            throw folderError;
+          }
+          console.log(
+            `[deleteFileAndEmptyParent] Removed empty directory: ${parentDir}`
+          );
+        }
+      }
+    } catch (err) {
+      console.error(
+        `Error deleting file or directory ${filePath}:`,
+        err.message
+      );
+      throw err; // Re-throw for the caller to handle
+    }
+  }
+}
+
 export {
   ensureDir,
   getUploadDir,
@@ -172,4 +274,5 @@ export {
   processImage,
   deleteFiles, // Export renamed function
   deleteFile, // Export new function
+  deleteFileAndEmptyParent, // Export new utility
 };
