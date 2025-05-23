@@ -5,7 +5,7 @@ services:
     image: ghcr.io/lakwli/memorieswalk:latest
     env_file:
       - ./env/server.env
-      - ./env/frontend.env
+      - ./env/client.env
     depends_on:
       - db
     ports:
