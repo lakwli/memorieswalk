@@ -45,7 +45,7 @@ RUN mkdir -p file_storage && chmod 777 file_storage
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DB_USER=node
-ENV DB_HOST=postgres
+ENV DB_HOST=db
 ENV DB_NAME=memorieswalk
 ENV DB_PASSWORD=node
 ENV DB_PORT=5432
