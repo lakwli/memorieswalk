@@ -35,7 +35,8 @@ import {
   Circle,
   Group,
 } from "react-konva";
-import { FaSave, FaEllipsisV } from "react-icons/fa";
+import { FaSave, FaEllipsisV, FaSearchPlus, FaSearchMinus, FaExpandArrowsAlt, FaCompressArrowsAlt, FaMousePointer, FaHandPaper } from "react-icons/fa";
+import { MdTextFields } from "react-icons/md";
 import {
   ArrowBackIcon,
   EditIcon,
@@ -48,10 +49,8 @@ import { useAuth } from "../context/AuthContext";
 import LogoSvg from "../assets/logo.svg";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
+import useCanvasNavigation from "./MemoryEditorPage/hooks/useCanvasNavigation";
 
-const MIN_SCALE = 0.1;
-const MAX_SCALE = 10;
-const ZOOM_FACTOR = 1.2;
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 144;
 
@@ -88,6 +87,8 @@ DeleteButton.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
+
+
 const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -102,9 +103,8 @@ const MemoryEditorPage = () => {
   const [photos, setPhotos] = useState([]);
   const [texts, setTexts] = useState([]);
   const [selectedElement, setSelectedElement] = useState(null);
-  const [stageScale, setStageScale] = useState(1);
-  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
-  const [isPanningMode, setIsPanningMode] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [activeTool, setActiveTool] = useState(null);
   const [photoToDelete, setPhotoToDelete] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const cancelRef = useRef();
@@ -113,6 +113,21 @@ const MemoryEditorPage = () => {
   const konvaStageRef = useRef(null);
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
+  
+  // Use custom navigation hook for canvas zoom and pan
+  const {
+    stageScale,
+    stagePosition,
+    isPanningMode,
+    setIsPanningMode,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomToFit,
+    handleWheel
+  } = useCanvasNavigation({
+    stageRef: konvaStageRef,
+    disablePanningToggleOnKey: editingTitle
+  });
   // UseRef for photo states to avoid canvas refreshes on state changes
   const photoStates = useRef({});
 
@@ -363,60 +378,40 @@ const MemoryEditorPage = () => {
     };
   }, [photos]);
 
-  // Handle zoom and pan
+  // Panning mode toggle handled by useCanvasNavigation hook
+
+  // Zoom functions now handled by useCanvasNavigation hook
+
+  // Handle fullscreen toggle
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === " " && !editingTitle) {
-        e.preventDefault();
-        setIsPanningMode(true);
-      }
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
     };
-
-    const handleKeyUp = (e) => {
-      if (e.key === " ") {
-        setIsPanningMode(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
     };
-  }, [editingTitle]);
+  }, []);
 
-  const handleZoom = (direction) => {
-    const scaleBy = direction === "in" ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    const stage = konvaStageRef.current;
-    const oldScale = stageScale;
-    const pointer = stage.getPointerPosition();
-
-    if (!pointer) return;
-
-    const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale,
-    };
-
-    const newScale = Math.max(
-      MIN_SCALE,
-      Math.min(oldScale * scaleBy, MAX_SCALE)
-    );
-
-    setStageScale(newScale);
-    setStagePosition({
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale,
-    });
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        toast({
+          title: "Fullscreen Error",
+          description: `Could not enable fullscreen mode: ${err.message}`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   };
 
-  const handleWheel = (e) => {
-    e.evt.preventDefault();
-    const direction = e.evt.deltaY > 0 ? "out" : "in";
-    handleZoom(direction);
-  };
+  // Zoom functions now handled by useCanvasNavigation hook
 
   // Save just the title
   const saveTitle = useCallback(async () => {
@@ -597,6 +592,91 @@ const MemoryEditorPage = () => {
     [toast]
   );
 
+  // EditorControls component for the left toolbar
+  const EditorControls = () => (
+    <Flex
+      direction="column"
+      p={2}
+      bg="gray.100"
+      borderRight="1px solid"
+      borderColor="gray.300"
+      width="60px"
+      alignItems="center"
+      zIndex={1}
+      position="absolute"
+      top={0}
+      left={0}
+      bottom={0}
+    >
+      <Tooltip label="Select/Pan Tool" placement="right">
+        <IconButton
+          aria-label="Select/Pan Tool"
+          icon={isPanningMode ? <FaHandPaper /> : <FaMousePointer />}
+          onClick={() => {
+            setActiveTool(activeTool === "pan" ? null : "pan");
+            setIsPanningMode((prev) => !prev);
+          }}
+          colorScheme={activeTool === "pan" || isPanningMode ? "blue" : "gray"}
+          variant={activeTool === "pan" || isPanningMode ? "solid" : "outline"}
+          mb={2}
+        />
+      </Tooltip>
+      <Tooltip label="Add Text" placement="right">
+        <IconButton
+          aria-label="Add Text"
+          icon={<MdTextFields />}
+          onClick={() => {
+            setActiveTool("text");
+            setIsPanningMode(false);
+          }}
+          colorScheme={activeTool === "text" ? "blue" : "gray"}
+          variant={activeTool === "text" ? "solid" : "outline"}
+          mb={2}
+        />
+      </Tooltip>
+      <Box flexGrow={1} />
+      <Tooltip label="Zoom In" placement="right">
+        <IconButton
+          icon={<FaSearchPlus />}
+          onClick={handleZoomIn}
+          aria-label="Zoom In"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip label="Zoom Out" placement="right">
+        <IconButton
+          icon={<FaSearchMinus />}
+          onClick={handleZoomOut}
+          aria-label="Zoom Out"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip label="Zoom to Fit" placement="right">
+        <IconButton
+          icon={<FaExpandArrowsAlt />}
+          onClick={() => handleZoomToFit([...photos, ...texts])}
+          aria-label="Zoom to Fit"
+          mb={2}
+          variant="outline"
+        />
+      </Tooltip>
+      <Tooltip
+        label={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        placement="right"
+      >
+        <IconButton
+          icon={isFullScreen ? <FaCompressArrowsAlt /> : <FaExpandArrowsAlt />}
+          onClick={toggleFullScreen}
+          aria-label="Toggle Fullscreen"
+          variant="outline"
+          mb={2}
+        />
+      </Tooltip>
+    </Flex>
+  );
+
   if (loading) {
     return (
       <Flex
@@ -766,6 +846,44 @@ const MemoryEditorPage = () => {
               </Button>
             </Tooltip>
 
+            <Tooltip label="Zoom In">
+              <IconButton
+                aria-label="Zoom In"
+                icon={<FaSearchPlus />}
+                onClick={handleZoomIn}
+                size="md"
+              />
+            </Tooltip>
+
+            <Tooltip label="Zoom Out">
+              <IconButton
+                aria-label="Zoom Out"
+                icon={<FaSearchMinus />}
+                onClick={handleZoomOut}
+                size="md"
+              />
+            </Tooltip>
+
+            <Tooltip label="Zoom to Fit">
+              <IconButton
+                aria-label="Zoom to Fit"
+                icon={<FaExpandArrowsAlt />}
+                onClick={() => handleZoomToFit([...photos, ...texts])}
+                size="md"
+              />
+            </Tooltip>
+
+            <Tooltip label={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}>
+              <IconButton
+                aria-label="Fullscreen Toggle"
+                icon={
+                  isFullScreen ? <FaCompressArrowsAlt /> : <FaExpandArrowsAlt />
+                }
+                onClick={toggleFullScreen}
+                size="md"
+              />
+            </Tooltip>
+
             <Menu>
               <MenuButton
                 as={IconButton}
@@ -830,6 +948,7 @@ const MemoryEditorPage = () => {
           overflow="hidden"
           ref={stageContainerRef}
         >
+          <EditorControls />
           <Stage
             width={window.innerWidth}
             height={window.innerHeight}
