@@ -10,6 +10,7 @@ services:
       - "3000:3000"
     volumes:
       - memorieswalk_data:/app/server/file_storage
+    restart: on-failure
 
   db:
     image: ghcr.io/lakwli/memorieswalk:db

@@ -46,9 +46,17 @@ try {
     Write-Warning "No existing containers found or error stopping them. Continuing..."
 }
 
-# Start the containers using Docker Compose
-Write-Host "Starting the containers using Docker Compose..." -ForegroundColor Yellow
-Invoke-DockerCommand "compose -f `"$composePath`" up -d"
+# Start the database container first
+Write-Host "Starting the database container..." -ForegroundColor Yellow
+Invoke-DockerCommand "compose -f `"$composePath`" up -d db"
+
+# Wait for the database to be ready
+Write-Host "Waiting for database to be ready..." -ForegroundColor Yellow
+Start-Sleep -Seconds 10
+
+# Start the app container
+Write-Host "Starting the application container..." -ForegroundColor Yellow
+Invoke-DockerCommand "compose -f `"$composePath`" up -d app"
 
 Write-Host "Deployment completed successfully!" -ForegroundColor Green
 Write-Host ""
