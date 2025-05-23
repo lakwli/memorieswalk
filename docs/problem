@@ -1,10 +1,4 @@
 viewALL doesn't work.
-
-to test:
-remove photo : , photo link, permanent file should be removed. photo (if no more link)
-remove memory : photo, photo link, permanent file should be removed.
-test the photo files if deleted (it seems that few rounds )
-
 keep testing for everychnage
 
 1. add memory, add photo, no save, back to dashboard, back to memory. picture should not be there.

@@ -17,6 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Image,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  Avatar,
+  Tooltip,
 } from "@chakra-ui/react";
 import {
   Stage,
@@ -27,14 +35,17 @@ import {
   Circle,
   Group,
 } from "react-konva";
-import { FaSave } from "react-icons/fa";
+import { FaSave, FaEllipsisV } from "react-icons/fa";
 import {
   ArrowBackIcon,
   EditIcon,
   CheckIcon,
   CloseIcon,
   AttachmentIcon,
+  DeleteIcon,
 } from "@chakra-ui/icons";
+import { useAuth } from "../context/AuthContext";
+import LogoSvg from "../assets/logo.svg";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
 
@@ -81,6 +92,7 @@ const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user, logout } = useAuth();
   const [memory, setMemory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -587,26 +599,42 @@ const MemoryEditorPage = () => {
 
   if (loading) {
     return (
-      <Flex h="100vh" align="center" justify="center">
-        <Box textAlign="center">
-          <Spinner size="xl" mb={4} />
-          <Text>Loading memory...</Text>
-        </Box>
+      <Flex
+        direction="column"
+        justify="center"
+        align="center"
+        height="100vh"
+        bg="gray.50"
+      >
+        <Spinner
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="blue.500"
+          size="xl"
+          mb={4}
+        />
+        <Text>Loading memory...</Text>
       </Flex>
     );
   }
 
   if (error) {
     return (
-      <Flex h="100vh" align="center" justify="center">
-        <Box textAlign="center">
-          <Text color="red.500" mb={4}>
-            Error: {error}
-          </Text>
-          <Button onClick={() => navigate("/memories")}>
-            Back to Memories
-          </Button>
-        </Box>
+      <Flex
+        direction="column"
+        justify="center"
+        align="center"
+        height="100vh"
+        bg="gray.50"
+        p={8}
+      >
+        <Text color="red.500" fontSize="xl" mb={4}>
+          Error loading memory: {error}
+        </Text>
+        <Button onClick={() => navigate("/dashboard")} colorScheme="blue">
+          Back to Dashboard
+        </Button>
       </Flex>
     );
   }
@@ -616,61 +644,106 @@ const MemoryEditorPage = () => {
       <Box h="100vh" display="flex" flexDirection="column">
         {/* Top Bar */}
         <Flex
-          p={4}
+          as="header"
+          align="center"
+          justify="space-between"
+          p={2}
           bg="white"
           borderBottom="1px solid"
           borderColor="gray.200"
-          alignItems="center"
-          justifyContent="space-between"
+          h="60px"
         >
-          <HStack spacing={4}>
-            <IconButton
-              icon={<ArrowBackIcon />}
-              onClick={() => navigate("/memories")}
-              aria-label="Back to memories"
-            />
-            {editingTitle ? (
-              <HStack>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  size="md"
-                  width="auto"
-                />
-                <IconButton
-                  icon={<CheckIcon />}
-                  onClick={() => {
-                    setEditingTitle(false);
-                    saveTitle();
-                  }}
-                  aria-label="Save title"
-                  colorScheme="green"
-                />
-                <IconButton
-                  icon={<CloseIcon />}
-                  onClick={() => {
-                    setTitle(memory.title);
-                    setEditingTitle(false);
-                  }}
-                  aria-label="Cancel editing"
-                />
-              </HStack>
-            ) : (
-              <HStack>
-                <Text fontSize="xl" fontWeight="bold">
-                  {title}
-                </Text>
-                <IconButton
-                  icon={<EditIcon />}
-                  onClick={() => setEditingTitle(true)}
-                  aria-label="Edit title"
-                  size="sm"
-                />
-              </HStack>
-            )}
+          <HStack spacing={3}>
+            <Tooltip label="Back to Dashboard">
+              <IconButton
+                aria-label="Back to dashboard"
+                icon={<ArrowBackIcon />}
+                variant="ghost"
+                onClick={() => navigate("/dashboard")}
+              />
+            </Tooltip>
+            <Image src={LogoSvg} alt="Memora Logo" h="30px" />
           </HStack>
 
-          <HStack spacing={4}>
+          {editingTitle ? (
+            <Flex alignItems="center" flex="1" mx={4} maxW="500px">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                fontWeight="bold"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setEditingTitle(false);
+                    saveTitle();
+                  }
+                  if (e.key === "Escape") {
+                    setTitle(memory.title);
+                    setEditingTitle(false);
+                  }
+                }}
+                onBlur={() => {
+                  setEditingTitle(false);
+                  saveTitle();
+                }}
+                size="md"
+                mr={2}
+                bg="white"
+              />
+              <IconButton
+                aria-label="Save Title"
+                icon={<CheckIcon />}
+                size="sm"
+                onClick={() => {
+                  setEditingTitle(false);
+                  saveTitle();
+                }}
+                colorScheme="green"
+              />
+              <IconButton
+                aria-label="Cancel Title Edit"
+                icon={<CloseIcon />}
+                size="sm"
+                ml={2}
+                onClick={() => {
+                  setTitle(memory.title);
+                  setEditingTitle(false);
+                }}
+                variant="ghost"
+              />
+            </Flex>
+          ) : (
+            <Flex
+              alignItems="center"
+              onClick={() => setEditingTitle(true)}
+              cursor="pointer"
+              mx={4}
+              flex="1"
+              minW="200px"
+              justifyContent="center"
+            >
+              <Text fontSize="xl" fontWeight="bold" mr={2} noOfLines={1}>
+                {title || "Untitled Memory"}
+              </Text>
+              <IconButton
+                aria-label="Edit title"
+                icon={<EditIcon />}
+                size="xs"
+                variant="ghost"
+              />
+            </Flex>
+          )}
+
+          <HStack spacing={2}>
+            <Tooltip label="Upload Photos">
+              <IconButton
+                aria-label="Upload Photos"
+                icon={<AttachmentIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                size="md"
+              />
+            </Tooltip>
+
             <input
               type="file"
               multiple
@@ -679,20 +752,74 @@ const MemoryEditorPage = () => {
               style={{ display: "none" }}
               ref={fileInputRef}
             />
-            <Button
-              leftIcon={<AttachmentIcon />}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Add Photos
-            </Button>
-            <Button
-              leftIcon={<FaSave />}
-              onClick={saveMemoryLayout}
-              isLoading={saving}
-              colorScheme="blue"
-            >
-              Save
-            </Button>
+
+            <Tooltip label="Save All Changes">
+              <Button
+                leftIcon={<FaSave />}
+                onClick={saveMemoryLayout}
+                colorScheme="green"
+                size="md"
+                isLoading={saving}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </Tooltip>
+
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                icon={<FaEllipsisV />}
+                variant="ghost"
+                aria-label="More options"
+                size="md"
+              />
+              <MenuList>
+                <MenuItem isDisabled>Download (Not Implemented)</MenuItem>
+                <MenuItem isDisabled>Share (Not Implemented)</MenuItem>
+                <MenuItem
+                  onClick={() => setPhotoToDelete(null)}
+                  icon={<DeleteIcon />}
+                >
+                  Delete Memory
+                </MenuItem>
+              </MenuList>
+            </Menu>
+
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                icon={
+                  <Avatar size="sm" name={user?.full_name || user?.username} />
+                }
+                variant="ghost"
+                aria-label="User options"
+                size="md"
+                borderRadius="full"
+              />
+              <MenuList>
+                <MenuItem onClick={() => navigate("/account-settings")}>
+                  Account Settings
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem
+                  color="red.500"
+                  onClick={() => {
+                    logout();
+                    toast({
+                      title: "Logged Out",
+                      description: "You have been successfully logged out.",
+                      status: "info",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                    navigate("/login");
+                  }}
+                >
+                  Sign Out
+                </MenuItem>
+              </MenuList>
+            </Menu>
           </HStack>
         </Flex>
 
