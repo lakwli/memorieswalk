@@ -2,35 +2,21 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/lakwli/memorieswalk:latest
-    env_file:
-      - ./env/server.env
-      - ./env/client.env
+    image: ghcr.io/lakwli/memorieswalk:app
+    container_name: memorieswalk
+    environment:
+      JWT_SECRET: change_this_to_a_secure_random_string
     depends_on:
       - db
     ports:
       - "3000:3000"
     volumes:
       - memorieswalk_data:/app/server/file_storage
-    networks:
-      - memorieswalk-network
 
   db:
-    image: postgres:latest
-    env_file:
-      - ./env/db.env
+    image: ghcr.io/lakwli/memorieswalk:db
+    container_name: memorieswalkdb
     volumes:
       - memorieswalk_db_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
-    networks:
-      - memorieswalk-network
-
-volumes:
-  memorieswalk_data:
-  memorieswalk_db_data:
-
-networks:
-  memorieswalk-network:
-    driver: bridge

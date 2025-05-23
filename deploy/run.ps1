@@ -3,21 +3,25 @@
 # It manages Docker containers, data persistence, and networking.
 
 # Configuration variables
-$GITHUB_REPO = "lakwli/memorieswalk"
-$IMAGE_NAME = "ghcr.io/$GITHUB_REPO:latest"
+$IMAGE_NAME = "ghcr.io/lakwli/memorieswalk:latest"
 
 # Function to execute Docker commands and handle errors
 function Invoke-DockerCommand {
     param (
         [string]$Command
     )
-    Write-Host "Executing: $Command"
-    $Output = docker $Command
+    Write-Host "Executing: docker $Command"
+    
+    # Split command string into array for correct execution
+    $args = $Command -split ' '
+    $Output = & docker @args
+
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Docker command failed: $Command"
         Write-Error $Output
         throw "Docker command failed"
     }
+
     return $Output
 }
 
