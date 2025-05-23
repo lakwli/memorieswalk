@@ -29,13 +29,25 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: Build and push Docker image
+      - name: Build and push APP Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
           push: true
           build-args: |
             ENABLE_CONSOLE_OUTPUT=false
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:app
+      
+
+      - name: Build and push DB Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./db.Dockerfile
+          push: true
+          build-args: |
+            ENABLE_CONSOLE_OUTPUT=false
+          tags: |
+            ghcr.io/${{ github.repository }}:db
