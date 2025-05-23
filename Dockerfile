@@ -43,6 +43,9 @@ RUN mkdir -p file_storage && chmod 777 file_storage
 
 # Copy database directory
 COPY database/ /app/database/
+COPY database/schema.sql /app/schema.sql
+COPY scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Set environment variables
 ENV NODE_ENV=production
