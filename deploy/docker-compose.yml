@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  app:
+    image: ghcr.io/lakwli/memorieswalk:latest
+    env_file:
+      - ./env/server.env
+      - ./env/frontend.env
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    volumes:
+      - memorieswalk_data:/app/server/file_storage
+    networks:
+      - memorieswalk-network
+
+  db:
+    image: postgres:latest
+    env_file:
+      - ./env/db.env
+    volumes:
+      - memorieswalk_db_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - memorieswalk-network
+
+volumes:
+  memorieswalk_data:
+  memorieswalk_db_data:
+
+networks:
+  memorieswalk-network:
+    driver: bridge
