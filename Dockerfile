@@ -3,7 +3,7 @@ FROM node:18-slim AS frontend-builder
 WORKDIR /app
 
 # Copy package.json and install dependencies
-COPY package*.json ./
+COPY package*.json ./ 
 RUN npm install
 
 # Copy frontend source code and build it
@@ -49,8 +49,9 @@ ENV DB_HOST=postgres
 ENV DB_NAME=memorieswalk
 ENV DB_PASSWORD=node
 ENV DB_PORT=5432
-ENV CLIENT_URL: /
-ENV VITE_API_URL: /api
+ENV CLIENT_URL=/
+ENV VITE_API_URL=/api
+
 # Expose the port
 EXPOSE 3000
 

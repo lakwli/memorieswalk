@@ -3,7 +3,7 @@
 # It manages Docker containers, data persistence, and networking.
 
 # Configuration variables
-$IMAGE_NAME = "ghcr.io/lakwli/memorieswalk:latest"
+$IMAGE_NAME = "ghcr.io/lakwli/memorieswalk:app"
 
 # Function to execute Docker commands and handle errors
 function Invoke-DockerCommand {
@@ -37,11 +37,18 @@ Invoke-DockerCommand "pull $IMAGE_NAME"
 
 # Stop and remove existing containers
 Write-Host "Stopping and removing existing containers..." -ForegroundColor Yellow
-Invoke-DockerCommand "compose down"
+$composePath = Join-Path $PSScriptRoot "docker-compose.yml"
+Write-Host "Using docker-compose file: $composePath" -ForegroundColor Yellow
+
+try {
+    Invoke-DockerCommand "compose -f `"$composePath`" down"
+} catch {
+    Write-Warning "No existing containers found or error stopping them. Continuing..."
+}
 
 # Start the containers using Docker Compose
 Write-Host "Starting the containers using Docker Compose..." -ForegroundColor Yellow
-Invoke-DockerCommand "compose up -d"
+Invoke-DockerCommand "compose -f `"$composePath`" up -d"
 
 Write-Host "Deployment completed successfully!" -ForegroundColor Green
 Write-Host ""
