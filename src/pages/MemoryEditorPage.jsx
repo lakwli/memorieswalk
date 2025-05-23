@@ -35,7 +35,16 @@ import {
   Circle,
   Group,
 } from "react-konva";
-import { FaSave, FaEllipsisV, FaSearchPlus, FaSearchMinus, FaExpandArrowsAlt, FaCompressArrowsAlt, FaMousePointer, FaHandPaper } from "react-icons/fa";
+import {
+  FaSave,
+  FaEllipsisV,
+  FaSearchPlus,
+  FaSearchMinus,
+  FaExpandArrowsAlt,
+  FaCompressArrowsAlt,
+  FaMousePointer,
+  FaHandPaper,
+} from "react-icons/fa";
 import { MdTextFields } from "react-icons/md";
 import {
   ArrowBackIcon,
@@ -87,8 +96,6 @@ DeleteButton.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
-
-
 const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -113,7 +120,7 @@ const MemoryEditorPage = () => {
   const konvaStageRef = useRef(null);
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
-  
+
   // Use custom navigation hook for canvas zoom and pan
   const {
     stageScale,
@@ -123,10 +130,10 @@ const MemoryEditorPage = () => {
     handleZoomIn,
     handleZoomOut,
     handleZoomToFit,
-    handleWheel
+    handleWheel,
   } = useCanvasNavigation({
     stageRef: konvaStageRef,
-    disablePanningToggleOnKey: editingTitle
+    disablePanningToggleOnKey: editingTitle,
   });
   // UseRef for photo states to avoid canvas refreshes on state changes
   const photoStates = useRef({});
@@ -844,44 +851,6 @@ const MemoryEditorPage = () => {
               >
                 {saving ? "Saving..." : "Save"}
               </Button>
-            </Tooltip>
-
-            <Tooltip label="Zoom In">
-              <IconButton
-                aria-label="Zoom In"
-                icon={<FaSearchPlus />}
-                onClick={handleZoomIn}
-                size="md"
-              />
-            </Tooltip>
-
-            <Tooltip label="Zoom Out">
-              <IconButton
-                aria-label="Zoom Out"
-                icon={<FaSearchMinus />}
-                onClick={handleZoomOut}
-                size="md"
-              />
-            </Tooltip>
-
-            <Tooltip label="Zoom to Fit">
-              <IconButton
-                aria-label="Zoom to Fit"
-                icon={<FaExpandArrowsAlt />}
-                onClick={() => handleZoomToFit([...photos, ...texts])}
-                size="md"
-              />
-            </Tooltip>
-
-            <Tooltip label={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}>
-              <IconButton
-                aria-label="Fullscreen Toggle"
-                icon={
-                  isFullScreen ? <FaCompressArrowsAlt /> : <FaExpandArrowsAlt />
-                }
-                onClick={toggleFullScreen}
-                size="md"
-              />
             </Tooltip>
 
             <Menu>
