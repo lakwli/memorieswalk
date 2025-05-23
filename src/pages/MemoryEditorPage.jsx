@@ -142,6 +142,7 @@ const MemoryEditorPage = () => {
     handleWheel,
     setStageScale,
     setStagePosition,
+    zoomPercentage,
   } = useCanvasNavigation({
     stageRef: konvaStageRef,
     disablePanningToggleOnKey: editingTitle,
@@ -719,10 +720,26 @@ const MemoryEditorPage = () => {
           icon={<FaSearchPlus />}
           onClick={handleZoomIn}
           aria-label="Zoom In"
-          mb={2}
+          mb={1}
           variant="outline"
         />
       </Tooltip>
+
+      {/* Zoom percentage display */}
+      <Box
+        mb={1}
+        bg="transparent"
+        px={1}
+        py={0.5} 
+        fontSize="xs"
+        fontWeight="medium"
+        textAlign="center"
+        width="100%"
+        color="blue.500"
+      >
+        {zoomPercentage}%
+      </Box>
+      
       <Tooltip label="Zoom Out" placement="right">
         <IconButton
           icon={<FaSearchMinus />}
@@ -732,6 +749,7 @@ const MemoryEditorPage = () => {
           variant="outline"
         />
       </Tooltip>
+
       <Tooltip label="Zoom to Fit" placement="right">
         <IconButton
           icon={<FaExpandArrowsAlt />}

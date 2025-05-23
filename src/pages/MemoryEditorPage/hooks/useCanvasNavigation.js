@@ -1,5 +1,5 @@
 // Custom hook for canvas navigation (zoom and pan) functionality
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // Constants for zoom limits and behavior
 const MIN_SCALE = 0.1;
@@ -25,6 +25,11 @@ const useCanvasNavigation = ({
   const [stageScale, setStageScale] = useState(initialScale);
   const [stagePosition, setStagePosition] = useState(initialPosition);
   const [isPanningMode, setIsPanningMode] = useState(false);
+
+  // Calculate zoom percentage for display
+  const zoomPercentage = useMemo(() => {
+    return Math.round(stageScale * 100);
+  }, [stageScale]);
 
   /**
    * Handle zoom functionality either centered on mouse pointer or stage center
@@ -188,6 +193,7 @@ const useCanvasNavigation = ({
     stageScale,
     stagePosition,
     isPanningMode,
+    zoomPercentage,
 
     // Actions
     setStageScale,
