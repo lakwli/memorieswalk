@@ -121,6 +121,15 @@ const MemoryEditorPage = () => {
   const fileInputRef = useRef(null);
   const trRef = useRef(null);
 
+  // State to store initial canvas view settings from server
+  const [initialViewState, setInitialViewState] = useState({
+    scale: 1,
+    position: { x: 0, y: 0 },
+  });
+
+  // Ref to track if we've applied the view state
+  const viewStateAppliedRef = useRef(false);
+
   // Use custom navigation hook for canvas zoom and pan
   const {
     stageScale,
@@ -131,12 +140,55 @@ const MemoryEditorPage = () => {
     handleZoomOut,
     handleZoomToFit,
     handleWheel,
+    setStageScale,
+    setStagePosition,
   } = useCanvasNavigation({
     stageRef: konvaStageRef,
     disablePanningToggleOnKey: editingTitle,
+    initialScale: initialViewState.scale,
+    initialPosition: initialViewState.position,
   });
   // UseRef for photo states to avoid canvas refreshes on state changes
   const photoStates = useRef({});
+
+  // Update canvas position and scale when initialViewState changes
+  useEffect(() => {
+    if (
+      (initialViewState.scale !== 1 ||
+        initialViewState.position.x !== 0 ||
+        initialViewState.position.y !== 0) &&
+      !viewStateAppliedRef.current
+    ) {
+      console.log("Applying saved view state:", initialViewState);
+      setStageScale(initialViewState.scale);
+      setStagePosition(initialViewState.position);
+      viewStateAppliedRef.current = true;
+
+      // Debug log to confirm state was updated
+      console.log(
+        "After applying view state - scale:",
+        stageScale,
+        "position:",
+        stagePosition
+      );
+
+      // Force refresh if needed by scheduling a microtask
+      setTimeout(() => {
+        console.log(
+          "Delayed check - scale:",
+          stageScale,
+          "position:",
+          stagePosition
+        );
+      }, 100);
+    }
+  }, [
+    initialViewState,
+    setStageScale,
+    setStagePosition,
+    stageScale,
+    stagePosition,
+  ]);
 
   // Update transformer when selection changes
   useEffect(() => {
@@ -238,6 +290,9 @@ const MemoryEditorPage = () => {
   useEffect(() => {
     const loadMemory = async () => {
       try {
+        // Reset the viewStateApplied flag when loading a new memory
+        viewStateAppliedRef.current = false;
+
         setLoading(true);
         const data = await memoryService.getMemory(id);
         setMemory(data);
@@ -355,6 +410,18 @@ const MemoryEditorPage = () => {
               ),
             }))
           );
+        }
+
+        // Load view state if available (zoom and pan position)
+        if (data.canvas_config?.viewState) {
+          console.log(
+            "Restoring canvas view state:",
+            data.canvas_config.viewState
+          );
+          setInitialViewState({
+            scale: data.canvas_config.viewState.scale || 1,
+            position: data.canvas_config.viewState.position || { x: 0, y: 0 },
+          });
         }
       } catch (err) {
         setError(err.message);
@@ -494,6 +561,11 @@ const MemoryEditorPage = () => {
         canvas: {
           photos: photoData, // Photos with rendering properties
           texts: textData,
+          // Save current view state (zoom and pan position)
+          viewState: {
+            scale: stageScale,
+            position: stagePosition,
+          },
         },
         photoStates: photoStates.current, // Add the entire photoStates object separately
       };
@@ -565,7 +637,7 @@ const MemoryEditorPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [memory, photos, texts, title, toast]);
+  }, [memory, photos, texts, title, toast, stageScale, stagePosition]);
 
   // Handle photo deletion
   const handleDeletePhoto = useCallback(

@@ -11,15 +11,19 @@ const ZOOM_FACTOR = 1.2;
  * @param {Object} options - Configuration options
  * @param {React.MutableRefObject} options.stageRef - Reference to the Konva Stage
  * @param {boolean} options.disablePanningToggleOnKey - Whether to disable toggling panning mode with space key
+ * @param {number} options.initialScale - Initial zoom scale (default: 1)
+ * @param {Object} options.initialPosition - Initial pan position (default: {x: 0, y: 0})
  * @returns {Object} Canvas navigation state and handlers
  */
 const useCanvasNavigation = ({
   stageRef,
   disablePanningToggleOnKey = false,
+  initialScale = 1,
+  initialPosition = { x: 0, y: 0 },
 }) => {
   // State for canvas transformation
-  const [stageScale, setStageScale] = useState(1);
-  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const [stageScale, setStageScale] = useState(initialScale);
+  const [stagePosition, setStagePosition] = useState(initialPosition);
   const [isPanningMode, setIsPanningMode] = useState(false);
 
   /**
