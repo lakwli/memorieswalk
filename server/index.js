@@ -86,9 +86,13 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendPath));
 
   // Catch-all route for SPA frontend - must be after all other routes
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
-  });
+app.get("/cdn-cgi/*", (req, res) => {
+  res.status(204).send(); // No Content response for Cloudflare paths
+});
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
 } else {
   // In development, just return API info at the root
   app.get("/", (req, res) => {
