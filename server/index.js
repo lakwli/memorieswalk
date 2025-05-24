@@ -86,8 +86,17 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(frontendPath));
 
   // Catch-all route for SPA frontend - must be after all other routes
-app.get("/cdn-cgi/*", (req, res) => {
-  res.status(204).send(); // No Content response for Cloudflare paths
+app.get("/cdn-cgi/rum", (req, res) => {
+  res.status(204).send(); // No Content response for Cloudflare RUM
+});
+
+app.get("/cdn-cgi/speculation", (req, res) => {
+  res.json({
+    "speculation-rules": {
+      "prefetch": [],
+      "prerender": []
+    }
+  }); // Speculation rules response for Cloudflare
 });
 
 app.get("*", (req, res) => {
