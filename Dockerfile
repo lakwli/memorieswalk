@@ -2,20 +2,13 @@
 FROM node:18-slim AS frontend-builder
 WORKDIR /app
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV DB_USER=node
-ENV DB_HOST=db
-ENV DB_NAME=memorieswalk
-ENV DB_PASSWORD=node
-ENV DB_PORT=5432
+# Set environment variables for build
 ENV CLIENT_URL=/
 ENV VITE_API_URL=/api
 
 # Copy package.json and install dependencies
 COPY package*.json ./ 
-RUN npm install --include=dev
+RUN npm install
 
 # Copy frontend source code and build it
 COPY src/ ./src/
@@ -52,6 +45,15 @@ COPY --from=frontend-builder /app/dist /app/public
 # Create and set permissions for file storage directory
 RUN mkdir -p file_storage && chmod 777 file_storage
 
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DB_USER=node
+ENV DB_HOST=db
+ENV DB_NAME=memorieswalk
+ENV DB_PASSWORD=node
+ENV DB_PORT=5432
 
 # Expose the port
 EXPOSE 3000
