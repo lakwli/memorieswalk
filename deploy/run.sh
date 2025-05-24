@@ -1,10 +1,11 @@
 #!/bin/bash
-# MemoriesWalk Deployment Script (Bash)
-# This script handles the complete deployment of MemoriesWalk to a production server.
-# It manages Docker containers, data persistence, and networking.
+# MemoriesWalk Deployment Script for AMD64
+# This script deploys the MemoriesWalk application using pre-built Docker images for AMD64 systems.
 
 # Configuration variables
-IMAGE_NAME="ghcr.io/lakwli/memorieswalk:app"
+APP_IMAGE="ghcr.io/lakwli/memorieswalk:app"
+DB_IMAGE="ghcr.io/lakwli/memorieswalk:db"
+COMPOSE_PATH="$(dirname "$(readlink -f "$0")")/docker-compose.yml"
 
 # Function to execute Docker commands and handle errors
 function invoke_docker_command() {
@@ -23,20 +24,23 @@ function invoke_docker_command() {
 
 # Print banner with colors
 echo -e "\e[32m====================================\e[0m"
-echo -e "\e[32m    MemoriesWalk Deployment Tool    \e[0m"
+echo -e "\e[32m    MemoriesWalk Deployment Tool (AMD64)    \e[0m"
 echo -e "\e[32m====================================\e[0m"
 echo ""
 
-# Pull the latest Docker image
-echo -e "\e[33mPulling the latest Docker image...\e[0m"
-invoke_docker_command pull $IMAGE_NAME
+# Set environment variables for docker-compose
+echo -e "\e[33mSetting environment variables for AMD64 images...\e[0m"
+export APP_IMAGE=$APP_IMAGE
+export DB_IMAGE=$DB_IMAGE
+
+# Pull the latest Docker images
+echo -e "\e[33mPulling the latest Docker images...\e[0m"
+invoke_docker_command pull $APP_IMAGE
+invoke_docker_command pull $DB_IMAGE
 
 # Stop and remove existing containers
 echo -e "\e[33mStopping and removing existing containers...\e[0m"
-COMPOSE_PATH="$(dirname "$(readlink -f "$0")")/docker-compose.yml"
 echo -e "\e[33mUsing docker-compose file: $COMPOSE_PATH\e[0m"
-
-# Try to stop existing containers, but continue if it fails
 if ! docker compose -f "$COMPOSE_PATH" down; then
     echo -e "\e[33mWarning: No existing containers found or error stopping them. Continuing...\e[0m"
 fi
