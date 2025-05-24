@@ -32,16 +32,29 @@ ensureDirectoriesExist(appDirectories);
 
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:5173",
-      "http://localhost:3001",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  })
-);
+const allowedOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean); // Remove empty strings
+
+  app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  const isSameOrigin = origin && origin.includes(host);
+  const isWhitelisted = origin && allowedOrigins.includes(origin);
+
+  if (!origin || isSameOrigin || isWhitelisted) {
+    return cors({
+      origin: origin || true,
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    })(req, res, next);
+  } else {
+    return res.status(403).json({ message: "Blocked by CORS" });
+  }
+});
+
 
 app.use(express.json({ limit: "10mb" }));
 
