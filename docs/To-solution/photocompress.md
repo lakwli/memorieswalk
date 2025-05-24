@@ -41,12 +41,17 @@ Enable users to upload images that are always **≤ 1MB** before being sent to t
 
 ### Step 3: **Smart Compression Path Selection**
 
-| Condition                       | Action                                                                |
-| ------------------------------- | --------------------------------------------------------------------- |
-| PNG with transparency           | Use WebP (lossless or lossy, depending on size); retain transparency. |
-| PNG without transparency        | Convert to WebP lossy or JPEG.                                        |
-| JPEG or other photo formats     | Convert to WebP lossy.                                                |
-| Vector or line-art (e.g. logos) | Use lossless compression (or SVG if possible).                        |
+The selection logic should prioritize content type (like line-art) and then specific format characteristics to choose the optimal WebP conversion path. All paths aim for a WebP output to align with backend requirements.
+
+| Condition                                                            | Action                                                                                                                     |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Input is SVG                                                         | Convert to WebP lossless.                                                                                                  |
+| Input is a raster format (e.g., PNG) AND identified as line-art/logo | Convert to WebP lossless. (Note: Identifying 'line-art' in raster images may require heuristics.)                          |
+| Input is PNG with transparency (and not identified as line-art)      | Convert to WebP, retaining transparency. (Strategy: attempt lossless WebP first; if too large, use lossy WebP with alpha.) |
+| Input is PNG without transparency (and not identified as line-art)   | Convert to WebP lossy.                                                                                                     |
+| Input is JPEG or other primarily photographic raster formats         | Convert to WebP lossy.                                                                                                     |
+
+> This revised table aims to provide a clearer decision tree for converting various inputs to the desired WebP format.
 
 ---
 
