@@ -1,4 +1,5 @@
 import api from "./api";
+import { photoUtils } from "../utils/photoUtils";
 
 export const memoryService = {
   // Memory CRUD operations
@@ -64,11 +65,15 @@ export const memoryService = {
   },
 
   // Photo operations with state management
+
   uploadPhotos: async (files) => {
     const formData = new FormData();
+
     for (let file of files) {
-      formData.append("photos", file);
+      const processedFile = await photoUtils.processImage(file);
+      formData.append("photos", processedFile);
     }
+
     const response = await api.post("/photos/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",

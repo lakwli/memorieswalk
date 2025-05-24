@@ -68,8 +68,8 @@ fi
 invoke_command "cd $REPO_DIR"
 
 # Build images for ARM64
-invoke_docker_command build -t "$APP_IMAGE" --platform linux/arm64 -f Dockerfile .
-invoke_docker_command build -t "$DB_IMAGE" --platform linux/arm64 -f db.Dockerfile .
+invoke_docker_command build --no-cache -t "$APP_IMAGE" --platform linux/arm64 -f Dockerfile .
+invoke_docker_command build --no-cache -t "$DB_IMAGE" --platform linux/arm64 -f db.Dockerfile .
 
 # Update docker-compose.yml
 echo -e "\e[33mUpdating docker-compose.yml...\e[0m"
