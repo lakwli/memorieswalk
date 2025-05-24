@@ -57,6 +57,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
 
 
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true })); // Add URL-encoded body parser with consistent limit
 
 // Static file serving for media files (photos, etc.)
 const publicPath = path.join(__dirname, "public");
