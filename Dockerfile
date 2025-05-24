@@ -1,5 +1,5 @@
 # Multi-stage build for MemoriesWalk application
-FROM node:18-slim
+FROM node:18-slim AS frontend-builder
 WORKDIR /app
 
 # Copy package.json and install dependencies
