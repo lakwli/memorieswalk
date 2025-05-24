@@ -2,9 +2,13 @@
 FROM node:18-slim AS frontend-builder
 WORKDIR /app
 
+# Set environment variables for build
+ENV CLIENT_URL=/
+ENV VITE_API_URL=/api
+
 # Copy package.json and install dependencies
 COPY package*.json ./ 
-RUN npm install --include=dev
+RUN npm install
 
 # Copy frontend source code and build it
 COPY src/ ./src/
@@ -50,8 +54,6 @@ ENV DB_HOST=db
 ENV DB_NAME=memorieswalk
 ENV DB_PASSWORD=node
 ENV DB_PORT=5432
-ENV CLIENT_URL=/
-ENV VITE_API_URL=/api
 
 # Expose the port
 EXPOSE 3000
