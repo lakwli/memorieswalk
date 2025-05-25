@@ -66,20 +66,74 @@ export const memoryService = {
 
   // Photo operations with state management
 
-  uploadPhotos: async (files) => {
-    const formData = new FormData();
+  uploadPhotos: async (files, onProgress = () => {}) => {
+    const processedFiles = [];
+    const totalFiles = files.length;
 
-    for (let file of files) {
+    for (let i = 0; i < totalFiles; i++) {
+      const file = files[i];
+      onProgress({
+        type: "compression_start",
+        fileName: file.name,
+        fileIndex: i,
+        totalFiles,
+      });
+
       const processedFile = await photoUtils.processImage(file);
-      formData.append("photos", processedFile);
+      processedFiles.push(processedFile);
+
+      onProgress({
+        type: "compression_end",
+        fileName: file.name, // Original name for reference
+        processedFileName: processedFile.name,
+        originalSize: file.size,
+        processedSize: processedFile.size,
+        fileIndex: i,
+        totalFiles,
+        wasProcessed:
+          file !== processedFile || file.name !== processedFile.name,
+      });
     }
 
-    const response = await api.post("/photos/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+    onProgress({
+      type: "all_files_processed",
+      totalProcessedFiles: processedFiles.length,
     });
-    return response.data; // Returns array of { id, state: "N" }
+
+    const formData = new FormData();
+    for (const pFile of processedFiles) {
+      formData.append("photos", pFile);
+    }
+
+    const totalSizeToUpload = processedFiles.reduce(
+      (sum, f) => sum + f.size,
+      0
+    );
+    onProgress({
+      type: "upload_start",
+      totalFilesToUpload: processedFiles.length,
+      totalSizeToUpload,
+    });
+
+    try {
+      const response = await api.post("/photos/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      onProgress({
+        type: "upload_complete",
+        responseData: response.data,
+        totalFilesUploaded: processedFiles.length,
+      });
+      return response.data; // Returns array of { id, state: "N" }
+    } catch (error) {
+      onProgress({
+        type: "upload_error",
+        error,
+      });
+      throw error; // Re-throw the error so the caller can handle it
+    }
   },
 
   getPhoto: async (photoId, state) => {

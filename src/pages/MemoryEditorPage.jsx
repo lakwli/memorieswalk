@@ -116,6 +116,10 @@ const MemoryEditorPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const cancelRef = useRef();
 
+  // New state for upload/compression status
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
   const stageContainerRef = useRef(null);
   const konvaStageRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -210,81 +214,154 @@ const MemoryEditorPage = () => {
   // Handle file upload with new state management
   const handleFileUpload = useCallback(
     async (e) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
+      const filesArray = Array.from(e.target.files);
+      if (!filesArray || filesArray.length === 0) return;
+
+      setIsUploading(true);
+      setUploadStatus("Starting photo processing...");
+
+      const onProgressCallback = (progress) => {
+        console.log("Upload Progress:", progress);
+
+        switch (progress.type) {
+          case "compression_start":
+            setUploadStatus(
+              `Compressing ${progress.fileName} (${progress.fileIndex + 1}/${
+                progress.totalFiles
+              })...`
+            );
+            break;
+          case "compression_end":
+            setUploadStatus(
+              `Finished compressing ${progress.fileName}. Processed ${
+                progress.fileIndex + 1
+              }/${progress.totalFiles}.`
+            );
+            break;
+          case "all_files_processed":
+            setUploadStatus("All files processed. Preparing for upload...");
+            break;
+          case "upload_start":
+            setUploadStatus(
+              `Uploading ${progress.totalFilesToUpload} file(s) (${(
+                progress.totalSizeToUpload /
+                (1024 * 1024)
+              ).toFixed(2)} MB)...`
+            );
+            break;
+          case "upload_complete":
+            setUploadStatus(
+              `Upload complete! ${progress.totalFilesUploaded} file(s) uploaded.`
+            );
+            (async () => {
+              try {
+                const newPhotosData = await Promise.all(
+                  progress.responseData.map((photo) => {
+                    return new Promise((resolve) => {
+                      const img = new window.Image();
+                      img.crossOrigin = "anonymous";
+                      (async () => {
+                        try {
+                          const blob = await memoryService.getPhoto(
+                            photo.id,
+                            "N"
+                          );
+                          const objectURL = URL.createObjectURL(blob);
+                          img.src = objectURL;
+                          img.onload = () => {
+                            photoStates.current[photo.id] = "N";
+                            resolve({
+                              ...photo,
+                              image: img,
+                              objectURL,
+                              x: 50,
+                              y: 50,
+                              width: img.naturalWidth / 4,
+                              height: img.naturalHeight / 4,
+                              rotation: 0,
+                              originalWidth: img.naturalWidth,
+                              originalHeight: img.naturalHeight,
+                              size: blob.size,
+                            });
+                          };
+                          img.onerror = () => {
+                            URL.revokeObjectURL(objectURL);
+                            resolve(null);
+                          };
+                        } catch (err) {
+                          console.error("Failed to load uploaded photo:", err);
+                          resolve(null);
+                        }
+                      })();
+                    });
+                  })
+                );
+                setPhotos((prev) => [
+                  ...prev,
+                  ...newPhotosData.filter((p) => p !== null),
+                ]);
+                setSelectedElement(null);
+                toast({
+                  title: "Photos Added",
+                  description: `Successfully added ${progress.totalFilesUploaded} photos to the canvas.`,
+                  status: "success",
+                  duration: 3000,
+                  isClosable: true,
+                });
+              } catch (loadErr) {
+                console.error("Error processing uploaded photos:", loadErr);
+                toast({
+                  title: "Error after upload",
+                  description:
+                    "Photos uploaded, but failed to display them on canvas.",
+                  status: "warning",
+                  duration: 5000,
+                  isClosable: true,
+                });
+              } finally {
+                setTimeout(() => setUploadStatus(""), 3000);
+                setIsUploading(false);
+              }
+            })();
+            break;
+          case "upload_error":
+            setUploadStatus(`Upload error: ${progress.error.message}`);
+            toast({
+              title: "Upload Error",
+              description: `Failed to upload photos: ${progress.error.message}`,
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+            setIsUploading(false);
+            setTimeout(() => setUploadStatus(""), 5000);
+            break;
+          default:
+            break;
+        }
+      };
 
       try {
-        const uploadedPhotos = await memoryService.uploadPhotos(files);
-
-        // Load the newly uploaded photos
-        const newPhotos = await Promise.all(
-          uploadedPhotos.map((photo) => {
-            return new Promise((resolve) => {
-              const img = new window.Image();
-              img.crossOrigin = "anonymous";
-
-              (async () => {
-                try {
-                  const blob = await memoryService.getPhoto(photo.id, "N");
-                  const objectURL = URL.createObjectURL(blob);
-                  img.src = objectURL;
-
-                  img.onload = () => {
-                    // Store state in photoStates ref instead of the photo object itself
-                    photoStates.current[photo.id] = "N"; // New photo state
-
-                    resolve({
-                      ...photo,
-                      image: img,
-                      objectURL,
-                      x: 50,
-                      y: 50,
-                      width: img.naturalWidth / 4,
-                      height: img.naturalHeight / 4,
-                      rotation: 0,
-                      // No isNew flag - use photoStates.current[id] === "N" instead
-                      originalWidth: img.naturalWidth,
-                      originalHeight: img.naturalHeight,
-                      size: blob.size,
-                    });
-                  };
-
-                  img.onerror = () => {
-                    URL.revokeObjectURL(objectURL);
-                    resolve(null);
-                  };
-                } catch (err) {
-                  console.error("Failed to load photo:", err);
-                  resolve(null);
-                }
-              })();
-            });
-          })
-        );
-
-        setPhotos((prev) => [...prev, ...newPhotos.filter((p) => p !== null)]);
-        setSelectedElement(null); // Clear selection when adding new photos
-
-        toast({
-          title: "Photos Uploaded",
-          description: `Successfully uploaded ${uploadedPhotos.length} photos`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
+        await memoryService.uploadPhotos(filesArray, onProgressCallback);
       } catch (err) {
+        console.error("Outer Upload Error:", err);
+        setUploadStatus(`Failed to initiate upload: ${err.message}`);
         toast({
-          title: "Upload Error",
-          description: `Failed to upload photos: ${err.message}`,
+          title: "Upload Initiation Error",
+          description: `Failed to start photo upload: ${err.message}`,
           status: "error",
           duration: 5000,
           isClosable: true,
         });
+        setIsUploading(false);
+        setTimeout(() => setUploadStatus(""), 5000);
       } finally {
-        e.target.value = "";
+        if (e.target) {
+          e.target.value = "";
+        }
       }
     },
-    [toast]
+    [toast, setPhotos, setSelectedElement]
   );
 
   // Load memory and its photos
@@ -730,7 +807,7 @@ const MemoryEditorPage = () => {
         mb={1}
         bg="transparent"
         px={1}
-        py={0.5} 
+        py={0.5}
         fontSize="xs"
         fontWeight="medium"
         textAlign="center"
@@ -739,7 +816,7 @@ const MemoryEditorPage = () => {
       >
         {zoomPercentage}%
       </Box>
-      
+
       <Tooltip label="Zoom Out" placement="right">
         <IconButton
           icon={<FaSearchMinus />}
@@ -912,14 +989,26 @@ const MemoryEditorPage = () => {
           )}
 
           <HStack spacing={2}>
-            <Tooltip label="Upload Photos">
-              <IconButton
-                aria-label="Upload Photos"
-                icon={<AttachmentIcon />}
-                onClick={() => fileInputRef.current?.click()}
-                size="md"
-              />
-            </Tooltip>
+            {isUploading ? (
+              <>
+                <Spinner size="sm" mr={2} />
+                <Text fontSize="sm" mr={2} noOfLines={1} title={uploadStatus}>
+                  {uploadStatus.length > 30
+                    ? `${uploadStatus.substring(0, 27)}...`
+                    : uploadStatus}
+                </Text>
+              </>
+            ) : (
+              <Tooltip label="Upload Photos">
+                <IconButton
+                  aria-label="Upload Photos"
+                  icon={<AttachmentIcon />}
+                  onClick={() => fileInputRef.current?.click()}
+                  size="md"
+                  disabled={saving} // Disable only if saving layout, not during its own upload process
+                />
+              </Tooltip>
+            )}
 
             <input
               type="file"
@@ -928,6 +1017,7 @@ const MemoryEditorPage = () => {
               onChange={handleFileUpload}
               style={{ display: "none" }}
               ref={fileInputRef}
+              disabled={isUploading || saving} // Disable if an upload is in progress or layout saving
             />
 
             <Tooltip label="Save All Changes">
@@ -937,7 +1027,7 @@ const MemoryEditorPage = () => {
                 colorScheme="green"
                 size="md"
                 isLoading={saving}
-                disabled={saving}
+                disabled={saving || isUploading} // Disable if saving or uploading
               >
                 {saving ? "Saving..." : "Save"}
               </Button>
