@@ -35,6 +35,7 @@ function AppRoutes() {
       />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/memories" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/memories/all" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
