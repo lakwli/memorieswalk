@@ -11,6 +11,7 @@ import {
   IconButton,
   Input,
   Spinner,
+  Progress,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -44,6 +45,8 @@ import {
   FaCompressArrowsAlt,
   FaMousePointer,
   FaHandPaper,
+  FaCog, // Added
+  FaUpload, // Added
 } from "react-icons/fa";
 import { MdTextFields } from "react-icons/md";
 import {
@@ -53,6 +56,9 @@ import {
   CloseIcon,
   AttachmentIcon,
   DeleteIcon,
+  SettingsIcon, // Keep for consistency or use FaCog
+  CheckCircleIcon, // Added
+  WarningTwoIcon, // Added
 } from "@chakra-ui/icons";
 import { useAuth } from "../context/AuthContext";
 import LogoSvg from "../assets/logo.svg";
@@ -62,6 +68,16 @@ import useCanvasNavigation from "./MemoryEditorPage/hooks/useCanvasNavigation";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 144;
+
+// Helper function to format bytes
+const formatBytes = (bytes, decimals = 2) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
 
 // DeleteButton component for photos
 const DeleteButton = ({ x, y, onClick }) => {
@@ -96,6 +112,48 @@ DeleteButton.propTypes = {
   onClick: PropTypes.func.isRequired,
 };
 
+// Function to get status configuration (icon, colors)
+const getStatusConfig = (phase) => {
+  switch (phase) {
+    case "compressing":
+      return {
+        icon: <FaCog />,
+        colorScheme: "blue",
+        textColor: "blue.600",
+      };
+    case "uploading":
+      return {
+        icon: <FaUpload />,
+        colorScheme: "purple",
+        textColor: "purple.600",
+      };
+    case "loading_to_canvas":
+      return {
+        icon: <Spinner size="xs" />,
+        colorScheme: "orange",
+        textColor: "orange.600",
+      };
+    case "completed":
+      return {
+        icon: <CheckCircleIcon />,
+        colorScheme: "green",
+        textColor: "green.600",
+      };
+    case "failed":
+      return {
+        icon: <WarningTwoIcon />,
+        colorScheme: "red",
+        textColor: "red.600",
+      };
+    default:
+      return {
+        icon: <Spinner size="xs" />,
+        colorScheme: "gray",
+        textColor: "gray.600",
+      };
+  }
+};
+
 const MemoryEditorPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -119,6 +177,8 @@ const MemoryEditorPage = () => {
   // New state for upload/compression status
   const [uploadStatus, setUploadStatus] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState(""); // 'compressing', 'uploading', 'loading_to_canvas', 'completed', 'failed'
 
   const stageContainerRef = useRef(null);
   const konvaStageRef = useRef(null);
@@ -218,41 +278,69 @@ const MemoryEditorPage = () => {
       if (!filesArray || filesArray.length === 0) return;
 
       setIsUploading(true);
-      setUploadStatus("Starting photo processing...");
+      setCurrentPhase("compressing");
+      // Assuming single file upload for simplified status text,
+      // but onProgress still receives multi-file info from memoryService
+      const firstFile = filesArray[0];
+      setUploadStatus(`Preparing ${firstFile.name}...`);
+      setCurrentProgress(0);
 
       const onProgressCallback = (progress) => {
         console.log("Upload Progress:", progress);
 
         switch (progress.type) {
           case "compression_start":
-            setUploadStatus(
-              `Compressing ${progress.fileName} (${progress.fileIndex + 1}/${
-                progress.totalFiles
-              })...`
+            setCurrentPhase("compressing");
+            // For single file focus, use the specific file name if available, else generic
+            const compressingFileName =
+              progress.fileName ||
+              (filesArray.length > 0 ? filesArray[0].name : "file");
+            setUploadStatus(`Compressing ${compressingFileName}...`);
+            setCurrentProgress(
+              filesArray.length > 1
+                ? (progress.fileIndex / progress.totalFiles) * 100
+                : 50 // Simulate some progress for single file
             );
             break;
           case "compression_end":
+            setCurrentPhase("compressing"); // Still compressing until all_files_processed or upload_start
+            const compressedFileName =
+              progress.fileName ||
+              (filesArray.length > 0 ? filesArray[0].name : "file");
+            const originalSizeFormatted = formatBytes(progress.originalSize);
+            const processedSizeFormatted = formatBytes(progress.processedSize);
             setUploadStatus(
-              `Finished compressing ${progress.fileName}. Processed ${
-                progress.fileIndex + 1
-              }/${progress.totalFiles}.`
+              `Compressed ${compressedFileName}: ${originalSizeFormatted} → ${processedSizeFormatted}`
+            );
+            setCurrentProgress(
+              filesArray.length > 1
+                ? ((progress.fileIndex + 1) / progress.totalFiles) * 100
+                : 100
             );
             break;
           case "all_files_processed":
-            setUploadStatus("All files processed. Preparing for upload...");
+            // This event implies compression is fully done for all files.
+            // If only one file, compression_end already set progress to 100.
+            // For multiple files, this confirms all are compressed.
+            // The next natural step is upload_start.
+            // No specific status change here, wait for upload_start.
+            // setUploadStatus("All files processed. Preparing for upload...");
+            // setCurrentProgress(100); // Compression part is 100% done
             break;
           case "upload_start":
+            setCurrentPhase("uploading");
             setUploadStatus(
-              `Uploading ${progress.totalFilesToUpload} file(s) (${(
-                progress.totalSizeToUpload /
-                (1024 * 1024)
-              ).toFixed(2)} MB)...`
+              `Uploading (${formatBytes(progress.totalSizeToUpload)})...`
             );
+            setCurrentProgress(0);
             break;
           case "upload_complete":
+            setCurrentPhase("loading_to_canvas");
             setUploadStatus(
-              `Upload complete! ${progress.totalFilesUploaded} file(s) uploaded.`
+              `Processing...` // Simplified message for loading to canvas
             );
+            setCurrentProgress(50); // Indicate loading to canvas is a step
+
             (async () => {
               try {
                 const newPhotosData = await Promise.all(
@@ -301,40 +389,62 @@ const MemoryEditorPage = () => {
                   ...newPhotosData.filter((p) => p !== null),
                 ]);
                 setSelectedElement(null);
+
+                setCurrentPhase("completed");
+                setUploadStatus("Photo added!");
+                setCurrentProgress(100);
                 toast({
-                  title: "Photos Added",
-                  description: `Successfully added ${progress.totalFilesUploaded} photos to the canvas.`,
+                  title: "Photo Added",
+                  description: `Successfully added to the canvas.`,
                   status: "success",
-                  duration: 3000,
+                  duration: 2000,
                   isClosable: true,
                 });
               } catch (loadErr) {
                 console.error("Error processing uploaded photos:", loadErr);
+                setCurrentPhase("failed");
+                setUploadStatus("Error displaying photo.");
+                setCurrentProgress(100); // Mark as finished, but failed
                 toast({
                   title: "Error after upload",
                   description:
-                    "Photos uploaded, but failed to display them on canvas.",
+                    "Photo uploaded, but failed to display it on canvas.",
                   status: "warning",
-                  duration: 5000,
+                  duration: 4000,
                   isClosable: true,
                 });
               } finally {
-                setTimeout(() => setUploadStatus(""), 3000);
-                setIsUploading(false);
+                setTimeout(
+                  () => {
+                    setIsUploading(false);
+                    setUploadStatus("");
+                    setCurrentProgress(0);
+                    setCurrentPhase("");
+                  },
+                  currentPhase === "failed" ? 4000 : 2000
+                );
               }
             })();
             break;
           case "upload_error":
-            setUploadStatus(`Upload error: ${progress.error.message}`);
+            setCurrentPhase("failed");
+            setUploadStatus(
+              `Upload error: ${progress.error.message.substring(0, 30)}...`
+            );
+            setCurrentProgress(100); // Mark as finished, but failed
             toast({
               title: "Upload Error",
-              description: `Failed to upload photos: ${progress.error.message}`,
+              description: `Failed to upload photo(s): ${progress.error.message}`,
               status: "error",
-              duration: 5000,
+              duration: 4000,
               isClosable: true,
             });
-            setIsUploading(false);
-            setTimeout(() => setUploadStatus(""), 5000);
+            setTimeout(() => {
+              setIsUploading(false);
+              setUploadStatus("");
+              setCurrentProgress(0);
+              setCurrentPhase("");
+            }, 4000);
             break;
           default:
             break;
@@ -342,26 +452,35 @@ const MemoryEditorPage = () => {
       };
 
       try {
+        // Pass only the first file if the UI is for single file,
+        // though memoryService.uploadPhotos handles an array.
+        // For this UI, we'll focus on the first file's info for status text.
         await memoryService.uploadPhotos(filesArray, onProgressCallback);
       } catch (err) {
         console.error("Outer Upload Error:", err);
-        setUploadStatus(`Failed to initiate upload: ${err.message}`);
+        setCurrentPhase("failed");
+        setUploadStatus(`Upload failed: ${err.message.substring(0, 30)}...`);
+        setCurrentProgress(100); // Mark as finished, but failed
         toast({
           title: "Upload Initiation Error",
           description: `Failed to start photo upload: ${err.message}`,
           status: "error",
-          duration: 5000,
+          duration: 4000,
           isClosable: true,
         });
-        setIsUploading(false);
-        setTimeout(() => setUploadStatus(""), 5000);
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadStatus("");
+          setCurrentProgress(0);
+          setCurrentPhase("");
+        }, 4000);
       } finally {
         if (e.target) {
           e.target.value = "";
         }
       }
     },
-    [toast, setPhotos, setSelectedElement]
+    [toast, setPhotos, setSelectedElement] // Removed filesArray from dependencies
   );
 
   // Load memory and its photos
@@ -893,6 +1012,8 @@ const MemoryEditorPage = () => {
     );
   }
 
+  const currentStatusConfig = getStatusConfig(currentPhase);
+
   return (
     <ErrorBoundary>
       <Box h="100vh" display="flex" flexDirection="column">
@@ -990,14 +1111,52 @@ const MemoryEditorPage = () => {
 
           <HStack spacing={2}>
             {isUploading ? (
-              <>
-                <Spinner size="sm" mr={2} />
-                <Text fontSize="sm" mr={2} noOfLines={1} title={uploadStatus}>
-                  {uploadStatus.length > 30
-                    ? `${uploadStatus.substring(0, 27)}...`
-                    : uploadStatus}
-                </Text>
-              </>
+              <HStack
+                spacing={2}
+                minW="250px"
+                maxW="400px"
+                mr={2}
+                alignItems="center"
+              >
+                <Box color={currentStatusConfig.textColor} fontSize="xl">
+                  {currentStatusConfig.icon}
+                </Box>
+                <Box flex="1">
+                  <Text
+                    fontSize="xs"
+                    noOfLines={1}
+                    title={uploadStatus}
+                    mb={0.5}
+                    textAlign="left"
+                    color={currentStatusConfig.textColor}
+                  >
+                    {uploadStatus}
+                  </Text>
+                  <Progress
+                    value={
+                      currentPhase === "completed" || currentPhase === "failed"
+                        ? 100
+                        : currentPhase === "compressing"
+                        ? currentProgress
+                        : undefined
+                    }
+                    isIndeterminate={
+                      currentPhase === "uploading" ||
+                      currentPhase === "loading_to_canvas"
+                    }
+                    size="xs"
+                    w="100%"
+                    colorScheme={currentStatusConfig.colorScheme}
+                    hasStripe={
+                      currentPhase !== "completed" && currentPhase !== "failed"
+                    }
+                    isAnimated={
+                      currentPhase !== "completed" && currentPhase !== "failed"
+                    }
+                    borderRadius="sm"
+                  />
+                </Box>
+              </HStack>
             ) : (
               <Tooltip label="Upload Photos">
                 <IconButton
@@ -1005,7 +1164,7 @@ const MemoryEditorPage = () => {
                   icon={<AttachmentIcon />}
                   onClick={() => fileInputRef.current?.click()}
                   size="md"
-                  disabled={saving} // Disable only if saving layout, not during its own upload process
+                  disabled={saving}
                 />
               </Tooltip>
             )}
