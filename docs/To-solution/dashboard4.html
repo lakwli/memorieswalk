@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moments Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Open+Sans&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: #fdfaf4;
+    }
+    h1, h2, h3 {
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6 text-gray-800">
+
+  <!-- Header -->
+  <header class="flex items-center justify-between pb-4 border-b border-gray-300">
+    <div class="text-2xl font-bold text-brown-900">
+      <h1>Moments</h1>
+      <p class="text-sm text-gray-500">Share Memories, the Classic Way</p>
+    </div>
+    <nav class="space-x-6 text-lg">
+      <a href="#" class="hover:underline">Home</a>
+      <a href="#" class="hover:underline">My Albums</a>
+      <a href="#" class="hover:underline">Shared Albums</a>
+      <a href="#" class="hover:underline">Create Album</a>
+    </nav>
+    <img src="https://i.pravatar.cc/40" alt="User Avatar" class="w-10 h-10 rounded-full">
+  </header>
+
+  <!-- Welcome -->
+  <section class="mt-6 mb-4">
+    <h2 class="text-2xl font-semibold">Welcome back, Sarah!</h2>
+    <p class="text-gray-600">Ready to relive your cherished moments?</p>
+  </section>
+
+  <!-- Action buttons -->
+  <div class="flex items-center gap-4 mb-8">
+    <button class="px-4 py-2 bg-[#f6e7d8] text-brown-800 rounded shadow hover:bg-[#f3dac2]">
+      + New Album
+    </button>
+    <button class="px-4 py-2 bg-[#c3dbe9] text-gray-800 rounded shadow hover:bg-[#acc9dc]">
+      ⬆ Upload Photos
+    </button>
+  </div>
+
+  <!-- Album Grid -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <!-- Album Card -->
+    <div class="rounded-xl bg-[#d5d1b9] p-4 shadow-md">
+      <img src="https://placekitten.com/400/200" alt="Family Vacation" class="rounded w-full h-40 object-cover mb-4">
+      <h3 class="text-xl font-semibold">Family Vacation</h3>
+      <p class="text-sm text-gray-700">Created Apr 5, 2024</p>
+      <p class="text-sm text-gray-700">45 photos</p>
+      <span class="inline-block mt-2 px-3 py-1 bg-gray-300 rounded text-sm">Private</span>
+    </div>
+
+    <div class="rounded-xl bg-[#c8a98a] p-4 shadow-md">
+      <img src="https://placekitten.com/401/200" alt="Birthday Party" class="rounded w-full h-40 object-cover mb-4">
+      <h3 class="text-xl font-semibold">Birthday Party</h3>
+      <p class="text-sm text-gray-700">Created Mar 16, 2024</p>
+      <p class="text-sm text-gray-700">18 photos</p>
+      <span class="inline-block mt-2 px-3 py-1 bg-brown-700 text-white rounded text-sm">Shared</span>
+    </div>
+
+    <div class="rounded-xl bg-[#f7f2e4] p-4 shadow-md">
+      <img src="https://placekitten.com/402/200" alt="Wedding" class="rounded w-full h-40 object-cover mb-4">
+      <h3 class="text-xl font-semibold">Wedding</h3>
+      <p class="text-sm text-gray-700">Created Feb 10, 2024</p>
+      <p class="text-sm text-gray-700">30 photos</p>
+      <span class="inline-block mt-2 px-3 py-1 bg-gray-400 text-white rounded text-sm">Shared with 5 people</span>
+    </div>
+
+    <div class="rounded-xl bg-[#d3dedd] p-4 shadow-md">
+      <img src="https://placekitten.com/403/200" alt="Nature Hikes" class="rounded w-full h-40 object-cover mb-4">
+      <h3 class="text-xl font-semibold">Nature Hikes</h3>
+      <p class="text-sm text-gray-700">Created Jan 28, 2024</p>
+      <p class="text-sm text-gray-700">52 photos</p>
+      <span class="inline-block mt-2 px-3 py-1 bg-gray-300 rounded text-sm">Private</span>
+    </div>
+
+  </section>
+</body>
+</html>

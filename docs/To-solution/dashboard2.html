@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memory Album - Your Digital Photo Collection</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        background: linear-gradient(135deg, #f5f1eb 0%, #e8ddd4 100%);
+        min-height: 100vh;
+        color: #5d4e37;
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23d4c5b0" opacity="0.3"/><circle cx="75" cy="75" r="0.5" fill="%23c9b896" opacity="0.2"/><circle cx="50" cy="10" r="0.8" fill="%23d4c5b0" opacity="0.25"/><circle cx="10" cy="60" r="0.6" fill="%23c9b896" opacity="0.3"/><circle cx="85" cy="40" r="0.7" fill="%23d4c5b0" opacity="0.2"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        z-index: 2;
+      }
+
+      /* Header */
+      .header {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 32px 40px;
+        margin-bottom: 32px;
+        box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 2px solid rgba(212, 197, 176, 0.3);
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, #d4c5b0, #c9b896, #d4c5b0);
+        border-radius: 22px;
+        z-index: -1;
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+
+      .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #8b4513, #a0522d);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 4px 16px rgba(139, 69, 19, 0.3),
+          inset 0 2px 4px rgba(255, 255, 255, 0.2);
+        position: relative;
+      }
+
+      .logo::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .brand-text h1 {
+        font-size: 36px;
+        font-weight: 700;
+        color: #8b4513;
+        margin-bottom: 4px;
+        text-shadow: 0 2px 4px rgba(139, 69, 19, 0.1);
+        font-family: "Georgia", serif;
+      }
+
+      .brand-text p {
+        color: #a0522d;
+        font-size: 16px;
+        font-style: italic;
+      }
+
+      .user-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: rgba(212, 197, 176, 0.2);
+        padding: 16px 24px;
+        border-radius: 50px;
+        border: 1px solid rgba(212, 197, 176, 0.4);
+      }
+
+      .user-avatar {
+        width: 52px;
+        height: 52px;
+        background: linear-gradient(135deg, #deb887, #d2b48c);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #8b4513;
+        font-size: 18px;
+        box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+      }
+
+      .user-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #8b4513;
+      }
+
+      .user-info p {
+        color: #a0522d;
+        font-size: 14px;
+        font-style: italic;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 32px 28px;
+        box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 2px solid rgba(212, 197, 176, 0.3);
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #8b4513, #deb887, #8b4513);
+      }
+
+      .stat-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 16px 48px rgba(139, 69, 19, 0.15);
+      }
+
+      .stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .stat-icon.photos {
+        background: linear-gradient(135deg, #8b4513, #a0522d);
+      }
+      .stat-icon.albums {
+        background: linear-gradient(135deg, #deb887, #d2b48c);
+        color: #8b4513;
+      }
+      .stat-icon.shared {
+        background: linear-gradient(135deg, #cd853f, #daa520);
+      }
+      .stat-icon.recipients {
+        background: linear-gradient(135deg, #bc8f8f, #f4a460);
+      }
+
+      .stat-value {
+        font-size: 42px;
+        font-weight: 700;
+        color: #8b4513;
+        margin-bottom: 8px;
+        font-family: "Georgia", serif;
+      }
+
+      .stat-label {
+        color: #a0522d;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .stat-trend {
+        font-size: 14px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        background: rgba(34, 139, 34, 0.1);
+        color: #228b22;
+        border: 1px solid rgba(34, 139, 34, 0.2);
+      }
+
+      /* Main Content */
+      .main-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 32px;
+        margin-bottom: 40px;
+      }
+
+      .content-section {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 2px solid rgba(212, 197, 176, 0.3);
+        overflow: hidden;
+      }
+
+      .section-header {
+        padding: 28px 32px 20px;
+        border-bottom: 2px solid rgba(212, 197, 176, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(
+          135deg,
+          rgba(222, 184, 135, 0.1),
+          rgba(210, 180, 140, 0.05)
+        );
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #8b4513;
+        font-family: "Georgia", serif;
+      }
+
+      .view-all {
+        color: #8b4513;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(139, 69, 19, 0.3);
+        background: rgba(139, 69, 19, 0.05);
+      }
+
+      .view-all:hover {
+        background: rgba(139, 69, 19, 0.1);
+        transform: translateX(4px);
+      }
+
+      /* Album Grid */
+      .album-grid {
+        padding: 24px 32px 32px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .album-item {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 20px;
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+        border: 2px solid transparent;
+      }
+
+      .album-item:hover {
+        background: rgba(222, 184, 135, 0.1);
+        border-color: rgba(139, 69, 19, 0.2);
+        transform: translateX(8px);
+      }
+
+      .album-cover {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #deb887, #d2b48c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: #8b4513;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(139, 69, 19, 0.2),
+          inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .album-cover::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          45deg,
+          transparent 40%,
+          rgba(255, 255, 255, 0.1) 50%,
+          transparent 60%
+        );
+      }
+
+      .album-content {
+        flex: 1;
+      }
+
+      .album-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #8b4513;
+        font-family: "Georgia", serif;
+      }
+
+      .album-meta {
+        font-size: 15px;
+        color: #a0522d;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+
+      .album-recipients {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #cd853f;
+      }
+
+      .recipient-avatars {
+        display: flex;
+        gap: -8px;
+      }
+
+      .recipient-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #bc8f8f, #f4a460);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+        border: 2px solid white;
+        margin-left: -8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .recipient-avatar:first-child {
+        margin-left: 0;
+      }
+
+      .album-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .action-btn {
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 12px;
+        background: rgba(139, 69, 19, 0.1);
+        color: #8b4513;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+
+      .action-btn:hover {
+        background: #8b4513;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 4px 16px rgba(139, 69, 19, 0.3);
+      }
+
+      /* Quick Actions */
+      .quick-actions {
+        padding: 32px;
+      }
+
+      .action-grid {
+        display: grid;
+        gap: 20px;
+      }
+
+      .action-card {
+        padding: 28px 24px;
+        border-radius: 16px;
+        border: 3px dashed rgba(139, 69, 19, 0.3);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .action-card:hover {
+        border-color: #8b4513;
+        background: rgba(222, 184, 135, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(139, 69, 19, 0.15);
+      }
+
+      .action-card i {
+        font-size: 32px;
+        color: #8b4513;
+        margin-bottom: 16px;
+      }
+
+      .action-card h4 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #8b4513;
+        font-family: "Georgia", serif;
+      }
+
+      .action-card p {
+        font-size: 15px;
+        color: #a0522d;
+        line-height: 1.5;
+        font-style: italic;
+      }
+
+      /* Recent Activity */
+      .activity-section {
+        margin-top: 32px;
+      }
+
+      .timeline {
+        padding: 24px 32px 32px;
+      }
+
+      .timeline-item {
+        display: flex;
+        gap: 20px;
+        padding: 20px 0;
+        position: relative;
+      }
+
+      .timeline-item:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        left: 28px;
+        top: 64px;
+        width: 3px;
+        height: calc(100% - 44px);
+        background: linear-gradient(
+          to bottom,
+          rgba(139, 69, 19, 0.3),
+          transparent
+        );
+        border-radius: 2px;
+      }
+
+      .timeline-dot {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b4513, #a0522d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(139, 69, 19, 0.3),
+          inset 0 2px 4px rgba(255, 255, 255, 0.2);
+      }
+
+      .timeline-content {
+        flex: 1;
+        padding-top: 8px;
+      }
+
+      .timeline-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #8b4513;
+        font-family: "Georgia", serif;
+      }
+
+      .timeline-description {
+        font-size: 15px;
+        color: #a0522d;
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+
+      .timeline-time {
+        font-size: 13px;
+        color: #cd853f;
+        font-style: italic;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 16px;
+        }
+
+        .header-content {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .album-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        .album-actions {
+          align-self: flex-end;
+        }
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .stat-card,
+      .content-section {
+        animation: fadeInUp 0.8s ease forwards;
+      }
+
+      .stat-card:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      .stat-card:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+      .stat-card:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <div class="logo-section">
+            <div class="logo">📸</div>
+            <div class="brand-text">
+              <h1>Memory Album</h1>
+              <p>Where memories find their home</p>
+            </div>
+          </div>
+          <div class="user-section">
+            <div class="user-info">
+              <h3>Welcome back, Sarah</h3>
+              <p>Your albums await</p>
+            </div>
+            <div class="user-avatar">SJ</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon photos">
+              <i class="fas fa-images"></i>
+            </div>
+            <div class="stat-trend">+24 this week</div>
+          </div>
+          <div class="stat-value">1,247</div>
+          <div class="stat-label">Photos Stored</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon albums">
+              <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-trend">+3 this month</div>
+          </div>
+          <div class="stat-value">18</div>
+          <div class="stat-label">Photo Albums</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon shared">
+              <i class="fas fa-share-alt"></i>
+            </div>
+            <div class="stat-trend">+12 recently</div>
+          </div>
+          <div class="stat-value">56</div>
+          <div class="stat-label">Albums Shared</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon recipients">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-trend">+8 new friends</div>
+          </div>
+          <div class="stat-value">142</div>
+          <div class="stat-label">Recipients</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Recent Albums -->
+        <div class="content-section">
+          <div class="section-header">
+            <h2 class="section-title">Recent Albums</h2>
+            <a href="#" class="view-all"
+              >View all albums <i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+          <div class="album-grid">
+            <div class="album-item">
+              <div class="album-cover">🌴</div>
+              <div class="album-content">
+                <div class="album-title">Bali Adventure 2024</div>
+                <div class="album-meta">
+                  <span><i class="fas fa-images"></i> 84 photos</span>
+                  <span><i class="fas fa-clock"></i> 3 days ago</span>
+                </div>
+                <div class="album-recipients">
+                  <i class="fas fa-share"></i>
+                  <span>Shared with</span>
+                  <div class="recipient-avatars">
+                    <div class="recipient-avatar">M</div>
+                    <div class="recipient-avatar">J</div>
+                    <div class="recipient-avatar">K</div>
+                    <div class="recipient-avatar">+5</div>
+                  </div>
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="action-btn" title="View Album">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn" title="Share">
+                  <i class="fas fa-share"></i>
+                </button>
+                <button class="action-btn" title="Add Photos">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="album-item">
+              <div class="album-cover">🎂</div>
+              <div class="album-content">
+                <div class="album-title">Emma's Birthday Party</div>
+                <div class="album-meta">
+                  <span><i class="fas fa-images"></i> 52 photos</span>
+                  <span><i class="fas fa-clock"></i> 1 week ago</span>
+                </div>
+                <div class="album-recipients">
+                  <i class="fas fa-share"></i>
+                  <span>Shared with</span>
+                  <div class="recipient-avatars">
+                    <div class="recipient-avatar">E</div>
+                    <div class="recipient-avatar">D</div>
+                    <div class="recipient-avatar">A</div>
+                  </div>
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="action-btn" title="View Album">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn" title="Share">
+                  <i class="fas fa-share"></i>
+                </button>
+                <button class="action-btn" title="Add Photos">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="album-item">
+              <div class="album-cover">🏠</div>
+              <div class="album-content">
+                <div class="album-title">Home Renovation Journey</div>
+                <div class="album-meta">
+                  <span><i class="fas fa-images"></i> 128 photos</span>
+                  <span><i class="fas fa-clock"></i> 2 weeks ago</span>
+                </div>
+                <div class="album-recipients">
+                  <i class="fas fa-share"></i>
+                  <span>Shared with</span>
+                  <div class="recipient-avatars">
+                    <div class="recipient-avatar">T</div>
+                    <div class="recipient-avatar">L</div>
+                  </div>
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="action-btn" title="View Album">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn" title="Share">
+                  <i class="fas fa-share"></i>
+                </button>
+                <button class="action-btn" title="Add Photos">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="album-item">
+              <div class="album-cover">🐾</div>
+              <div class="album-content">
+                <div class="album-title">Max's First Year</div>
+                <div class="album-meta">
+                  <span><i class="fas fa-images"></i> 96 photos</span>
+                  <span><i class="fas fa-clock"></i> 3 weeks ago</span>
+                </div>
+                <div class="album-recipients">
+                  <i class="fas fa-share"></i>
+                  <span>Shared with</span>
+                  <div class="recipient-avatars">
+                    <div class="recipient-avatar">R</div>
+                    <div class="recipient-avatar">G</div>
+                    <div class="recipient-avatar">N</div>
+                    <div class="recipient-avatar">+2</div>
+                  </div>
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="action-btn" title="View Album">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn" title="Share">
+                  <i class="fas fa-share"></i>
+                </button>
+                <button class="action-btn" title="Add Photos">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+          <!-- Quick Actions -->
+          <div class="content-section">
+            <div class="section-header">
+              <h2 class="section-title">Create & Share</h2>
+            </div>
+            <div class="quick-actions">
+              <div class="action-grid">
+                <div class="action-card">
+                  <i class="fas fa-book-open"></i>
+                  <h4>New Album</h4>
+                  <p>Start a fresh album for your latest memories</p>
+                </div>
+                <div class="action-card">
+                  <i class="fas fa-upload"></i>
+                  <h4>Upload Photos</h4>
+                  <p>Add new photos to your existing albums</p>
+                </div>
+                <div class="action-card">
+                  <i class="fas fa-user-plus"></i>
+                  <h4>Invite Friends</h4>
+                  <p>Share your albums with family and friends</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="content-section activity-section">
+            <div class="section-header">
+              <h2 class="section-title">Recent Activity</h2>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot">
+                  <i class="fas fa-images"></i>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Photos Added</div>
+                  <div class="timeline-description"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

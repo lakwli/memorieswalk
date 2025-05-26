@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory - Clean & Minimal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 300;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 280px;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f8f8;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #1a1a1a;
+            background: white;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 48px 0;
+        }
+
+        .page-header {
+            margin-bottom: 48px;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 300;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 48px;
+            margin: 32px 0;
+            padding: 24px 0;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .create-btn {
+            background: #1a1a1a;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .create-btn:hover {
+            background: #333;
+        }
+
+        /* Albums Grid */
+        .albums-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 32px;
+            margin-bottom: 64px;
+        }
+
+        .album-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .album-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            border-color: #ccc;
+        }
+
+        .album-thumbnail {
+            height: 240px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .album-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .album-thumbnail.empty {
+            border: 2px dashed #ddd;
+            margin: 16px;
+            height: 208px;
+            border-radius: 8px;
+        }
+
+        .album-thumbnail.empty i {
+            font-size: 32px;
+            color: #ccc;
+        }
+
+        .album-info {
+            padding: 24px;
+        }
+
+        .album-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .album-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .album-count {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .album-date {
+            font-size: 13px;
+        }
+
+        /* Activity Section */
+        .activity-section {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .activity-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .nav-right {
+                gap: 16px;
+            }
+
+            .search-input {
+                width: 200px;
+            }
+
+            .stats-bar {
+                gap: 24px;
+            }
+
+            .albums-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">Memory</div>
+                <div class="nav-right">
+                    <div class="search-container">
+                        <input type="text" class="search-input" placeholder="Search albums...">
+                    </div>
+                    <div class="profile-section">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Profile" class="profile-avatar">
+                        <span class="profile-name">Alex Chen</span>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">Your Albums</h1>
+                <p class="page-subtitle">Organize and share your precious memories</p>
+                
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">Albums</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">248</div>
+                        <div class="stat-label">Photos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">15</div>
+                        <div class="stat-label">Shared</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">1.2k</div>
+                        <div class="stat-label">Views</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2 class="section-title">Recent Albums</h2>
+                <button class="create-btn">New Album</button>
+            </div>
+
+            <div class="albums-grid">
+                <div class="album-card">
+                    <div class="album-thumbnail empty">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Create Album</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-camera"></i>
+                                Start collecting
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card">
+                    <div class="album-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop" alt="Summer">
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Summer Vacation</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-image"></i>
+                                24 photos
+                            </div>
+                            <div class="album-date">2 days ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card">
+                    <div class="album-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=300&fit=crop" alt="Family">
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Family Moments</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-image"></i>
+                                18 photos
+                            </div>
+                            <div class="album-date">1 week ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card">
+                    <div class="album-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop" alt="Adventure">
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Weekend Adventures</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-image"></i>
+                                31 photos
+                            </div>
+                            <div class="album-date">2 weeks ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card">
+                    <div class="album-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=400&h=300&fit=crop" alt="City">
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">City Life</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-image"></i>
+                                42 photos
+                            </div>
+                            <div class="album-date">3 weeks ago</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="album-card">
+                    <div class="album-thumbnail">
+                        <img src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=300&fit=crop" alt="Birthday">
+                    </div>
+                    <div class="album-info">
+                        <div class="album-title">Birthday Party</div>
+                        <div class="album-meta">
+                            <div class="album-count">
+                                <i class="fas fa-image"></i>
+                                15 photos
+                            </div>
+                            <div class="album-date">1 month ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2 class="section-title">Recent Activity</h2>
+            </div>
+
+            <div class="activity-section">
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-share"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Album shared</div>
+                            <div class="activity-description">You shared "Summer Vacation" with 3 friends</div>
+                            <div class="activity-time">2 hours ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">New likes</div>
+                            <div class="activity-description">Your photos received 12 new likes</div>
+                            <div class="activity-time">5 hours ago</div>
+                        </div>
+                    </div>
+
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">Photos uploaded</div>
+                            <div class="activity-description">Added 8 photos to "Weekend Adventures"</div>
+                            <div class="activity-time">1 day ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
