@@ -43,8 +43,6 @@ import {
   FaSearchMinus,
   FaExpandArrowsAlt,
   FaCompressArrowsAlt,
-  FaMousePointer,
-  FaHandPaper,
   FaCog, // Added
   FaUpload, // Added
 } from "react-icons/fa";
@@ -56,7 +54,6 @@ import {
   CloseIcon,
   AttachmentIcon,
   DeleteIcon,
-  SettingsIcon, // Keep for consistency or use FaCog
   CheckCircleIcon, // Added
   WarningTwoIcon, // Added
 } from "@chakra-ui/icons";
@@ -198,12 +195,13 @@ const MemoryEditorPage = () => {
   const {
     stageScale,
     stagePosition,
-    isPanningMode,
-    setIsPanningMode,
     handleZoomIn,
     handleZoomOut,
     handleZoomToFit,
     handleWheel,
+    handleStageMouseDown,
+    handleStageMouseMove,
+    handleStageMouseUp,
     setStageScale,
     setStagePosition,
     zoomPercentage,
@@ -292,10 +290,12 @@ const MemoryEditorPage = () => {
           case "compression_start":
             setCurrentPhase("compressing");
             // For single file focus, use the specific file name if available, else generic
-            const compressingFileName =
-              progress.fileName ||
-              (filesArray.length > 0 ? filesArray[0].name : "file");
-            setUploadStatus(`Compressing ${compressingFileName}...`);
+            {
+              const compressingFileName =
+                progress.fileName ||
+                (filesArray.length > 0 ? filesArray[0].name : "file");
+              setUploadStatus(`Compressing ${compressingFileName}...`);
+            }
             setCurrentProgress(
               filesArray.length > 1
                 ? (progress.fileIndex / progress.totalFiles) * 100
@@ -304,14 +304,18 @@ const MemoryEditorPage = () => {
             break;
           case "compression_end":
             setCurrentPhase("compressing"); // Still compressing until all_files_processed or upload_start
-            const compressedFileName =
-              progress.fileName ||
-              (filesArray.length > 0 ? filesArray[0].name : "file");
-            const originalSizeFormatted = formatBytes(progress.originalSize);
-            const processedSizeFormatted = formatBytes(progress.processedSize);
-            setUploadStatus(
-              `Compressed ${compressedFileName}: ${originalSizeFormatted} → ${processedSizeFormatted}`
-            );
+            {
+              const compressedFileName =
+                progress.fileName ||
+                (filesArray.length > 0 ? filesArray[0].name : "file");
+              const originalSizeFormatted = formatBytes(progress.originalSize);
+              const processedSizeFormatted = formatBytes(
+                progress.processedSize
+              );
+              setUploadStatus(
+                `Compressed ${compressedFileName}: ${originalSizeFormatted} → ${processedSizeFormatted}`
+              );
+            }
             setCurrentProgress(
               filesArray.length > 1
                 ? ((progress.fileIndex + 1) / progress.totalFiles) * 100
@@ -884,26 +888,12 @@ const MemoryEditorPage = () => {
       left={0}
       bottom={0}
     >
-      <Tooltip label="Select/Pan Tool" placement="right">
-        <IconButton
-          aria-label="Select/Pan Tool"
-          icon={isPanningMode ? <FaHandPaper /> : <FaMousePointer />}
-          onClick={() => {
-            setActiveTool(activeTool === "pan" ? null : "pan");
-            setIsPanningMode((prev) => !prev);
-          }}
-          colorScheme={activeTool === "pan" || isPanningMode ? "blue" : "gray"}
-          variant={activeTool === "pan" || isPanningMode ? "solid" : "outline"}
-          mb={2}
-        />
-      </Tooltip>
       <Tooltip label="Add Text" placement="right">
         <IconButton
           aria-label="Add Text"
           icon={<MdTextFields />}
           onClick={() => {
             setActiveTool("text");
-            setIsPanningMode(false);
           }}
           colorScheme={activeTool === "text" ? "blue" : "gray"}
           variant={activeTool === "text" ? "solid" : "outline"}
@@ -1266,7 +1256,10 @@ const MemoryEditorPage = () => {
             x={stagePosition.x}
             y={stagePosition.y}
             onWheel={handleWheel}
-            draggable={isPanningMode}
+            onMouseDown={handleStageMouseDown}
+            onMouseMove={handleStageMouseMove}
+            onMouseUp={handleStageMouseUp}
+            onMouseLeave={handleStageMouseUp}
             onClick={(e) => {
               const clickedOnEmpty = e.target === e.target.getStage();
               if (clickedOnEmpty) {
@@ -1285,7 +1278,7 @@ const MemoryEditorPage = () => {
                     width={photo.width}
                     height={photo.height}
                     rotation={photo.rotation}
-                    draggable={!isPanningMode}
+                    draggable={true}
                     onClick={() => setSelectedElement(photo)}
                     onDragEnd={(e) => {
                       const node = e.target;
@@ -1326,7 +1319,7 @@ const MemoryEditorPage = () => {
                   fill={text.fill}
                   width={text.width}
                   rotation={text.rotation}
-                  draggable={!isPanningMode}
+                  draggable={true}
                   onClick={() => setSelectedElement(text)}
                   onDragEnd={(e) => {
                     const node = e.target;

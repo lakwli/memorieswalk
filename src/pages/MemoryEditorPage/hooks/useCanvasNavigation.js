@@ -1,5 +1,5 @@
 // Custom hook for canvas navigation (zoom and pan) functionality
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 // Constants for zoom limits and behavior
 const MIN_SCALE = 0.1;
@@ -10,21 +10,20 @@ const ZOOM_FACTOR = 1.2;
  * Custom hook for handling canvas navigation (zoom and pan) functionality
  * @param {Object} options - Configuration options
  * @param {React.MutableRefObject} options.stageRef - Reference to the Konva Stage
- * @param {boolean} options.disablePanningToggleOnKey - Whether to disable toggling panning mode with space key
  * @param {number} options.initialScale - Initial zoom scale (default: 1)
  * @param {Object} options.initialPosition - Initial pan position (default: {x: 0, y: 0})
  * @returns {Object} Canvas navigation state and handlers
  */
 const useCanvasNavigation = ({
   stageRef,
-  disablePanningToggleOnKey = false,
   initialScale = 1,
   initialPosition = { x: 0, y: 0 },
 }) => {
   // State for canvas transformation
   const [stageScale, setStageScale] = useState(initialScale);
   const [stagePosition, setStagePosition] = useState(initialPosition);
-  const [isPanningMode, setIsPanningMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastPointerPosition, setLastPointerPosition] = useState(null);
 
   // Calculate zoom percentage for display
   const zoomPercentage = useMemo(() => {
@@ -156,50 +155,51 @@ const useCanvasNavigation = ({
   );
 
   /**
-   * Toggle panning mode on/off
+   * Handle stage mouse events for dragging
    */
-  const togglePanningMode = useCallback(() => {
-    setIsPanningMode((prev) => !prev);
+  const handleStageMouseDown = useCallback((e) => {
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (!clickedOnEmpty) return;
+
+    setIsDragging(true);
+    setLastPointerPosition(e.target.getStage().getPointerPosition());
   }, []);
 
-  // Handle spacebar key for toggling pan mode
-  useEffect(() => {
-    if (disablePanningToggleOnKey) return;
+  const handleStageMouseMove = useCallback(
+    (e) => {
+      if (!isDragging) return;
 
-    const handleKeyDown = (e) => {
-      if (e.key === " " && !e.target.matches("input, textarea")) {
-        e.preventDefault();
-        setIsPanningMode(true);
-      }
-    };
+      const stage = e.target.getStage();
+      const currentPointerPosition = stage.getPointerPosition();
+      if (!currentPointerPosition || !lastPointerPosition) return;
 
-    const handleKeyUp = (e) => {
-      if (e.key === " ") {
-        setIsPanningMode(false);
-      }
-    };
+      const deltaX = currentPointerPosition.x - lastPointerPosition.x;
+      const deltaY = currentPointerPosition.y - lastPointerPosition.y;
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+      setStagePosition((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [disablePanningToggleOnKey]);
+      setLastPointerPosition(currentPointerPosition);
+    },
+    [isDragging, lastPointerPosition]
+  );
+
+  const handleStageMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setLastPointerPosition(null);
+  }, []);
 
   return {
     // State
     stageScale,
     stagePosition,
-    isPanningMode,
     zoomPercentage,
 
     // Actions
     setStageScale,
     setStagePosition,
-    setIsPanningMode,
-    togglePanningMode,
 
     // Handlers
     handleZoom,
@@ -207,6 +207,9 @@ const useCanvasNavigation = ({
     handleZoomOut,
     handleZoomToFit,
     handleWheel,
+    handleStageMouseDown,
+    handleStageMouseMove,
+    handleStageMouseUp,
 
     // Constants for external use
     MIN_SCALE,
