@@ -196,6 +196,7 @@ const useCanvasNavigation = ({
     stageScale,
     stagePosition,
     zoomPercentage,
+    isDragging,
 
     // Actions
     setStageScale,

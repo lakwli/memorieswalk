@@ -205,6 +205,7 @@ const MemoryEditorPage = () => {
     setStageScale,
     setStagePosition,
     zoomPercentage,
+    isDragging,
   } = useCanvasNavigation({
     stageRef: konvaStageRef,
     disablePanningToggleOnKey: editingTitle,
@@ -1255,6 +1256,7 @@ const MemoryEditorPage = () => {
             scaleY={stageScale}
             x={stagePosition.x}
             y={stagePosition.y}
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
             onWheel={handleWheel}
             onMouseDown={handleStageMouseDown}
             onMouseMove={handleStageMouseMove}
@@ -1279,8 +1281,21 @@ const MemoryEditorPage = () => {
                     height={photo.height}
                     rotation={photo.rotation}
                     draggable={true}
-                    onClick={() => setSelectedElement(photo)}
+                    onMouseEnter={(e) => {
+                      const stage = e.target.getStage();
+                      stage.container().style.cursor = "move";
+                    }}
+                    onMouseLeave={(e) => {
+                      const stage = e.target.getStage();
+                      stage.container().style.cursor = "grab";
+                    }}
+                    onDragStart={(e) => {
+                      const stage = e.target.getStage();
+                      stage.container().style.cursor = "grabbing";
+                    }}
                     onDragEnd={(e) => {
+                      const stage = e.target.getStage();
+                      stage.container().style.cursor = "move";
                       const node = e.target;
                       setPhotos((prev) =>
                         prev.map((p) =>
@@ -1294,6 +1309,7 @@ const MemoryEditorPage = () => {
                         )
                       );
                     }}
+                    onClick={() => setSelectedElement(photo)}
                   />
                   {selectedElement?.id === photo.id && (
                     <DeleteButton
