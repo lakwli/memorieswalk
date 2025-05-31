@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PhotoAlbum - Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #3a86ff;
+        --primary-light: #5797ff;
+        --primary-dark: #2968cc;
+        --secondary-color: #ff006e;
+        --text-color: #333333;
+        --text-light: #666666;
+        --bg-color: #f8f9fa;
+        --white: #ffffff;
+        --gray-100: #f8f9fa;
+        --gray-200: #e9ecef;
+        --gray-300: #dee2e6;
+        --gray-400: #ced4da;
+        --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --transition: all 0.3s ease;
+        --border-radius: 12px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Header */
+      header {
+        background-color: var(--white);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      .logo i {
+        font-size: 1.8rem;
+      }
+
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .create-btn {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .create-btn:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+      }
+
+      .search {
+        position: relative;
+        width: 340px;
+      }
+
+      .search input {
+        width: 100%;
+        padding: 10px 20px;
+        padding-left: 42px;
+        border-radius: 8px;
+        border: 1px solid var(--gray-300);
+        font-size: 0.95rem;
+        transition: var(--transition);
+      }
+
+      .search input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.15);
+      }
+
+      .search i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+      }
+
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .user-profile .dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 10px;
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        width: 240px;
+        padding: 15px 0;
+        display: none;
+        z-index: 10;
+      }
+
+      .user-profile:hover .dropdown {
+        display: block;
+      }
+
+      .dropdown-item {
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-color);
+        transition: var(--transition);
+      }
+
+      .dropdown-item:hover {
+        background-color: var(--gray-100);
+        color: var(--primary-color);
+      }
+
+      .dropdown-divider {
+        height: 1px;
+        background-color: var(--gray-200);
+        margin: 10px 0;
+      }
+
+      /* Main Content */
+      main {
+        padding: 40px 0;
+      }
+
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .dashboard-title {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .dashboard-tabs {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--gray-300);
+      }
+
+      .tab {
+        padding: 12px 20px;
+        font-weight: 600;
+        color: var(--text-light);
+        cursor: pointer;
+        position: relative;
+        transition: var(--transition);
+      }
+
+      .tab.active {
+        color: var(--primary-color);
+      }
+
+      .tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+      }
+
+      .tab:hover:not(.active) {
+        color: var(--text-color);
+      }
+
+      .albums-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 25px;
+      }
+
+      .album-card {
+        background-color: var(--white);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        position: relative;
+        cursor: pointer;
+      }
+
+      .album-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      }
+
+      .album-thumbnail {
+        position: relative;
+        height: 200px;
+        background-color: var(--gray-200);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .album-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .album-thumbnail .multi-image {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 3px;
+      }
+
+      .multi-image .img-part {
+        overflow: hidden;
+        height: 100%;
+      }
+
+      .multi-image .img-part img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: var(--transition);
+      }
+
+      .album-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .album-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.9);
+        color: var(--text-color);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: var(--transition);
+        backdrop-filter: blur(5px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .album-action:hover {
+        background-color: white;
+        color: var(--primary-color);
+      }
+
+      .album-action.favorite {
+        color: var(--secondary-color);
+      }
+
+      .album-content {
+        padding: 18px;
+      }
+
+      .album-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .album-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-light);
+        font-size: 0.85rem;
+      }
+
+      .album-date {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .photo-count {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background-color: var(--white);
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+      }
+
+      .empty-state i {
+        font-size: 4rem;
+        color: var(--gray-400);
+        margin-bottom: 20px;
+      }
+
+      .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+
+      .empty-state p {
+        color: var(--text-light);
+        max-width: 500px;
+        margin: 0 auto;
+        margin-bottom: 25px;
+      }
+
+      .empty-state button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .empty-state button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 992px) {
+        .search {
+          width: 280px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .navbar {
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+
+        .search {
+          order: 3;
+          width: 100%;
+        }
+
+        .albums-grid {
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        }
+      }
+
+      @media (max-width: 576px) {
+        .dashboard-tabs {
+          overflow-x: auto;
+          padding-bottom: 5px;
+          margin-bottom: 20px;
+        }
+
+        .tab {
+          padding: 10px 15px;
+          white-space: nowrap;
+        }
+
+        .albums-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header Navigation -->
+    <header>
+      <div class="container">
+        <div class="navbar">
+          <a href="#" class="logo">
+            <i class="fas fa-photo-film"></i>
+            PhotoAlbum
+          </a>
+
+          <div class="search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search albums or photos..." />
+          </div>
+
+          <div class="user-menu">
+            <button class="create-btn">
+              <i class="fas fa-plus"></i>
+              New Album
+            </button>
+
+            <div class="user-profile">
+              <div class="user-avatar">JD</div>
+              <span>John Doe</span>
+              <i
+                class="fas fa-chevron-down"
+                style="font-size: 0.8rem; margin-left: 5px"
+              ></i>
+
+              <!-- User dropdown menu -->
+              <div class="dropdown">
+                <a href="#" class="dropdown-item">
+                  <i class="fas fa-user"></i>
+                  My Profile
+                </a>
+                <a href="#" class="dropdown-item">
+                  <i class="fas fa-gear"></i>
+                  Account Settings
+                </a>
+                <a href="#" class="dropdown-item">
+                  <i class="fas fa-palette"></i>
+                  Appearance
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="#" class="dropdown-item">
+                  <i class="fas fa-circle-question"></i>
+                  Help Center
+                </a>
+                <a href="#" class="dropdown-item" style="color: #dc3545">
+                  <i class="fas fa-right-from-bracket"></i>
+                  Sign Out
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <div class="container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+          <h1 class="dashboard-title">My Albums</h1>
+        </div>
+
+        <!-- Dashboard Tabs -->
+        <div class="dashboard-tabs">
+          <div class="tab active">All Albums</div>
+          <div class="tab">Favorites</div>
+          <div class="tab">Recent</div>
+          <div class="tab">Shared with Me</div>
+        </div>
+
+        <!-- Albums Grid -->
+        <div class="albums-grid">
+          <!-- Album 1 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <div class="multi-image">
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4"
+                    alt="Landscape"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1519681393784-d120267933ba"
+                    alt="Mountains"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1501785888041-af3ef285b470"
+                    alt="Valley"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e"
+                    alt="Forest"
+                  />
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="album-action favorite">
+                  <i class="fas fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">Summer Vacation 2024</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated May 25, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>24 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Album 2 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <img
+                src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32"
+                alt="Family Gathering"
+              />
+              <div class="album-actions">
+                <button class="album-action">
+                  <i class="far fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">Family Gathering</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated May 18, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>42 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Album 3 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <div class="multi-image">
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1551918120-9739cb430c6d"
+                    alt="City"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1514565131-fce0801e5785"
+                    alt="Street"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1444723121867-7a241cacace9"
+                    alt="Building"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df"
+                    alt="Skyline"
+                  />
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="album-action">
+                  <i class="far fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">NYC Trip 2024</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated May 10, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>38 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Album 4 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <img
+                src="https://images.unsplash.com/photo-1496412705862-e0088f16f791"
+                alt="Flowers"
+              />
+              <div class="album-actions">
+                <button class="album-action favorite">
+                  <i class="fas fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">Garden Photography</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated Apr 28, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>16 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Album 5 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <div class="multi-image">
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1481671703460-040cb8a2d909"
+                    alt="Food 1"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1499028344343-cd173ffc68a9"
+                    alt="Food 2"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327"
+                    alt="Food 3"
+                  />
+                </div>
+                <div class="img-part">
+                  <img
+                    src="https://images.unsplash.com/photo-1496412705862-e0088f16f791"
+                    alt="Food 4"
+                  />
+                </div>
+              </div>
+              <div class="album-actions">
+                <button class="album-action">
+                  <i class="far fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">Culinary Adventures</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated Apr 20, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>29 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Album 6 -->
+          <div class="album-card">
+            <div class="album-thumbnail">
+              <img
+                src="https://images.unsplash.com/photo-1518895949257-7621c3c786d7"
+                alt="Pet"
+              />
+              <div class="album-actions">
+                <button class="album-action favorite">
+                  <i class="fas fa-heart"></i>
+                </button>
+                <button class="album-action">
+                  <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+              </div>
+            </div>
+            <div class="album-content">
+              <h3 class="album-title">Max the Golden Retriever</h3>
+              <div class="album-meta">
+                <div class="album-date">
+                  <i class="far fa-calendar"></i>
+                  <span>Updated Apr 15, 2024</span>
+                </div>
+                <div class="photo-count">
+                  <i class="far fa-image"></i>
+                  <span>52 photos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- If there are no albums, show this empty state -->
+        <!-- 
+            <div class="empty-state">
+                <i class="far fa-images"></i>
+                <h3>No albums yet</h3>
+                <p>Create your first album to start organizing and sharing your photos in a beautiful way.</p>
+                <button>
+                    <i class="fas fa-plus"></i>
+                    Create New Album
+                </button>
+            </div>
+            -->
+      </div>
+    </main>
+
+    <script>
+      // Sample JavaScript for demonstration purposes
+      document.addEventListener("DOMContentLoaded", function () {
+        // Tab switching functionality
+        const tabs = document.querySelectorAll(".tab");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            // Here you would normally fetch and display the corresponding albums
+          });
+        });
+
+        // Album cards - click to go to edit page
+        const albumCards = document.querySelectorAll(".album-card");
+        albumCards.forEach((card) => {
+          card.addEventListener("click", (e) => {
+            // Don't navigate if clicking on action buttons
+            if (e.target.closest(".album-action")) return;
+            // Redirect to album edit page
+            // window.location.href = '/edit-album/' + albumId;
+            console.log("Navigate to album edit page");
+          });
+        });
+
+        // Heart/favorite toggle
+        const favoriteButtons = document.querySelectorAll(
+          ".album-action:not(.favorite) .fa-heart"
+        );
+        favoriteButtons.forEach((btn) => {
+          btn.parentElement.addEventListener("click", (e) => {
+            e.stopPropagation();
+            btn.parentElement.classList.toggle("favorite");
+            btn.classList.toggle("fas");
+            btn.classList.toggle("far");
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

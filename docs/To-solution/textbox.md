@@ -85,6 +85,7 @@ Since you're aiming for low-complexity with existing components:
   - [Fabric.js](http://fabricjs.com/) — great for textbox, image, and shape layering with minimal code
 - Ensure **keyboard accessibility** for text editing.
 - Use **grouped objects** (text + shape as a group) for bubble/cloud — easier to move as a unit.
+- Create new class for this textbox component under /workspace/src/pages/MemoryEditorPage/components
 
 ---
 
@@ -104,6 +105,10 @@ Since you're aiming for low-complexity with existing components:
 | Shape drawing          | ❌ (Later) | Use toggle instead |
 
 ---
+
+## Screen
+
+a floating, context-sensitive toolbar near the textbox
 
 ## 💡 Final Design Tip
 
