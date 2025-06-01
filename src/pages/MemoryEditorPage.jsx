@@ -61,7 +61,7 @@ import { useAuth } from "../context/AuthContext";
 import LogoSvg from "../assets/logo.svg";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
-import useCanvasNavigation from "./MemoryEditorPage/hooks/useCanvasNavigation";
+import { useCanvasNavigation } from "../hooks";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 144;

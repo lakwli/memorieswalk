@@ -1,0 +1,554 @@
+// ============================================================================
+// 1. BASE ELEMENT SYSTEM
+// ============================================================================
+
+// Base element interface/type definition
+export const ELEMENT_TYPES = {
+  PHOTO: "photo",
+  TEXT: "text",
+  PEN: "pen",
+  SHAPE: "shape",
+};
+
+// Base element class or factory function
+export class BaseCanvasElement {
+  constructor(props = {}) {
+    this.id =
+      props.id || `${props.type}-${Math.random().toString(36).substr(2, 9)}`;
+    this.type = props.type;
+    this.x = props.x || 0;
+    this.y = props.y || 0;
+    this.width = props.width || 100;
+    this.height = props.height || 100;
+    this.rotation = props.rotation || 0;
+    this.draggable = props.draggable !== undefined ? props.draggable : true;
+    this.selectable = props.selectable !== undefined ? props.selectable : true;
+    this.deletable = props.deletable !== undefined ? props.deletable : true;
+
+    // Common behavior flags
+    this.isSelected = false;
+    this.isHovered = false;
+  }
+
+  // Common methods that all elements should have
+  move(x, y) {
+    this.x = x;
+    this.y = y;
+    return this;
+  }
+
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+    return this;
+  }
+
+  rotate(rotation) {
+    this.rotation = rotation;
+    return this;
+  }
+
+  // Transform data for saving
+  toSaveData() {
+    return {
+      id: this.id,
+      type: this.type,
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+      rotation: this.rotation,
+    };
+  }
+
+  // Get bounds for zoom-to-fit calculations
+  getBounds() {
+    return {
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    };
+  }
+}
+
+// ============================================================================
+// 2. SPECIFIC ELEMENT CLASSES
+// ============================================================================
+
+export class PhotoElement extends BaseCanvasElement {
+  constructor(props = {}) {
+    super({ ...props, type: ELEMENT_TYPES.PHOTO });
+    this.image = props.image;
+    this.objectURL = props.objectURL;
+    this.originalWidth = props.originalWidth;
+    this.originalHeight = props.originalHeight;
+    this.size = props.size || 0;
+  }
+
+  toSaveData() {
+    return {
+      ...super.toSaveData(),
+      originalWidth: this.originalWidth,
+      originalHeight: this.originalHeight,
+      size: this.size,
+    };
+  }
+
+  cleanup() {
+    if (this.objectURL) {
+      URL.revokeObjectURL(this.objectURL);
+    }
+  }
+}
+
+export class TextElement extends BaseCanvasElement {
+  constructor(props = {}) {
+    super({ ...props, type: ELEMENT_TYPES.TEXT });
+    this.text = props.text || "New Text";
+    this.fontSize = Math.max(8, Math.min(props.fontSize || 24, 144));
+    this.fontFamily = props.fontFamily || "Arial";
+    this.fill = props.fill || "#000000";
+    this.fontStyle = props.fontStyle || "normal";
+    this.textDecoration = props.textDecoration || "";
+    this.align = props.align || "left";
+    this.wrap = props.wrap || "word";
+  }
+
+  toSaveData() {
+    return {
+      ...super.toSaveData(),
+      text: this.text,
+      fontSize: this.fontSize,
+      fontFamily: this.fontFamily,
+      fill: this.fill,
+      fontStyle: this.fontStyle,
+      textDecoration: this.textDecoration,
+      align: this.align,
+      wrap: this.wrap,
+    };
+  }
+}
+
+export class PenElement extends BaseCanvasElement {
+  constructor(props = {}) {
+    super({ ...props, type: ELEMENT_TYPES.PEN });
+    this.points = props.points || [];
+    this.strokeColor = props.strokeColor || "#000000";
+    this.strokeWidth = props.strokeWidth || 2;
+    this.tension = props.tension || 0.5;
+    this.closed = props.closed || false;
+  }
+
+  toSaveData() {
+    return {
+      ...super.toSaveData(),
+      points: this.points,
+      strokeColor: this.strokeColor,
+      strokeWidth: this.strokeWidth,
+      tension: this.tension,
+      closed: this.closed,
+    };
+  }
+
+  addPoint(x, y) {
+    this.points.push(x, y);
+    return this;
+  }
+
+  getBounds() {
+    if (this.points.length === 0) return super.getBounds();
+
+    const xs = this.points.filter((_, i) => i % 2 === 0);
+    const ys = this.points.filter((_, i) => i % 2 === 1);
+
+    return {
+      x: Math.min(...xs),
+      y: Math.min(...ys),
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys),
+    };
+  }
+}
+
+// ============================================================================
+// 3. ELEMENT FACTORY
+// ============================================================================
+
+export const createCanvasElement = (type, props = {}) => {
+  switch (type) {
+    case ELEMENT_TYPES.PHOTO:
+      return new PhotoElement(props);
+    case ELEMENT_TYPES.TEXT:
+      return new TextElement(props);
+    case ELEMENT_TYPES.PEN:
+      return new PenElement(props);
+    default:
+      throw new Error(`Unknown element type: ${type}`);
+  }
+};
+
+// ============================================================================
+// 4. SHARED BEHAVIORS HOOK
+// ============================================================================
+
+import { useCallback } from "react";
+
+export const useElementBehaviors = (
+  elements,
+  setElements,
+  selectedElement,
+  setSelectedElement
+) => {
+  // Common drag handlers
+  const handleElementDragStart = useCallback((element) => {
+    return (e) => {
+      const stage = e.target.getStage();
+      stage.container().style.cursor = "grabbing";
+    };
+  }, []);
+
+  const handleElementDragEnd = useCallback(
+    (element) => {
+      return (e) => {
+        const stage = e.target.getStage();
+        stage.container().style.cursor = "move";
+        const node = e.target;
+
+        setElements((prev) =>
+          prev.map((el) =>
+            el.id === element.id ? { ...el, x: node.x(), y: node.y() } : el
+          )
+        );
+      };
+    },
+    [setElements]
+  );
+
+  // Common mouse handlers
+  const handleElementMouseEnter = useCallback(() => {
+    return (e) => {
+      const stage = e.target.getStage();
+      stage.container().style.cursor = "move";
+    };
+  }, []);
+
+  const handleElementMouseLeave = useCallback(() => {
+    return (e) => {
+      const stage = e.target.getStage();
+      stage.container().style.cursor = "grab";
+    };
+  }, []);
+
+  // Common click handler
+  const handleElementClick = useCallback(
+    (element) => {
+      return () => setSelectedElement(element);
+    },
+    [setSelectedElement]
+  );
+
+  // Common transform handler
+  const handleElementTransform = useCallback(
+    (element) => {
+      return (e) => {
+        const node = e.target;
+        const scaleX = node.scaleX();
+        const scaleY = node.scaleY();
+
+        // Reset scale to avoid compounding
+        node.scaleX(1);
+        node.scaleY(1);
+
+        setElements((prev) =>
+          prev.map((el) =>
+            el.id === element.id
+              ? {
+                  ...el,
+                  x: node.x(),
+                  y: node.y(),
+                  width: Math.round(node.width() * scaleX),
+                  height: Math.round(node.height() * scaleY),
+                  rotation: node.rotation(),
+                }
+              : el
+          )
+        );
+      };
+    },
+    [setElements]
+  );
+
+  // Delete handler
+  const handleElementDelete = useCallback(
+    (element) => {
+      // Cleanup if needed
+      if (element.cleanup) {
+        element.cleanup();
+      }
+
+      // Remove from elements array
+      setElements((prev) => prev.filter((el) => el.id !== element.id));
+
+      // Clear selection
+      if (selectedElement?.id === element.id) {
+        setSelectedElement(null);
+      }
+    },
+    [setElements, selectedElement, setSelectedElement]
+  );
+
+  return {
+    handleElementDragStart,
+    handleElementDragEnd,
+    handleElementMouseEnter,
+    handleElementMouseLeave,
+    handleElementClick,
+    handleElementTransform,
+    handleElementDelete,
+  };
+};
+
+// ============================================================================
+// 5. UNIFIED ELEMENT RENDERER COMPONENTS
+// ============================================================================
+
+import React from "react";
+import {
+  Image as KonvaImage,
+  Text as KonvaText,
+  Line,
+  Group,
+} from "react-konva";
+
+// Delete button component (shared)
+export const DeleteButton = ({ x, y, onClick }) => (
+  <Group x={x} y={y}>
+    <Circle
+      radius={15}
+      fill="rgba(255, 0, 0, 0.7)"
+      stroke="white"
+      strokeWidth={2}
+      onClick={onClick}
+      onTap={onClick}
+    />
+    <KonvaText
+      text="✕"
+      fontSize={16}
+      fill="white"
+      align="center"
+      verticalAlign="middle"
+      x={-5}
+      y={-8}
+      onClick={onClick}
+      onTap={onClick}
+    />
+  </Group>
+);
+
+// Photo renderer
+export const PhotoRenderer = ({ element, behaviors, isSelected, onDelete }) => (
+  <React.Fragment key={element.id}>
+    <KonvaImage
+      id={element.id}
+      image={element.image}
+      x={element.x}
+      y={element.y}
+      width={element.width}
+      height={element.height}
+      rotation={element.rotation}
+      draggable={element.draggable}
+      onMouseEnter={behaviors.handleElementMouseEnter()}
+      onMouseLeave={behaviors.handleElementMouseLeave()}
+      onDragStart={behaviors.handleElementDragStart(element)}
+      onDragEnd={behaviors.handleElementDragEnd(element)}
+      onClick={behaviors.handleElementClick(element)}
+    />
+    {isSelected && (
+      <DeleteButton
+        x={element.x + element.width - 10}
+        y={element.y - 15}
+        onClick={() => onDelete(element)}
+      />
+    )}
+  </React.Fragment>
+);
+
+// Text renderer
+export const TextRenderer = ({ element, behaviors, isSelected, onDelete }) => (
+  <React.Fragment key={element.id}>
+    <KonvaText
+      id={element.id}
+      x={element.x}
+      y={element.y}
+      text={element.text}
+      fontSize={element.fontSize}
+      fontFamily={element.fontFamily}
+      fill={element.fill}
+      width={element.width}
+      rotation={element.rotation}
+      draggable={element.draggable}
+      onMouseEnter={behaviors.handleElementMouseEnter()}
+      onMouseLeave={behaviors.handleElementMouseLeave()}
+      onDragStart={behaviors.handleElementDragStart(element)}
+      onDragEnd={behaviors.handleElementDragEnd(element)}
+      onClick={behaviors.handleElementClick(element)}
+    />
+    {isSelected && (
+      <DeleteButton
+        x={element.x + element.width - 10}
+        y={element.y - 15}
+        onClick={() => onDelete(element)}
+      />
+    )}
+  </React.Fragment>
+);
+
+// Pen/Drawing renderer
+export const PenRenderer = ({ element, behaviors, isSelected, onDelete }) => (
+  <React.Fragment key={element.id}>
+    <Line
+      id={element.id}
+      points={element.points}
+      stroke={element.strokeColor}
+      strokeWidth={element.strokeWidth}
+      tension={element.tension}
+      closed={element.closed}
+      draggable={element.draggable}
+      onMouseEnter={behaviors.handleElementMouseEnter()}
+      onMouseLeave={behaviors.handleElementMouseLeave()}
+      onDragStart={behaviors.handleElementDragStart(element)}
+      onDragEnd={behaviors.handleElementDragEnd(element)}
+      onClick={behaviors.handleElementClick(element)}
+    />
+    {isSelected && (
+      <DeleteButton
+        x={element.getBounds().x + element.getBounds().width - 10}
+        y={element.getBounds().y - 15}
+        onClick={() => onDelete(element)}
+      />
+    )}
+  </React.Fragment>
+);
+
+// Universal element renderer
+export const ElementRenderer = ({
+  element,
+  behaviors,
+  isSelected,
+  onDelete,
+}) => {
+  switch (element.type) {
+    case ELEMENT_TYPES.PHOTO:
+      return (
+        <PhotoRenderer
+          element={element}
+          behaviors={behaviors}
+          isSelected={isSelected}
+          onDelete={onDelete}
+        />
+      );
+    case ELEMENT_TYPES.TEXT:
+      return (
+        <TextRenderer
+          element={element}
+          behaviors={behaviors}
+          isSelected={isSelected}
+          onDelete={onDelete}
+        />
+      );
+    case ELEMENT_TYPES.PEN:
+      return (
+        <PenRenderer
+          element={element}
+          behaviors={behaviors}
+          isSelected={isSelected}
+          onDelete={onDelete}
+        />
+      );
+    default:
+      return null;
+  }
+};
+
+// ============================================================================
+// 6. ELEMENT MANAGEMENT HOOK
+// ============================================================================
+
+import { useState, useCallback, useRef } from "react";
+
+export const useCanvasElements = () => {
+  const [elements, setElements] = useState([]);
+  const [selectedElement, setSelectedElement] = useState(null);
+  const elementStates = useRef({}); // For photo states or other element-specific state
+
+  // Add element
+  const addElement = useCallback((type, props = {}) => {
+    const newElement = createCanvasElement(type, props);
+    setElements((prev) => [...prev, newElement]);
+    return newElement;
+  }, []);
+
+  // Remove element
+  const removeElement = useCallback(
+    (elementId) => {
+      setElements((prev) => {
+        const elementToRemove = prev.find((el) => el.id === elementId);
+        if (elementToRemove?.cleanup) {
+          elementToRemove.cleanup();
+        }
+        return prev.filter((el) => el.id !== elementId);
+      });
+
+      if (selectedElement?.id === elementId) {
+        setSelectedElement(null);
+      }
+
+      // Clean up element states
+      delete elementStates.current[elementId];
+    },
+    [selectedElement]
+  );
+
+  // Update element
+  const updateElement = useCallback((elementId, updates) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === elementId ? { ...el, ...updates } : el))
+    );
+  }, []);
+
+  // Get elements by type
+  const getElementsByType = useCallback(
+    (type) => {
+      return elements.filter((el) => el.type === type);
+    },
+    [elements]
+  );
+
+  // Get all elements for save
+  const getElementsForSave = useCallback(() => {
+    return elements.map((el) => el.toSaveData());
+  }, [elements]);
+
+  // Load elements from save data
+  const loadElements = useCallback((saveData) => {
+    const loadedElements = saveData.map((data) => {
+      return createCanvasElement(data.type, data);
+    });
+    setElements(loadedElements);
+  }, []);
+
+  return {
+    elements,
+    setElements,
+    selectedElement,
+    setSelectedElement,
+    elementStates,
+    addElement,
+    removeElement,
+    updateElement,
+    getElementsByType,
+    getElementsForSave,
+    loadElements,
+  };
+};
