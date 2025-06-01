@@ -1,265 +1,192 @@
 # Canvas Element Architecture Refactor
 
-This document outlines a simplified architectural design for canvas elements that gracefully handles both generic and element-specific behaviors.
+## State Management System
 
-## System Overview
-
-```mermaid
-graph TD
-    A[Canvas System] --> B[Element Layer]
-    A --> C[Persistence Layer]
-
-    B --> B1[Base Element]
-    B --> B2[Photo Element]
-    B --> B3[Text Element]
-
-    B2 --> D[Photo Components]
-    D --> D1[UI State]
-    D --> D2[Internal State]
-    D --> D3[Save Lifecycle]
-```
-
-## 1. Core Architecture
-
-### A. Base Element Interface
-
-The foundation for all canvas elements, providing common behaviors and data structures:
+### Base Interface
 
 ```typescript
 interface ICanvasElement {
+  // Required by all elements
   id: string;
-  type: ElementType;
+  type: string;
+  getData(): unknown;
 
-  // Generic transform properties (trigger re-render)
-  transform: {
-    position: Position;
-    dimensions: Dimensions;
-    rotation: number;
-    zIndex: number;
-  };
+  // State management (optional)
+  getPersistState?(): "N" | "P" | "R" | string;
+  onSaveComplete?(success: boolean): Promise<void>;
 
-  // Common behaviors
-  move(position: Position): void;
-  rotate(angle: number): void;
-  resize(dimensions: Dimensions): void;
-  delete(): void;
-  bringToFront(): void;
-  sendToBack(): void;
-
-  // Save lifecycle methods
-  preSave(): void; // Prepare element for save
-  postSave(): void; // Handle post-save state transitions
-  getData(): unknown; // Get data needed for save
+  // File processing (optional)
+  prepareSave?(): Promise<FileOperations>;
 }
 ```
 
-### B. Element Implementations
+## Element Implementations
 
-#### Photo Element
-
-Handles photo-specific behaviors with clean state management:
+### Photo Element
 
 ```typescript
 class PhotoElement implements ICanvasElement {
-  // UI state that triggers re-renders
-  private transform: Transform;
-
-  // Internal states that don't trigger re-renders
-  private stateRef: React.MutableRefObject<{
-    state: "N" | "P" | "R"; // New, Persisted, Removed
-    progress?: {
-      phase: string;
-      status: string;
-      progress: number;
-    };
-  }>;
-
-  constructor(id: string) {
-    this.stateRef = useRef({
-      state: "N",
-      progress: undefined,
-    });
+  // State transitions
+  getPersistState() {
+    return this.internalState;
   }
 
-  // Handle photo upload with progress
-  async handleUpload(file: File): Promise<void> {
-    const updateProgress = (progress: ProgressUpdate) => {
-      this.stateRef.current = {
-        ...this.stateRef.current,
-        progress: {
-          phase: progress.phase,
-          status: progress.status,
-          progress: progress.progress,
-        },
+  async prepareSave() {
+    if (this.internalState === "N") {
+      return {
+        moves: [{ from: this.tempPath, to: this.permPath }],
       };
-      // Only trigger re-render for progress UI
-      this.notifyProgressUpdate();
-    };
-
-    try {
-      await memoryService.uploadPhoto(file, updateProgress);
-      this.stateRef.current.progress = undefined;
-    } catch (error) {
-      this.stateRef.current = {
-        ...this.stateRef.current,
-        progress: {
-          phase: "failed",
-          status: error.message,
-          progress: 100,
-        },
-      };
-      this.notifyProgressUpdate();
-      throw error;
     }
+    return {};
   }
 
-  // Get data for save (only data that needs to be persisted)
-  getData(): PhotoData {
-    return {
-      id: this.id,
-      transform: this.transform, // UI state
-      originalSize: this.originalSize, // Fixed data
-      originalDimensions: this.originalDimensions,
-      // Note: state not included here, managed separately
-    };
-  }
-
-  // Pre-save handling
-  preSave(): void {
-    // No-op for photos, could be used for pre-save validation
-  }
-
-  // Post-save state transitions
-  postSave(): void {
-    const currentState = this.stateRef.current.state;
-    if (currentState === "N") {
-      this.stateRef.current.state = "P"; // New -> Persisted
+  async onSaveComplete(success) {
+    if (success && this.internalState === "N") {
+      this.internalState = "P";
     }
-    // State changes in ref don't trigger re-render
-  }
-
-  // Get progress for UI if available
-  getProgress(): ProgressState | undefined {
-    return this.stateRef.current.progress;
   }
 }
 ```
 
-#### Text Element
-
-Simple implementation with no special state management:
+### Text Element
 
 ```typescript
 class TextElement implements ICanvasElement {
-  private transform: Transform;
-  private textConfig: TextConfig;
-
-  // Common behaviors
-  move(position: Position): void {
-    this.transform.position = position;
-    this.notifyUpdate();
-  }
-
-  // Get data for persistence
-  getData(): TextData {
+  // Stateless implementation
+  getData() {
     return {
-      id: this.id,
-      transform: this.transform,
-      text: this.textConfig,
+      text: this.content,
+      position: this.position,
     };
   }
-
-  // Default no-op save lifecycle implementations
-  preSave(): void {}
-  postSave(): void {}
+  // No state or file methods needed
 }
 ```
 
-## 2. Canvas Management
-
-### A. Canvas Manager
-
-Coordinates elements and handles persistence:
+## CanvasManager Save Implementation
 
 ```typescript
 class CanvasManager {
-  private elements: Map<string, ICanvasElement>;
+  private canvasConfig: {
+    pan: { x: number; y: number };
+    zoom: number;
+  };
 
-  async saveCanvas(): Promise<void> {
-    // 1. Pre-save phase
-    this.elements.forEach((element) => element.preSave());
+  async saveCanvas() {
+    // 1. Prepare all elements and collect data
+    const elementsData = this.elements.map((e) => e.getData());
+    const elementsStates = this.elements.map(
+      (e) => e.getPersistState?.() || null
+    );
+    const fileOps = await Promise.all(
+      this.elements.map((e) => e.prepareSave?.() || Promise.resolve({}))
+    );
 
-    // 2. Collect and save data
-    const saveData = {
-      canvas: {
-        viewState: this.stageState,
-        elements: Array.from(this.elements.values()).map((e) => e.getData()),
-      },
-    };
+    // 2. Execute atomic transaction
+    try {
+      await memoryService.updateMemory({
+        canvasConfig: this.canvasConfig,
+        elements: elementsData,
+        states: elementsStates,
+        fileOperations: fileOps.flatMap((op) => op.moves || []),
+      });
 
-    // 3. Atomic save
-    await this.memoryService.updateMemory(this.canvasId, saveData);
-
-    // 4. Post-save phase - each element handles its own state transitions
-    this.elements.forEach((element) => element.postSave());
+      // 3. Finalize successful save
+      await Promise.all(this.elements.map((e) => e.onSaveComplete?.(true)));
+    } catch (error) {
+      // 4. Handle failure
+      await Promise.all(this.elements.map((e) => e.onSaveComplete?.(false)));
+      throw error;
+    }
   }
 }
 ```
 
-## 3. Key Design Benefits
+## Transaction Flow
 
-### A. Clean State Management
+```mermaid
+sequenceDiagram
+    participant UI as User Interface
+    participant CM as CanvasManager
+    participant DB as Database
+    participant FS as FileSystem
 
-- UI state triggers re-renders when needed
-- Internal state managed via refs to prevent unnecessary refreshes
-- Clear separation between persisted data and internal state
+    UI->>CM: User clicks Save
+    CM->>CM: Collect canvas config
+    CM->>CM: Gather element data/states
+    CM->>CM: Prepare file operations
+    CM->>DB: Begin transaction
+    CM->>DB: Save canvas config
+    CM->>DB: Save elements data
+    CM->>FS: Execute file operations
+    alt All successful
+        DB->>CM: Commit
+        CM->>Elements: onSaveComplete(true)
+    else Any failure
+        DB->>CM: Rollback
+        CM->>FS: Revert file operations
+        CM->>Elements: onSaveComplete(false)
+    end
+    CM->>UI: Save result
+```
 
-### B. Element-Controlled Lifecycle
+## State Transition Rules
 
-- Each element type handles its own save lifecycle
-- Base interface provides default no-op implementations
-- Canvas manager just orchestrates the process
-- Easy to add pre/post save behaviors per element type
+| Element Type | States  | Transitions                    | DB Impact                  |
+| ------------ | ------- | ------------------------------ | -------------------------- |
+| Photo        | N, P, R | N→P (on save), P→R (on delete) | Creates/deletes records    |
+| Text         | None    | No transitions                 | Updates canvas config only |
+| Future Types | Custom  | Custom handlers                | Custom impact              |
 
-### C. Simplified Implementation
+## File Processing
 
-- Single interface for all elements
-- Clear separation of concerns
-- Predictable state transitions
-- No accidental re-renders
+```markdown
+### For Elements Requiring File Operations:
 
-### D. Maintainable Structure
+1. Implement `prepareSave()` to declare needed file moves/deletes
+2. File operations are executed atomically with DB changes
+3. Cleanup happens in `onSaveComplete()`
 
-- Easy to add new element types
-- Consistent behavior patterns
-- Clear data flow
-- Efficient state updates
+### Handling Rules:
 
-## 4. Future Considerations
+- Temp→Perm moves for new files (state=N)
+- Perm file deletion only after DB commit (state=R)
+- No file operations for stateless elements
+```
 
-### A. New Element Types
+## Implementation Guidelines
 
-New elements can be added by implementing ICanvasElement:
+1. **For stateful elements**:
 
-- Pen tool implementation
-- Sticker element implementation
-- Shape elements
-- Each can implement custom save lifecycle if needed
+   - Implement all optional methods
+   - Handle your specific state transitions
+   - Manage file operations carefully
 
-### B. Additional Features
+2. **For stateless elements**:
 
-The architecture supports easy addition of:
+   - Only implement required methods
+   - No need for state handling
+   - Changes persist via canvas config
 
-- Element grouping
-- Layer management
-- Undo/redo functionality
-- Advanced transformations
+3. **Common Patterns**:
 
-### C. Performance Optimizations
+```typescript
+// Typical stateful element pattern
+class CustomElement implements ICanvasElement {
+  // Required
+  getData() {
+    /* ... */
+  }
 
-Potential areas for optimization:
-
-- Batch updates for multiple elements
-- Lazy loading of resources
-- Canvas rendering optimizations
-- State transition optimizations
+  // Optional but recommended for stateful
+  getPersistState() {
+    /* ... */
+  }
+  prepareSave() {
+    /* ... */
+  }
+  onSaveComplete() {
+    /* ... */
+  }
+}
+```
