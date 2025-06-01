@@ -1,283 +1,265 @@
 # Canvas Element Architecture Refactor
 
-This document outlines the architectural design for refactoring the canvas elements system to support photos, textboxes, and future elements like pen tools and stickers.
+This document outlines a simplified architectural design for canvas elements that gracefully handles both generic and element-specific behaviors.
 
 ## System Overview
 
 ```mermaid
 graph TD
-    A[Canvas Element System] --> B[Element Core]
-    A --> C[Element Managers]
-    A --> D[State Management]
-    A --> E[UI Layer]
+    A[Canvas System] --> B[Element Layer]
+    A --> C[Persistence Layer]
 
-    B --> B1[IBaseElement Interface]
-    B --> B2[Common Behaviors]
-    B --> B3[Element Factory]
+    B --> B1[Base Element]
+    B --> B2[Photo Element]
+    B --> B3[Text Element]
 
-    C --> C1[Photo Manager]
-    C --> C2[Text Manager]
-    C --> C3[Future Element Managers]
-
-    D --> D1[Element State]
-    D --> D2[Canvas State]
-    D --> D3[Persistence State]
-
-    E --> E1[Element Controls]
-    E --> E2[Toolbar Components]
-    E --> E3[Context Menus]
+    B2 --> D[Photo Components]
+    D --> D1[UI State]
+    D --> D2[Internal State]
+    D --> D3[Save Lifecycle]
 ```
 
-## 1. Core Architecture Components
+## 1. Core Architecture
 
-### A. Element Core System
+### A. Base Element Interface
 
-The core system defines the base interfaces and common behaviors for all canvas elements.
+The foundation for all canvas elements, providing common behaviors and data structures:
 
 ```typescript
-// Base interface for all canvas elements
-interface IBaseElement {
+interface ICanvasElement {
   id: string;
   type: ElementType;
-  position: Position;
-  dimensions: Dimensions;
-  transform: Transform;
-  zIndex: number;
+
+  // Generic transform properties (trigger re-render)
+  transform: {
+    position: Position;
+    dimensions: Dimensions;
+    rotation: number;
+    zIndex: number;
+  };
 
   // Common behaviors
   move(position: Position): void;
-  resize(dimensions: Dimensions): void;
   rotate(angle: number): void;
+  resize(dimensions: Dimensions): void;
   delete(): void;
-}
+  bringToFront(): void;
+  sendToBack(): void;
 
-// Factory for creating elements
-class ElementFactory {
-  createElement(type: ElementType, config: ElementConfig): IBaseElement;
+  // Save lifecycle methods
+  preSave(): void; // Prepare element for save
+  postSave(): void; // Handle post-save state transitions
+  getData(): unknown; // Get data needed for save
 }
 ```
 
-### B. Element-Specific Implementations
+### B. Element Implementations
 
-Each element type has its own implementation with specialized behavior.
+#### Photo Element
+
+Handles photo-specific behaviors with clean state management:
 
 ```typescript
-// Photo element with special state handling
-class PhotoElement implements IBaseElement {
-  private state: PhotoState; // N, P, R states
-  private resource: PhotoResource;
+class PhotoElement implements ICanvasElement {
+  // UI state that triggers re-renders
+  private transform: Transform;
 
-  // Photo-specific methods
-  handleUpload(): Promise<void>;
-  compress(): Promise<void>;
-  persist(): Promise<void>;
+  // Internal states that don't trigger re-renders
+  private stateRef: React.MutableRefObject<{
+    state: "N" | "P" | "R"; // New, Persisted, Removed
+    progress?: {
+      phase: string;
+      status: string;
+      progress: number;
+    };
+  }>;
+
+  constructor(id: string) {
+    this.stateRef = useRef({
+      state: "N",
+      progress: undefined,
+    });
+  }
+
+  // Handle photo upload with progress
+  async handleUpload(file: File): Promise<void> {
+    const updateProgress = (progress: ProgressUpdate) => {
+      this.stateRef.current = {
+        ...this.stateRef.current,
+        progress: {
+          phase: progress.phase,
+          status: progress.status,
+          progress: progress.progress,
+        },
+      };
+      // Only trigger re-render for progress UI
+      this.notifyProgressUpdate();
+    };
+
+    try {
+      await memoryService.uploadPhoto(file, updateProgress);
+      this.stateRef.current.progress = undefined;
+    } catch (error) {
+      this.stateRef.current = {
+        ...this.stateRef.current,
+        progress: {
+          phase: "failed",
+          status: error.message,
+          progress: 100,
+        },
+      };
+      this.notifyProgressUpdate();
+      throw error;
+    }
+  }
+
+  // Get data for save (only data that needs to be persisted)
+  getData(): PhotoData {
+    return {
+      id: this.id,
+      transform: this.transform, // UI state
+      originalSize: this.originalSize, // Fixed data
+      originalDimensions: this.originalDimensions,
+      // Note: state not included here, managed separately
+    };
+  }
+
+  // Pre-save handling
+  preSave(): void {
+    // No-op for photos, could be used for pre-save validation
+  }
+
+  // Post-save state transitions
+  postSave(): void {
+    const currentState = this.stateRef.current.state;
+    if (currentState === "N") {
+      this.stateRef.current.state = "P"; // New -> Persisted
+    }
+    // State changes in ref don't trigger re-render
+  }
+
+  // Get progress for UI if available
+  getProgress(): ProgressState | undefined {
+    return this.stateRef.current.progress;
+  }
 }
+```
 
-// Text element implementation
-class TextElement implements IBaseElement {
+#### Text Element
+
+Simple implementation with no special state management:
+
+```typescript
+class TextElement implements ICanvasElement {
+  private transform: Transform;
   private textConfig: TextConfig;
 
-  // Text-specific methods
-  updateText(text: string): void;
-  updateFont(font: FontConfig): void;
+  // Common behaviors
+  move(position: Position): void {
+    this.transform.position = position;
+    this.notifyUpdate();
+  }
+
+  // Get data for persistence
+  getData(): TextData {
+    return {
+      id: this.id,
+      transform: this.transform,
+      text: this.textConfig,
+    };
+  }
+
+  // Default no-op save lifecycle implementations
+  preSave(): void {}
+  postSave(): void {}
 }
 ```
 
-### C. Element Managers
+## 2. Canvas Management
 
-Managers handle element-specific operations and state management.
+### A. Canvas Manager
+
+Coordinates elements and handles persistence:
 
 ```typescript
-// Base manager interface
-interface IElementManager<T extends IBaseElement> {
-  create(config: ElementConfig): T;
-  update(element: T): void;
-  delete(id: string): void;
-  getState(): ElementState;
-}
+class CanvasManager {
+  private elements: Map<string, ICanvasElement>;
 
-// Photo-specific manager
-class PhotoManager implements IElementManager<PhotoElement> {
-  private photoStates: Map<string, PhotoState>;
-  private photoResources: Map<string, PhotoResource>;
+  async saveCanvas(): Promise<void> {
+    // 1. Pre-save phase
+    this.elements.forEach((element) => element.preSave());
 
-  // Photo-specific operations
-  handleUpload(file: File): Promise<PhotoElement>;
-  handlePersistence(): Promise<void>;
-}
-```
+    // 2. Collect and save data
+    const saveData = {
+      canvas: {
+        viewState: this.stageState,
+        elements: Array.from(this.elements.values()).map((e) => e.getData()),
+      },
+    };
 
-### D. State Management System
+    // 3. Atomic save
+    await this.memoryService.updateMemory(this.canvasId, saveData);
 
-Centralized state management for all canvas elements.
-
-```typescript
-// Central state management
-class CanvasStateManager {
-  private elements: Map<string, IBaseElement>;
-  private elementManagers: Map<ElementType, IElementManager>;
-  private canvasState: CanvasState;
-
-  // State operations
-  addElement(element: IBaseElement): void;
-  updateElement(id: string, updates: Partial<IBaseElement>): void;
-  deleteElement(id: string): void;
-
-  // Layer management
-  bringToFront(id: string): void;
-  sendToBack(id: string): void;
-
-  // Grouping operations
-  groupElements(ids: string[]): void;
-  ungroupElements(groupId: string): void;
+    // 4. Post-save phase - each element handles its own state transitions
+    this.elements.forEach((element) => element.postSave());
+  }
 }
 ```
 
-## 2. Implementation Strategy
+## 3. Key Design Benefits
 
-### Phase 1: Core Infrastructure
+### A. Clean State Management
 
-1. Set up the base element system
+- UI state triggers re-renders when needed
+- Internal state managed via refs to prevent unnecessary refreshes
+- Clear separation between persisted data and internal state
 
-   - Implement IBaseElement interface
-   - Create element factory
-   - Set up basic state management
+### B. Element-Controlled Lifecycle
 
-2. Create state management system
-   - Implement central state manager
-   - Set up element tracking
-   - Add basic operations
+- Each element type handles its own save lifecycle
+- Base interface provides default no-op implementations
+- Canvas manager just orchestrates the process
+- Easy to add pre/post save behaviors per element type
 
-### Phase 2: Photo Element Migration
+### C. Simplified Implementation
 
-1. Create PhotoManager
+- Single interface for all elements
+- Clear separation of concerns
+- Predictable state transitions
+- No accidental re-renders
 
-   - Implement photo state handling
-   - Set up resource management
-   - Migrate existing upload functionality
+### D. Maintainable Structure
 
-2. Migrate existing photo features
-   - Move current photo logic to new system
-   - Implement improved state handling
-   - Ensure backwards compatibility
-
-### Phase 3: Text Element Integration
-
-1. Implement TextManager
-
-   - Create text element class
-   - Set up text-specific operations
-   - Integrate with state management
-
-2. Add text features
-   - Migrate existing text functionality
-   - Implement text editing
-   - Add font management
-
-### Phase 4: Common Features
-
-1. Implement common behaviors
-
-   - Drag and drop system
-   - Rotation handlers
-   - Resize functionality
-
-2. Add layer management
-
-   - Z-index handling
-   - Bring to front/send to back
-   - Layer ordering
-
-3. Implement grouping
-   - Group creation/deletion
-   - Group transformations
-   - Group state management
-
-### Phase 5: Future Elements
-
-1. Create plugin system
-
-   - Define plugin interface
-   - Add plugin registration
-   - Create plugin loader
-
-2. Add new element types
-   - Implement pen tool
-   - Add sticker support
-   - Support future extensions
-
-## 3. Benefits of This Architecture
-
-### A. Separation of Concerns
-
-- Each element type has its own dedicated manager
-- State management is centralized but flexible
-- UI components are decoupled from business logic
-- Clear separation of responsibilities
-
-### B. Extensibility
-
-- New elements can be easily added by implementing IBaseElement
-- Plugin system supports future feature additions
-- Consistent behavior patterns across all elements
-- Modular design for easy updates
-
-### C. Performance
-
-- Efficient photo state management
-- Reduced unnecessary re-renders
-- Optimized resource handling
-- Smart caching of element states
-
-### D. Maintainability
-
-- Clear and consistent design patterns
-- Type-safe implementations
-- Well-defined interfaces
-- Easy to test and debug
+- Easy to add new element types
+- Consistent behavior patterns
+- Clear data flow
+- Efficient state updates
 
 ## 4. Future Considerations
 
-### A. Additional Features
+### A. New Element Types
 
-- Animation support
-- Undo/redo system
-- Advanced filter effects
-- Custom element plugins
+New elements can be added by implementing ICanvasElement:
 
-### B. Performance Optimizations
+- Pen tool implementation
+- Sticker element implementation
+- Shape elements
+- Each can implement custom save lifecycle if needed
 
-- Virtual scrolling for large canvases
+### B. Additional Features
+
+The architecture supports easy addition of:
+
+- Element grouping
+- Layer management
+- Undo/redo functionality
+- Advanced transformations
+
+### C. Performance Optimizations
+
+Potential areas for optimization:
+
+- Batch updates for multiple elements
 - Lazy loading of resources
-- WebWorker support for heavy operations
-- Optimized rendering strategies
-
-### C. Integration Points
-
-- Export/import capabilities
-- Version control support
-- Collaborative editing
-- Real-time synchronization
-
-## 5. Technical Requirements
-
-### A. Dependencies
-
-- React for UI components
-- Konva.js for canvas operations
-- TypeScript for type safety
-- State management library (if needed)
-
-### B. Browser Support
-
-- Modern browsers (latest 2 versions)
-- Mobile browser compatibility
-- Touch screen support
-- Performance considerations for different devices
-
-### C. Performance Targets
-
-- Smooth operation with 50+ elements
-- Quick response to user interactions
-- Efficient memory usage
-- Fast save/load operations
+- Canvas rendering optimizations
+- State transition optimizations
