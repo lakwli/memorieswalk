@@ -212,8 +212,6 @@ const MemoryEditorPage = () => {
     };
   }, [editingTitle, activeTool]);
 
-
-
   // Refactored file upload handler
   const handleFileUpload = useCallback(
     async (e) => {
@@ -294,13 +292,37 @@ const MemoryEditorPage = () => {
                         // Store element state
                         elementStates.current[photo.id] = "N";
 
-                        // Create PhotoElement with fixed position
+                        // Calculate visible viewport center for photo positioning
+                        const stage = konvaStageRef.current;
+                        let photoX = 200;
+                        let photoY = 200;
+
+                        if (stage) {
+                          const stageWidth = stage.width();
+                          const stageHeight = stage.height();
+                          const currentScale = stageScale;
+                          const currentPosition = stagePosition;
+
+                          // Calculate center of current viewport in canvas coordinates
+                          photoX =
+                            (-currentPosition.x + stageWidth / 2) /
+                            currentScale;
+                          photoY =
+                            (-currentPosition.y + stageHeight / 2) /
+                            currentScale;
+
+                          // Offset slightly to avoid overlapping photos
+                          photoX -= img.naturalWidth / 4 / 2;
+                          photoY -= img.naturalHeight / 4 / 2;
+                        }
+
+                        // Create PhotoElement with viewport-centered position
                         const photoElement = new PhotoElement({
                           ...photo,
                           image: img,
                           objectURL,
-                          x: 100,
-                          y: 100,
+                          x: photoX,
+                          y: photoY,
                           width: img.naturalWidth / 4,
                           height: img.naturalHeight / 4,
                           rotation: 0,
@@ -418,7 +440,16 @@ const MemoryEditorPage = () => {
         }
       }
     },
-    [toast, setElements, setSelectedElement, elementStates, currentPhase]
+    [
+      toast,
+      setElements,
+      setSelectedElement,
+      elementStates,
+      currentPhase,
+      stageScale,
+      stagePosition,
+      konvaStageRef,
+    ]
   );
 
   // Load memory with new element system
@@ -469,16 +500,22 @@ const MemoryEditorPage = () => {
                 return new Promise((resolve) => {
                   img.onload = () => {
                     const photoConfig = photoConfigMap[photo.id] || {};
-                    
+
                     // Use saved position if available, otherwise use fixed fallback position
                     const fallbackPosition = { x: 100, y: 100 };
-                    
+
                     const photoElement = new PhotoElement({
                       ...photo,
                       image: img,
                       objectURL,
-                      x: photoConfig.x !== undefined ? photoConfig.x : fallbackPosition.x,
-                      y: photoConfig.y !== undefined ? photoConfig.y : fallbackPosition.y,
+                      x:
+                        photoConfig.x !== undefined
+                          ? photoConfig.x
+                          : fallbackPosition.x,
+                      y:
+                        photoConfig.y !== undefined
+                          ? photoConfig.y
+                          : fallbackPosition.y,
                       width: photoConfig.width || img.naturalWidth / 4,
                       height: photoConfig.height || img.naturalHeight / 4,
                       rotation: photoConfig.rotation || 0,
@@ -625,9 +662,25 @@ const MemoryEditorPage = () => {
 
   // Add text element function
   const addTextElement = useCallback(() => {
+    // Calculate visible viewport center for text positioning
+    const stage = konvaStageRef.current;
+    let textX = 200;
+    let textY = 200;
+
+    if (stage) {
+      const stageWidth = stage.width();
+      const stageHeight = stage.height();
+      const currentScale = stageScale;
+      const currentPosition = stagePosition;
+
+      // Calculate center of current viewport in canvas coordinates
+      textX = (-currentPosition.x + stageWidth / 2) / currentScale;
+      textY = (-currentPosition.y + stageHeight / 2) / currentScale;
+    }
+
     const textElement = addElement(ELEMENT_TYPES.TEXT, {
-      x: 200,
-      y: 200,
+      x: textX,
+      y: textY,
       text: "New Text",
       fontSize: 24,
       fontFamily: "Arial",
@@ -635,7 +688,13 @@ const MemoryEditorPage = () => {
     });
     setSelectedElement(textElement);
     setActiveTool(null);
-  }, [addElement, setSelectedElement]);
+  }, [
+    addElement,
+    setSelectedElement,
+    stageScale,
+    stagePosition,
+    konvaStageRef,
+  ]);
 
   // Handle stage click for adding text elements
   const handleStageClick = useCallback(
@@ -669,7 +728,14 @@ const MemoryEditorPage = () => {
         }
       }
     },
-    [activeTool, addElement, setSelectedElement, stagePosition.x, stagePosition.y, stageScale]
+    [
+      activeTool,
+      addElement,
+      setSelectedElement,
+      stagePosition.x,
+      stagePosition.y,
+      stageScale,
+    ]
   );
 
   // Update canvas position and scale when initialViewState changes

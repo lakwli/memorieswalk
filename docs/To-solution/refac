@@ -1,0 +1,449 @@
+// ============================================================================
+// REFACTORED MEMORY EDITOR COMPONENT
+// ============================================================================
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Stage, Layer, Transformer } from "react-konva";
+// ... other imports
+
+// Import our new element system
+import {
+  ELEMENT_TYPES,
+  createCanvasElement,
+  ElementRenderer,
+  useElementBehaviors,
+  useCanvasElements,
+  PhotoElement,
+  TextElement,
+  PenElement
+} from './canvas-elements-system';
+
+const MemoryEditorPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { user, logout } = useAuth();
+
+  // Replace separate photo/text states with unified element management
+  const {
+    elements,
+    setElements,
+    selectedElement,
+    setSelectedElement,
+    elementStates, // This replaces photoStates.current
+    addElement,
+    removeElement,
+    updateElement,
+    getElementsByType,
+    getElementsForSave,
+    loadElements,
+  } = useCanvasElements();
+
+  // Get element behaviors
+  const elementBehaviors = useElementBehaviors(
+    elements,
+    setElements,
+    selectedElement,
+    setSelectedElement
+  );
+
+  // Other existing state...
+  const [memory, setMemory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [title, setTitle] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [activeTool, setActiveTool] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [elementToDelete, setElementToDelete] = useState(null);
+
+  // Upload state...
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState("");
+
+  // Refs...
+  const konvaStageRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const trRef = useRef(null);
+  const cancelRef = useRef();
+
+  // Canvas navigation hook (unchanged)
+  const {
+    stageScale,
+    stagePosition,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomToFit,
+    handleWheel,
+    handleStageMouseDown,
+    handleStageMouseMove,
+    handleStageMouseUp,
+    setStageScale,
+    setStagePosition,
+    zoomPercentage,
+    isDragging,
+  } = useCanvasNavigation({
+    stageRef: konvaStageRef,
+    disablePanningToggleOnKey: editingTitle,
+    initialScale: initialViewState.scale,
+    initialPosition: initialViewState.position,
+  });
+
+  // Update transformer when selection changes
+  useEffect(() => {
+    if (trRef.current && konvaStageRef.current) {
+      if (selectedElement) {
+        const node = konvaStageRef.current.findOne("#" + selectedElement.id);
+        if (node) {
+          trRef.current.nodes([node]);
+          trRef.current.getLayer()?.batchDraw();
+        }
+      } else {
+        trRef.current.nodes([]);
+        trRef.current.getLayer()?.batchDraw();
+      }
+    }
+  }, [selectedElement]);
+
+  // Refactored file upload handler
+  const handleFileUpload = useCallback(async (e) => {
+    const filesArray = Array.from(e.target.files);
+    if (!filesArray || filesArray.length === 0) return;
+
+    setIsUploading(true);
+    setCurrentPhase("compressing");
+    const firstFile = filesArray[0];
+    setUploadStatus(`Preparing ${firstFile.name}...`);
+    setCurrentProgress(0);
+
+    const onProgressCallback = (progress) => {
+      // ... existing progress handling logic ...
+      
+      // When upload completes, create PhotoElements instead of raw objects
+      if (progress.type === 'upload_complete') {
+        setCurrentPhase("loading_to_canvas");
+        setUploadStatus("Processing...");
+        setCurrentProgress(50);
+
+        (async () => {
+          try {
+            const newPhotoElements = await Promise.all(
+              progress.responseData.map(async (photo) => {
+                const blob = await memoryService.getPhoto(photo.id, "N");
+                const objectURL = URL.createObjectURL(blob);
+                
+                return new Promise((resolve) => {
+                  const img = new window.Image();
+                  img.crossOrigin = "anonymous";
+                  img.src = objectURL;
+                  img.onload = () => {
+                    // Store element state
+                    elementStates.current[photo.id] = "N";
+                    
+                    // Create PhotoElement
+                    const photoElement = new PhotoElement({
+                      ...photo,
+                      image: img,
+                      objectURL,
+                      x: 50,
+                      y: 50,
+                      width: img.naturalWidth / 4,
+                      height: img.naturalHeight / 4,
+                      rotation: 0,
+                      originalWidth: img.naturalWidth,
+                      originalHeight: img.naturalHeight,
+                      size: blob.size,
+                    });
+                    
+                    resolve(photoElement);
+                  };
+                  img.onerror = () => {
+                    URL.revokeObjectURL(objectURL);
+                    resolve(null);
+                  };
+                });
+              })
+            );
+            
+            // Add elements to the canvas
+            setElements(prev => [...prev, ...newPhotoElements.filter(p => p !== null)]);
+            setSelectedElement(null);
+
+            setCurrentPhase("completed");
+            setUploadStatus("Photo added!");
+            setCurrentProgress(100);
+            toast({
+              title: "Photo Added",
+              description: "Successfully added to the canvas.",
+              status: "success",
+              duration: 2000,
+              isClosable: true,
+            });
+          } catch (loadErr) {
+            console.error("Error processing uploaded photos:", loadErr);
+            setCurrentPhase("failed");
+            setUploadStatus("Error displaying photo.");
+            setCurrentProgress(100);
+            toast({
+              title: "Error after upload",
+              description: "Photo uploaded, but failed to display it on canvas.",
+              status: "warning",
+              duration: 4000,
+              isClosable: true,
+            });
+          } finally {
+            setTimeout(() => {
+              setIsUploading(false);
+              setUploadStatus("");
+              setCurrentProgress(0);
+              setCurrentPhase("");
+            }, currentPhase === "failed" ? 4000 : 2000);
+          }
+        })();
+      }
+    };
+
+    try {
+      await memoryService.uploadPhotos(filesArray, onProgressCallback);
+    } catch (err) {
+      // ... existing error handling ...
+    } finally {
+      if (e.target) {
+        e.target.value = "";
+      }
+    }
+  }, [toast, setElements, setSelectedElement, elementStates]);
+
+  // Load memory with new element system
+  useEffect(() => {
+    const loadMemory = async () => {
+      try {
+        setLoading(true);
+        const data = await memoryService.getMemory(id);
+        setMemory(data);
+        setTitle(data.title);
+
+        // Clear previous element states
+        elementStates.current = {};
+
+        // Create photo element configuration map
+        const photoConfigMap = {};
+        if (data.canvas_config?.photos) {
+          data.canvas_config.photos.forEach((photoConfig) => {
+            if (photoConfig.id) {
+              photoConfigMap[photoConfig.id] = photoConfig;
+            }
+          });
+        }
+
+        const loadedElements = [];
+
+        // Load photos as PhotoElements
+        if (data.photos && Array.isArray(data.photos)) {
+          const photoElements = await Promise.all(
+            data.photos.map(async (photo) => {
+              try {
+                let blob;
+                let photoState = "P";
+                try {
+                  blob = await memoryService.getPhoto(photo.id, "P");
+                } catch (error) {
+                  blob = await memoryService.getPhoto(photo.id, "N");
+                  photoState = "N";
+                }
+
+                elementStates.current[photo.id] = photoState;
+
+                const objectURL = URL.createObjectURL(blob);
+                const img = new window.Image();
+                img.crossOrigin = "anonymous";
+                img.src = objectURL;
+
+                return new Promise((resolve) => {
+                  img.onload = () => {
+                    const photoConfig = photoConfigMap[photo.id] || {};
+                    const photoElement = new PhotoElement({
+                      ...photo,
+                      image: img,
+                      objectURL,
+                      x: photoConfig.x || 50,
+                      y: photoConfig.y || 50,
+                      width: photoConfig.width || img.naturalWidth / 4,
+                      height: photoConfig.height || img.naturalHeight / 4,
+                      rotation: photoConfig.rotation || 0,
+                      originalWidth: photo.originalWidth || img.naturalWidth,
+                      originalHeight: photo.originalHeight || img.naturalHeight,
+                      size: photo.size || 0,
+                    });
+                    resolve(photoElement);
+                  };
+                  img.onerror = () => {
+                    URL.revokeObjectURL(objectURL);
+                    resolve(null);
+                  };
+                });
+              } catch (err) {
+                console.error("Failed to load photo:", err);
+                return null;
+              }
+            })
+          );
+          
+          loadedElements.push(...photoElements.filter(p => p !== null));
+        }
+
+        // Load texts as TextElements
+        if (data.canvas_config?.texts) {
+          const textElements = data.canvas_config.texts.map((text) => 
+            new TextElement({
+              ...text,
+              id: String(text.id || `text-${Math.random().toString(36).substr(2, 9)}`),
+            })
+          );
+          loadedElements.push(...textElements);
+        }
+
+        // Set all elements at once
+        setElements(loadedElements);
+
+        // Load view state
+        if (data.canvas_config?.viewState) {
+          setInitialViewState({
+            scale: data.canvas_config.viewState.scale || 1,
+            position: data.canvas_config.viewState.position || { x: 0, y: 0 },
+          });
+        }
+      } catch (err) {
+        setError(err.message);
+        toast({
+          title: "Error",
+          description: `Failed to load memory: ${err.message}`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMemory();
+  }, [id, toast, setElements, elementStates]);
+
+  // Refactored save function
+  const saveMemoryLayout = useCallback(async () => {
+    if (!memory) return;
+
+    // Separate photos and texts from elements
+    const photoElements = getElementsByType(ELEMENT_TYPES.PHOTO);
+    const textElements = getElementsByType(ELEMENT_TYPES.TEXT);
+
+    const photoData = photoElements.map(photo => photo.toSaveData());
+    const textData = textElements.map(text => text.toSaveData());
+
+    try {
+      setSaving(true);
+      const updateData = {
+        title,
+        canvas: {
+          photos: photoData,
+          texts: textData,
+          viewState: {
+            scale: stageScale,
+            position: stagePosition,
+          },
+        },
+        photoStates: elementStates.current,
+      };
+
+      await memoryService.updateMemory(memory.id, updateData);
+
+      // Update element states after successful save
+      const updatedElementStates = { ...elementStates.current };
+      photoElements.forEach((photo) => {
+        if (updatedElementStates[photo.id] === "N") {
+          updatedElementStates[photo.id] = "P";
+        }
+        if (updatedElementStates[photo.id] === "R") {
+          delete updatedElementStates[photo.id];
+        }
+      });
+      elementStates.current = updatedElementStates;
+
+      // Refresh memory metadata
+      try {
+        const updatedMemory = await memoryService.getMemory(memory.id);
+        setMemory((prevMemory) => ({
+          ...updatedMemory,
+          photos: prevMemory.photos,
+        }));
+      } catch (error) {
+        console.error("Failed to refresh memory metadata:", error);
+      }
+
+      toast({
+        title: "Success",
+        description: "Memory saved successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      toast({
+        title: "Save Error",
+        description: `Failed to save memory: ${err.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [memory, getElementsByType, title, toast, stageScale, stagePosition, elementStates]);
+
+  // Simplified delete handler
+  const handleDeleteElement = useCallback((elementToDelete) => {
+    if (!elementToDelete) return;
+
+    // Mark photo as removed if it's a photo element
+    if (elementToDelete.type === ELEMENT_TYPES.PHOTO) {
+      elementStates.current[elementToDelete.id] = "R";
+    }
+
+    // Use the unified remove function
+    removeElement(elementToDelete.id);
+
+    toast({
+      title: "Element Removed",
+      description: "Element will be permanently removed when you save",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  }, [removeElement, toast, elementStates]);
+
+  // Add text element function
+  const addTextElement = useCallback(() => {
+    const textElement = addElement(ELEMENT_TYPES.TEXT, {
+      x: 100,
+      y: 100,
+      text: "New Text",
+      fontSize: 24,
+      fontFamily: "Arial",
+      fill: "#000000",
+    });
+    setSelectedElement(textElement);
+    setActiveTool(null);
+  }, [addElement, setSelectedElement]);
+
+  // Add pen/drawing element function
+  const addPenElement = useCallback(() => {
+    const penElement = addElement(ELEMENT_TYPES.PEN, {
+      x: 100,
+      y: 100,
+      points: [0, 0, 100, 100], // Simple

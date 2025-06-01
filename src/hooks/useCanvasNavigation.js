@@ -52,8 +52,8 @@ const useCanvasNavigation = ({
       };
 
       const mousePointTo = {
-        x: (pointerPos.x - stage.x()) / oldScale,
-        y: (pointerPos.y - stage.y()) / oldScale,
+        x: (pointerPos.x - stagePosition.x) / oldScale,
+        y: (pointerPos.y - stagePosition.y) / oldScale,
       };
 
       const newScale = Math.max(
@@ -67,7 +67,7 @@ const useCanvasNavigation = ({
         y: pointerPos.y - mousePointTo.y * newScale,
       });
     },
-    [stageRef, stageScale]
+    [stageRef, stageScale, stagePosition]
   );
 
   /**
@@ -159,30 +159,44 @@ const useCanvasNavigation = ({
   /**
    * Handle stage mouse events for dragging
    */
-  const handleStageMouseDown = useCallback((e) => {
-    const clickedOnEmpty = e.target === e.target.getStage();
-    
-    // Allow dragging when:
-    // 1. Clicked on empty space AND
-    // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
-    if (!clickedOnEmpty || (activeTool !== "pan" && activeTool !== null && activeTool !== undefined)) {
-      return;
-    }
+  const handleStageMouseDown = useCallback(
+    (e) => {
+      const clickedOnEmpty = e.target === e.target.getStage();
 
-    // Change cursor to grabbing when starting to drag the canvas
-    const stage = e.target.getStage();
-    stage.container().style.cursor = "grabbing";
+      // Allow dragging when:
+      // 1. Clicked on empty space AND
+      // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
+      if (
+        !clickedOnEmpty ||
+        (activeTool !== "pan" &&
+          activeTool !== null &&
+          activeTool !== undefined)
+      ) {
+        return;
+      }
 
-    setIsDragging(true);
-    setLastPointerPosition(e.target.getStage().getPointerPosition());
-  }, [activeTool]);
+      // Change cursor to grabbing when starting to drag the canvas
+      const stage = e.target.getStage();
+      stage.container().style.cursor = "grabbing";
+
+      setIsDragging(true);
+      setLastPointerPosition(e.target.getStage().getPointerPosition());
+    },
+    [activeTool]
+  );
 
   const handleStageMouseMove = useCallback(
     (e) => {
       // Allow dragging when:
       // 1. isDragging is true AND
       // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
-      if (!isDragging || (activeTool !== "pan" && activeTool !== null && activeTool !== undefined)) return;
+      if (
+        !isDragging ||
+        (activeTool !== "pan" &&
+          activeTool !== null &&
+          activeTool !== undefined)
+      )
+        return;
 
       const stage = e.target.getStage();
       const currentPointerPosition = stage.getPointerPosition();
@@ -201,18 +215,21 @@ const useCanvasNavigation = ({
     [isDragging, lastPointerPosition, activeTool]
   );
 
-  const handleStageMouseUp = useCallback((e) => {
-    if (isDragging) {
-      // Restore cursor to grab when finished dragging the canvas
-      const stage = e?.target?.getStage();
-      if (stage) {
-        stage.container().style.cursor = "grab";
+  const handleStageMouseUp = useCallback(
+    (e) => {
+      if (isDragging) {
+        // Restore cursor to grab when finished dragging the canvas
+        const stage = e?.target?.getStage();
+        if (stage) {
+          stage.container().style.cursor = "grab";
+        }
       }
-    }
-    
-    setIsDragging(false);
-    setLastPointerPosition(null);
-  }, [isDragging]);
+
+      setIsDragging(false);
+      setLastPointerPosition(null);
+    },
+    [isDragging]
+  );
 
   return {
     // State
