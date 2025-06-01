@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Line } from "react-konva";
 import { DeleteButton } from "./DeleteButton.jsx";
 
@@ -27,3 +28,25 @@ export const PenRenderer = ({ element, behaviors, isSelected, onDelete }) => (
     )}
   </React.Fragment>
 );
+
+PenRenderer.propTypes = {
+  element: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    points: PropTypes.arrayOf(PropTypes.number).isRequired,
+    strokeColor: PropTypes.string.isRequired,
+    strokeWidth: PropTypes.number.isRequired,
+    tension: PropTypes.number,
+    closed: PropTypes.bool,
+    draggable: PropTypes.bool,
+    getBounds: PropTypes.func.isRequired,
+  }).isRequired,
+  behaviors: PropTypes.shape({
+    handleElementMouseEnter: PropTypes.func.isRequired,
+    handleElementMouseLeave: PropTypes.func.isRequired,
+    handleElementDragStart: PropTypes.func.isRequired,
+    handleElementDragEnd: PropTypes.func.isRequired,
+    handleElementClick: PropTypes.func.isRequired,
+  }).isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

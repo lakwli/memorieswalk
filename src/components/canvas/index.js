@@ -1,5 +1,5 @@
 // Elements
 export * from "./elements/index.js";
 
-// Renderers  
+// Renderers
 export * from "./renderers/index.js";

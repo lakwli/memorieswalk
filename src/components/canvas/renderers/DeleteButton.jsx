@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Group, Circle, Text as KonvaText } from "react-konva";
 
 export const DeleteButton = ({ x, y, onClick }) => (
@@ -23,3 +24,9 @@ export const DeleteButton = ({ x, y, onClick }) => (
     />
   </Group>
 );
+
+DeleteButton.propTypes = {
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  onClick: PropTypes.func.isRequired,
+};

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { ELEMENT_TYPES } from "../../../constants/elementTypes.js";
 import { PhotoRenderer } from "./PhotoRenderer.jsx";
 import { TextRenderer } from "./TextRenderer.jsx";
@@ -40,4 +41,13 @@ export const ElementRenderer = ({
     default:
       return null;
   }
+};
+
+ElementRenderer.propTypes = {
+  element: PropTypes.shape({
+    type: PropTypes.string.isRequired,
+  }).isRequired,
+  behaviors: PropTypes.object.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onDelete: PropTypes.func.isRequired,
 };
