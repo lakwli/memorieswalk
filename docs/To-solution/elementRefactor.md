@@ -1,8 +1,72 @@
 # Canvas Element Architecture Refactor
 
-## State Management System
+## State Management Implementation (Matching MemoryEditorPage)
 
-### Base Interface
+### Key Patterns:
+
+1. **State Tracking**:
+
+   - `photoStates` ref tracks persistence state ('N', 'P', 'R')
+   - Separate from rendering data to avoid unnecessary re-renders
+   - Updated during save operations
+
+2. **State Transitions**:
+
+```typescript
+// From MemoryEditorPage.jsx
+photoStates.current[photo.id] = "N"; // New upload
+photoStates.current[photo.id] = "P"; // After successful save
+photoStates.current[photo.id] = "R"; // Marked for deletion
+```
+
+### Base Interface (Updated to Match Implementation)
+
+### State Transition Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> N: New upload
+    N --> P: Successful save
+    P --> R: User deletion
+    R --> [*]: Final cleanup
+    P --> [*]: Normal operation
+```
+
+### useRef Usage Examples
+
+```typescript
+// From MemoryEditorPage.jsx
+const photoStates = useRef({}); // Track photo states without re-renders
+
+// Usage:
+photoStates.current[photoId] = "N"; // Set state
+const currentState = photoStates.current[photoId]; // Get state
+```
+
+### Complete Save Operation
+
+1. **Preparation**:
+
+   - Collect element data
+   - Gather file operations
+   - Prepare DB payload
+
+2. **Transaction**:
+
+   - Begin DB transaction
+   - Save canvas config
+   - Save elements
+   - Process files
+
+3. **Finalization**:
+   - Update states on success
+   - Cleanup on failure
+
+### Error Recovery
+
+- Failed saves maintain previous state
+- File operations are atomic
+- States are only updated after successful commit
 
 ```typescript
 interface ICanvasElement {
