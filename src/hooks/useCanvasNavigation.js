@@ -12,12 +12,14 @@ const ZOOM_FACTOR = 1.2;
  * @param {React.MutableRefObject} options.stageRef - Reference to the Konva Stage
  * @param {number} options.initialScale - Initial zoom scale (default: 1)
  * @param {Object} options.initialPosition - Initial pan position (default: {x: 0, y: 0})
+ * @param {string} options.activeTool - Current active tool (used to enable/disable panning)
  * @returns {Object} Canvas navigation state and handlers
  */
 const useCanvasNavigation = ({
   stageRef,
   initialScale = 1,
   initialPosition = { x: 0, y: 0 },
+  activeTool = null,
 }) => {
   // State for canvas transformation
   const [stageScale, setStageScale] = useState(initialScale);
@@ -159,15 +161,28 @@ const useCanvasNavigation = ({
    */
   const handleStageMouseDown = useCallback((e) => {
     const clickedOnEmpty = e.target === e.target.getStage();
-    if (!clickedOnEmpty) return;
+    
+    // Allow dragging when:
+    // 1. Clicked on empty space AND
+    // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
+    if (!clickedOnEmpty || (activeTool !== "pan" && activeTool !== null && activeTool !== undefined)) {
+      return;
+    }
+
+    // Change cursor to grabbing when starting to drag the canvas
+    const stage = e.target.getStage();
+    stage.container().style.cursor = "grabbing";
 
     setIsDragging(true);
     setLastPointerPosition(e.target.getStage().getPointerPosition());
-  }, []);
+  }, [activeTool]);
 
   const handleStageMouseMove = useCallback(
     (e) => {
-      if (!isDragging) return;
+      // Allow dragging when:
+      // 1. isDragging is true AND
+      // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
+      if (!isDragging || (activeTool !== "pan" && activeTool !== null && activeTool !== undefined)) return;
 
       const stage = e.target.getStage();
       const currentPointerPosition = stage.getPointerPosition();
@@ -183,13 +198,21 @@ const useCanvasNavigation = ({
 
       setLastPointerPosition(currentPointerPosition);
     },
-    [isDragging, lastPointerPosition]
+    [isDragging, lastPointerPosition, activeTool]
   );
 
-  const handleStageMouseUp = useCallback(() => {
+  const handleStageMouseUp = useCallback((e) => {
+    if (isDragging) {
+      // Restore cursor to grab when finished dragging the canvas
+      const stage = e?.target?.getStage();
+      if (stage) {
+        stage.container().style.cursor = "grab";
+      }
+    }
+    
     setIsDragging(false);
     setLastPointerPosition(null);
-  }, []);
+  }, [isDragging]);
 
   return {
     // State

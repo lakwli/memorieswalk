@@ -28,8 +28,15 @@ export const useCanvasElements = () => {
         setSelectedElement(null);
       }
 
-      // Clean up element states
-      delete elementStates.current[elementId];
+      // Handle element state for photo deletion
+      const currentState = elementStates.current[elementId];
+      if (currentState === "P") {
+        // Mark persistent photos as removed for database deletion
+        elementStates.current[elementId] = "R";
+      } else {
+        // For new photos ("N") or other elements, just remove the state
+        delete elementStates.current[elementId];
+      }
     },
     [selectedElement]
   );
@@ -37,7 +44,14 @@ export const useCanvasElements = () => {
   // Update element
   const updateElement = useCallback((elementId, updates) => {
     setElements((prev) =>
-      prev.map((el) => (el.id === elementId ? { ...el, ...updates } : el))
+      prev.map((el) => {
+        if (el.id === elementId) {
+          // Preserve the class instance by updating properties directly
+          Object.assign(el, updates);
+          return el;
+        }
+        return el;
+      })
     );
   }, []);
 

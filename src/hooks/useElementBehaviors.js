@@ -22,9 +22,15 @@ export const useElementBehaviors = (
         const node = e.target;
 
         setElements((prev) =>
-          prev.map((el) =>
-            el.id === element.id ? { ...el, x: node.x(), y: node.y() } : el
-          )
+          prev.map((el) => {
+            if (el.id === element.id) {
+              // Preserve the class instance by updating properties directly
+              el.x = node.x();
+              el.y = node.y();
+              return el;
+            }
+            return el;
+          })
         );
       };
     },
@@ -67,18 +73,18 @@ export const useElementBehaviors = (
         node.scaleY(1);
 
         setElements((prev) =>
-          prev.map((el) =>
-            el.id === element.id
-              ? {
-                  ...el,
-                  x: node.x(),
-                  y: node.y(),
-                  width: Math.round(node.width() * scaleX),
-                  height: Math.round(node.height() * scaleY),
-                  rotation: node.rotation(),
-                }
-              : el
-          )
+          prev.map((el) => {
+            if (el.id === element.id) {
+              // Preserve the class instance by updating properties directly
+              el.x = node.x();
+              el.y = node.y();
+              el.width = Math.round(node.width() * scaleX);
+              el.height = Math.round(node.height() * scaleY);
+              el.rotation = node.rotation();
+              return el;
+            }
+            return el;
+          })
         );
       };
     },

@@ -9,6 +9,7 @@ export const ElementRenderer = ({
   behaviors,
   isSelected,
   onDelete,
+  onUpdate,
 }) => {
   switch (element.type) {
     case ELEMENT_TYPES.PHOTO:
@@ -18,6 +19,7 @@ export const ElementRenderer = ({
           behaviors={behaviors}
           isSelected={isSelected}
           onDelete={onDelete}
+          onUpdate={onUpdate}
         />
       );
     case ELEMENT_TYPES.TEXT:
@@ -27,6 +29,7 @@ export const ElementRenderer = ({
           behaviors={behaviors}
           isSelected={isSelected}
           onDelete={onDelete}
+          onUpdate={onUpdate}
         />
       );
     case ELEMENT_TYPES.PEN:
@@ -36,6 +39,7 @@ export const ElementRenderer = ({
           behaviors={behaviors}
           isSelected={isSelected}
           onDelete={onDelete}
+          onUpdate={onUpdate}
         />
       );
     default:
