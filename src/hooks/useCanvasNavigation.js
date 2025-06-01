@@ -39,33 +39,36 @@ const useCanvasNavigation = ({
    */
   const handleZoom = useCallback(
     (direction, pointer) => {
-      const scaleBy = direction === "in" ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
       const stage = stageRef.current;
       if (!stage) return;
 
+      const scaleBy = direction === "in" ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
       const oldScale = stageScale;
-
-      // When zooming with buttons (no pointer), use stage center as the focal point
-      const pointerPos = pointer || {
-        x: stage.width() / 2,
-        y: stage.height() / 2,
-      };
-
-      const mousePointTo = {
-        x: (pointerPos.x - stagePosition.x) / oldScale,
-        y: (pointerPos.y - stagePosition.y) / oldScale,
-      };
-
       const newScale = Math.max(
         MIN_SCALE,
         Math.min(oldScale * scaleBy, MAX_SCALE)
       );
 
-      setStageScale(newScale);
-      setStagePosition({
+      // If no pointer provided, use the center of the current viewport (same logic as photo upload)
+      const pointerPos = pointer || {
+        x: stage.width() / 2,
+        y: stage.height() / 2,
+      };
+
+      // Calculate the point in the canvas coordinate system that corresponds to the pointer position
+      const mousePointTo = {
+        x: (pointerPos.x - stagePosition.x) / oldScale,
+        y: (pointerPos.y - stagePosition.y) / oldScale,
+      };
+
+      // Calculate new position to keep the mousePointTo at the same screen position
+      const newPosition = {
         x: pointerPos.x - mousePointTo.x * newScale,
         y: pointerPos.y - mousePointTo.y * newScale,
-      });
+      };
+
+      setStageScale(newScale);
+      setStagePosition(newPosition);
     },
     [stageRef, stageScale, stagePosition]
   );
