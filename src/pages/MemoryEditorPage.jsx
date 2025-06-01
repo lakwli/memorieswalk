@@ -485,7 +485,7 @@ const MemoryEditorPage = () => {
         }
       }
     },
-    [toast, setPhotos, setSelectedElement] // Removed filesArray from dependencies
+    [toast, setPhotos, setSelectedElement, currentPhase] // Added currentPhase to dependencies
   );
 
   // Load memory and its photos
