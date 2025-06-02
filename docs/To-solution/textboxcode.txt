@@ -1,0 +1,314 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Bold, Italic, Underline, Type, Palette } from 'lucide-react';
+
+const CanvasTextbox = () => {
+  const [textboxes, setTextboxes] = useState([]);
+  const [activeTextbox, setActiveTextbox] = useState(null);
+  const canvasRef = useRef(null);
+  const textboxCounter = useRef(0);
+
+  // Font options
+  const fontFamilies = [
+    'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 
+    'Verdana', 'Trebuchet MS', 'Comic Sans MS', 'Impact'
+  ];
+  
+  const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64];
+  
+  const colors = [
+    '#000000', '#333333', '#666666', '#999999', '#CCCCCC', '#FFFFFF',
+    '#FF0000', '#FF6600', '#FFFF00', '#66FF00', '#00FF00', '#00FF66',
+    '#00FFFF', '#0066FF', '#0000FF', '#6600FF', '#FF00FF', '#FF0066'
+  ];
+
+  const createTextbox = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const newTextbox = {
+      id: `textbox-${textboxCounter.current++}`,
+      x: x - 100,
+      y: y - 30,
+      width: 200,
+      height: 60,
+      text: 'Click to edit text',
+      fontFamily: 'Arial',
+      fontSize: 16,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textDecoration: 'none',
+      color: '#000000',
+      isEditing: true
+    };
+    
+    setTextboxes(prev => [...prev, newTextbox]);
+    setActiveTextbox(newTextbox.id);
+  };
+
+  const updateTextbox = (id, updates) => {
+    setTextboxes(prev => prev.map(tb => 
+      tb.id === id ? { ...tb, ...updates } : tb
+    ));
+  };
+
+  const deleteTextbox = (id) => {
+    setTextboxes(prev => prev.filter(tb => tb.id !== id));
+    if (activeTextbox === id) {
+      setActiveTextbox(null);
+    }
+  };
+
+  const getActiveTextbox = () => {
+    return textboxes.find(tb => tb.id === activeTextbox);
+  };
+
+  const toggleBold = () => {
+    const textbox = getActiveTextbox();
+    if (textbox) {
+      updateTextbox(activeTextbox, {
+        fontWeight: textbox.fontWeight === 'bold' ? 'normal' : 'bold'
+      });
+    }
+  };
+
+  const toggleItalic = () => {
+    const textbox = getActiveTextbox();
+    if (textbox) {
+      updateTextbox(activeTextbox, {
+        fontStyle: textbox.fontStyle === 'italic' ? 'normal' : 'italic'
+      });
+    }
+  };
+
+  const toggleUnderline = () => {
+    const textbox = getActiveTextbox();
+    if (textbox) {
+      updateTextbox(activeTextbox, {
+        textDecoration: textbox.textDecoration === 'underline' ? 'none' : 'underline'
+      });
+    }
+  };
+
+  const Toolbar = () => {
+    const textbox = getActiveTextbox();
+    if (!textbox) return null;
+
+    return (
+      <div 
+        className="absolute bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex items-center gap-2 z-50"
+        style={{
+          left: Math.max(10, textbox.x),
+          top: Math.max(10, textbox.y - 60)
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Font Family */}
+        <select
+          value={textbox.fontFamily}
+          onChange={(e) => updateTextbox(activeTextbox, { fontFamily: e.target.value })}
+          className="text-xs border border-gray-300 rounded px-2 py-1 min-w-[80px]"
+        >
+          {fontFamilies.map(font => (
+            <option key={font} value={font}>{font}</option>
+          ))}
+        </select>
+
+        {/* Font Size */}
+        <select
+          value={textbox.fontSize}
+          onChange={(e) => updateTextbox(activeTextbox, { fontSize: parseInt(e.target.value) })}
+          className="text-xs border border-gray-300 rounded px-2 py-1 w-12"
+        >
+          {fontSizes.map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
+
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
+        {/* Bold */}
+        <button
+          onClick={toggleBold}
+          className={`p-1 rounded hover:bg-gray-100 ${
+            textbox.fontWeight === 'bold' ? 'bg-blue-100 text-blue-600' : ''
+          }`}
+        >
+          <Bold size={16} />
+        </button>
+
+        {/* Italic */}
+        <button
+          onClick={toggleItalic}
+          className={`p-1 rounded hover:bg-gray-100 ${
+            textbox.fontStyle === 'italic' ? 'bg-blue-100 text-blue-600' : ''
+          }`}
+        >
+          <Italic size={16} />
+        </button>
+
+        {/* Underline */}
+        <button
+          onClick={toggleUnderline}
+          className={`p-1 rounded hover:bg-gray-100 ${
+            textbox.textDecoration === 'underline' ? 'bg-blue-100 text-blue-600' : ''
+          }`}
+        >
+          <Underline size={16} />
+        </button>
+
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
+        {/* Color Picker */}
+        <div className="relative">
+          <div className="flex items-center gap-1">
+            <Palette size={16} />
+            <input
+              type="color"
+              value={textbox.color}
+              onChange={(e) => updateTextbox(activeTextbox, { color: e.target.value })}
+              className="w-6 h-6 border border-gray-300 rounded cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* Quick Colors */}
+        <div className="flex gap-1 ml-2">
+          {colors.slice(0, 8).map(color => (
+            <button
+              key={color}
+              onClick={() => updateTextbox(activeTextbox, { color })}
+              className="w-4 h-4 rounded border border-gray-300 hover:scale-110 transition-transform"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+
+        {/* Delete Button */}
+        <button
+          onClick={() => deleteTextbox(activeTextbox)}
+          className="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Delete
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full h-screen bg-gray-100 relative overflow-hidden">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold">Memory Editor</h1>
+          <div className="text-sm text-gray-600">Travel 2024 - My Memory Space</div>
+        </div>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            Save
+          </button>
+          <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+            Share
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div 
+        ref={canvasRef}
+        className="w-full h-full bg-gradient-to-br from-blue-50 to-purple-50 cursor-crosshair relative"
+        onClick={createTextbox}
+      >
+        {/* Instruction */}
+        {textboxes.length === 0 && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-gray-500">
+            <Type size={48} className="mx-auto mb-4 opacity-50" />
+            <p className="text-lg">Click anywhere to add a text box</p>
+            <p className="text-sm">Use the toolbar to format your text</p>
+          </div>
+        )}
+
+        {/* Textboxes */}
+        {textboxes.map(textbox => (
+          <div
+            key={textbox.id}
+            className={`absolute border-2 ${
+              activeTextbox === textbox.id 
+                ? 'border-blue-500 border-dashed' 
+                : 'border-transparent hover:border-gray-300'
+            } bg-white/80 backdrop-blur-sm rounded`}
+            style={{
+              left: textbox.x,
+              top: textbox.y,
+              width: textbox.width,
+              minHeight: textbox.height
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTextbox(textbox.id);
+            }}
+          >
+            <textarea
+              value={textbox.text}
+              onChange={(e) => updateTextbox(textbox.id, { text: e.target.value })}
+              className="w-full h-full min-h-[60px] p-3 bg-transparent border-none outline-none resize-none"
+              style={{
+                fontFamily: textbox.fontFamily,
+                fontSize: `${textbox.fontSize}px`,
+                fontWeight: textbox.fontWeight,
+                fontStyle: textbox.fontStyle,
+                textDecoration: textbox.textDecoration,
+                color: textbox.color
+              }}
+              placeholder="Enter your text here..."
+            />
+          </div>
+        ))}
+
+        {/* Toolbar */}
+        <Toolbar />
+      </div>
+
+      {/* Bottom Toolbar */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 px-4 py-2">
+        <div className="flex items-center gap-4">
+          <button className="p-2 rounded-full hover:bg-gray-100" title="Add Photo">
+            <div className="w-5 h-5 bg-gray-400 rounded"></div>
+          </button>
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100 bg-blue-100" 
+            title="Add Text"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Create textbox in center if clicked from toolbar
+              const rect = canvasRef.current.getBoundingClientRect();
+              const centerX = rect.width / 2;
+              const centerY = rect.height / 2;
+              createTextbox({ 
+                clientX: rect.left + centerX, 
+                clientY: rect.top + centerY 
+              });
+            }}
+          >
+            <Type size={20} className="text-blue-600" />
+          </button>
+          <button className="p-2 rounded-full hover:bg-gray-100" title="Draw">
+            <div className="w-5 h-5 border-2 border-gray-400 rounded-full"></div>
+          </button>
+          <button className="p-2 rounded-full hover:bg-gray-100" title="Rotate">
+            <div className="w-5 h-5 border-2 border-gray-400 rounded border-dashed"></div>
+          </button>
+          <button className="p-2 rounded-full hover:bg-gray-100" title="Layers">
+            <div className="w-5 h-5 flex flex-col gap-0.5">
+              <div className="h-1 bg-gray-400 rounded"></div>
+              <div className="h-1 bg-gray-400 rounded"></div>
+              <div className="h-1 bg-gray-400 rounded"></div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CanvasTextbox;
