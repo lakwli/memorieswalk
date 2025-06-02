@@ -126,7 +126,7 @@ export const memoryService = {
         responseData: response.data,
         totalFilesUploaded: processedFiles.length,
       });
-      return response.data; // Returns array of { id, state: "N" }
+      return response.data; // Returns array of { id, state: "N" } - NEW (temporary) photos
     } catch (error) {
       onProgress({
         type: "upload_error",

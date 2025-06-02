@@ -8,6 +8,13 @@ import { pool } from "../db.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Photo State Values Used in Tests:
+ * "N" = NEW (temporary storage)
+ * "P" = PERSISTED (permanent storage)
+ * "R" = REMOVED (marked for deletion)
+ */
+
 describe("Photo Management", () => {
   let authToken;
   let userId;

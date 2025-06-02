@@ -169,7 +169,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
     console.log("Extracted photos:", photos);
 
     // In the frontend implementation, each photo object already contains its state
-    // States: "N" = New (temporary storage), "P" = Persisted, "R" = Removed
+    // States: "N" = NEW (temporary storage), "P" = PERSISTED, "R" = REMOVED
 
     // 1. Update memory details
     await client.query(
@@ -296,7 +296,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
 
       // Handle removed photos (R) - look up state in photoStates object by photo ID
       const removedPhotoIds = Object.entries(photoStates)
-        .filter(([_, state]) => state === "R")
+        .filter(([, state]) => state === "R")
         .map(([id]) => id);
 
       console.log("Removed photos to process:", {

@@ -44,7 +44,7 @@ async function saveToTemp(file) {
 /**
  * Retrieves a photo file based on its state
  * @param {string} photoId - The photo ID
- * @param {string} state - The photo state (N or P)
+ * @param {string} state - The photo state ("N" = NEW/temporary, "P" = PERSISTED/permanent)
  * @returns {Promise<{path: string, mimeType: string}>}
  */
 async function retrievePhoto(photoId, state) {

@@ -10,12 +10,12 @@ const router = express.Router();
  * Check if user has access to the photo
  * @param {string} photoId - Photo ID to check
  * @param {string} userId - User ID to verify against
- * @param {string} state - Photo state (N or P)
+ * @param {string} state - Photo state ("N" = NEW/temporary, "P" = PERSISTED/permanent)
  * @returns {Promise<boolean>} True if user has access, false otherwise
  */
 async function checkPhotoAccess(photoId, userId, state) {
   if (state === "N") {
-    // For temporary photos, check session ownership
+    // For temporary photos (NEW state), check session ownership
     // This will be handled by the frontend session state
     return true;
   } else {
@@ -51,7 +51,7 @@ router.post(
         const result = await photoService.saveToTemp(file);
         return {
           id: result.id,
-          state: "N", // New photo
+          state: "N", // NEW photo state (temporary storage)
         };
       });
 
@@ -74,7 +74,9 @@ router.get("/retrieve/:id", authenticateToken, async (req, res, next) => {
   if (!state || !["N", "P"].includes(state)) {
     return res
       .status(400)
-      .json({ error: "Invalid state parameter. Must be N or P." });
+      .json({
+        error: "Invalid state parameter. Must be N (NEW) or P (PERSISTED).",
+      });
   }
 
   try {

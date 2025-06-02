@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useToast } from "@chakra-ui/react";
 import memoryService from "../services/memoryService";
 import { PhotoElement } from "../components/canvas/elements";
+import { ELEMENT_STATES } from "../constants";
 
 // Helper function to format bytes
 const formatBytes = (bytes, decimals = 2) => {
@@ -161,7 +162,10 @@ export const useUploadManager = ({
               try {
                 const newPhotoElements = await Promise.all(
                   progress.responseData.map(async (photo) => {
-                    const blob = await memoryService.getPhoto(photo.id, "N");
+                    const blob = await memoryService.getPhoto(
+                      photo.id,
+                      ELEMENT_STATES.NEW
+                    );
                     const objectURL = URL.createObjectURL(blob);
 
                     return new Promise((resolve) => {
@@ -170,7 +174,7 @@ export const useUploadManager = ({
                       img.src = objectURL;
                       img.onload = () => {
                         // Store element state
-                        elementStates.current[photo.id] = "N";
+                        elementStates.current[photo.id] = ELEMENT_STATES.NEW;
 
                         // Calculate photo position based on canvas configuration
                         let photoX = 200;

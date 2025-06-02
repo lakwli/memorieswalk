@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { createCanvasElement } from "../components/canvas/elements/elementFactory.js";
+import { ELEMENT_STATES } from "../constants";
 
 export const useCanvasElements = () => {
   const [elements, setElements] = useState([]);
@@ -9,6 +10,10 @@ export const useCanvasElements = () => {
   // Add element
   const addElement = useCallback((type, props = {}) => {
     const newElement = createCanvasElement(type, props);
+
+    // ALL elements MUST have state - assign NEW state to every new element
+    elementStates.current[newElement.id] = ELEMENT_STATES.NEW;
+
     setElements((prev) => [...prev, newElement]);
     return newElement;
   }, []);
@@ -30,11 +35,11 @@ export const useCanvasElements = () => {
 
       // Handle element state for photo deletion
       const currentState = elementStates.current[elementId];
-      if (currentState === "P") {
-        // Mark persistent photos as removed for database deletion
-        elementStates.current[elementId] = "R";
+      if (currentState === ELEMENT_STATES.PERSISTED) {
+        // Mark persistent elements as removed for database deletion
+        elementStates.current[elementId] = ELEMENT_STATES.REMOVED;
       } else {
-        // For new photos ("N") or other elements, just remove the state
+        // For new elements or other elements, just remove the state
         delete elementStates.current[elementId];
       }
     },

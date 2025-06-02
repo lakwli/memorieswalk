@@ -58,7 +58,7 @@ import {
 } from "../hooks";
 import { PhotoElement, TextElement } from "../components/canvas/elements";
 import { ElementRenderer } from "../components/canvas/renderers";
-import { ELEMENT_TYPES } from "../constants";
+import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
@@ -252,12 +252,20 @@ const MemoryEditorPage = () => {
             data.photos.map(async (photo) => {
               try {
                 let blob;
-                let photoState = "P";
+                let photoState = ELEMENT_STATES.PERSISTED;
                 try {
-                  blob = await memoryService.getPhoto(photo.id, "P");
+                  // Try to load as persisted photo first
+                  blob = await memoryService.getPhoto(
+                    photo.id,
+                    ELEMENT_STATES.PERSISTED
+                  );
                 } catch {
-                  blob = await memoryService.getPhoto(photo.id, "N");
-                  photoState = "N";
+                  // Fallback to temporary photo
+                  blob = await memoryService.getPhoto(
+                    photo.id,
+                    ELEMENT_STATES.NEW
+                  );
+                  photoState = ELEMENT_STATES.NEW;
                 }
 
                 elementStates.current[photo.id] = photoState;
@@ -312,15 +320,19 @@ const MemoryEditorPage = () => {
 
         // Load texts as TextElements
         if (data.canvas_config?.texts) {
-          const textElements = data.canvas_config.texts.map(
-            (text) =>
-              new TextElement({
-                ...text,
-                id: String(
-                  text.id || `text-${Math.random().toString(36).substr(2, 9)}`
-                ),
-              })
-          );
+          const textElements = data.canvas_config.texts.map((text) => {
+            const textElement = new TextElement({
+              ...text,
+              id: String(
+                text.id || `text-${Math.random().toString(36).substr(2, 9)}`
+              ),
+            });
+
+            // ALL elements MUST have state - assign PERSISTED to loaded text elements
+            elementStates.current[textElement.id] = ELEMENT_STATES.PERSISTED;
+
+            return textElement;
+          });
           loadedElements.push(...textElements);
         }
 
@@ -381,14 +393,17 @@ const MemoryEditorPage = () => {
 
       // Update element states after successful save
       const updatedElementStates = { ...elementStates.current };
-      photoElements.forEach((photo) => {
-        if (updatedElementStates[photo.id] === "N") {
-          updatedElementStates[photo.id] = "P";
+
+      // Apply state transitions to ALL elements (all elements have states)
+      Object.keys(updatedElementStates).forEach((elementId) => {
+        if (updatedElementStates[elementId] === ELEMENT_STATES.NEW) {
+          updatedElementStates[elementId] = ELEMENT_STATES.PERSISTED;
         }
-        if (updatedElementStates[photo.id] === "R") {
-          delete updatedElementStates[photo.id];
+        if (updatedElementStates[elementId] === ELEMENT_STATES.REMOVED) {
+          delete updatedElementStates[elementId];
         }
       });
+
       elementStates.current = updatedElementStates;
 
       // Refresh memory metadata
