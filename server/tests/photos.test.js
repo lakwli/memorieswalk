@@ -4,15 +4,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import app from "../index.js";
 import { pool } from "../db.js";
+import { ELEMENT_STATES } from "../constants/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
  * Photo State Values Used in Tests:
- * "N" = NEW (temporary storage)
- * "P" = PERSISTED (permanent storage)
- * "R" = REMOVED (marked for deletion)
+ * ELEMENT_STATES.NEW = "N" (temporary storage)
+ * ELEMENT_STATES.PERSISTED = "P" (permanent storage) 
+ * ELEMENT_STATES.REMOVED = "R" (marked for deletion)
  */
 
 describe("Photo Management", () => {
@@ -77,14 +78,14 @@ describe("Photo Management", () => {
       expect(response.status).toBe(201);
       expect(response.body).toBeInstanceOf(Array);
       expect(response.body[0]).toHaveProperty("id");
-      expect(response.body[0]).toHaveProperty("state", "N");
+      expect(response.body[0]).toHaveProperty("state", ELEMENT_STATES.NEW);
 
       uploadedPhotoId = response.body[0].id;
     });
 
     it("should retrieve a temporary photo", async () => {
       const response = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=N`)
+        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.NEW}`)
         .set("Authorization", `Bearer ${authToken}`)
         .expect("Content-Type", /image/);
 
@@ -99,7 +100,7 @@ describe("Photo Management", () => {
           title: "Updated Memory",
           description: "Updated Description",
           canvas: {},
-          photos: [{ id: uploadedPhotoId, state: "N" }],
+          photos: [{ id: uploadedPhotoId, state: ELEMENT_STATES.NEW }],
         });
 
       expect(response.status).toBe(200);
@@ -109,7 +110,7 @@ describe("Photo Management", () => {
 
     it("should retrieve saved photo as permanent", async () => {
       const response = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=P`)
+        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
         .set("Authorization", `Bearer ${authToken}`)
         .expect("Content-Type", /image/);
 
@@ -124,7 +125,7 @@ describe("Photo Management", () => {
           title: "Updated Memory",
           description: "Updated Description",
           canvas: {},
-          photos: [{ id: uploadedPhotoId, state: "R" }],
+          photos: [{ id: uploadedPhotoId, state: ELEMENT_STATES.REMOVED }],
         });
 
       expect(response.status).toBe(200);
@@ -132,7 +133,7 @@ describe("Photo Management", () => {
 
       // Verify photo is no longer accessible
       const photoResponse = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=P`)
+        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(photoResponse.status).toBe(404);
@@ -171,7 +172,7 @@ describe("Photo Management", () => {
 
     it("should prevent other users from accessing temporary photos", async () => {
       const response = await request(app)
-        .get(`/api/photos/retrieve/${tempPhotoId}?state=N`)
+        .get(`/api/photos/retrieve/${tempPhotoId}?state=${ELEMENT_STATES.NEW}`)
         .set("Authorization", `Bearer ${otherUserToken}`);
 
       expect(response.status).toBe(403);
@@ -186,12 +187,12 @@ describe("Photo Management", () => {
           title: "Test Memory",
           description: "Test Description",
           canvas: {},
-          photos: [{ id: tempPhotoId, state: "N" }],
+          photos: [{ id: tempPhotoId, state: ELEMENT_STATES.NEW }],
         });
 
       // Try to access with other user
       const response = await request(app)
-        .get(`/api/photos/retrieve/${tempPhotoId}?state=P`)
+        .get(`/api/photos/retrieve/${tempPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
         .set("Authorization", `Bearer ${otherUserToken}`);
 
       expect(response.status).toBe(403);

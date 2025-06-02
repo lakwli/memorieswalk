@@ -330,8 +330,6 @@ const MemoryEditorPage = () => {
 
             // ALL elements MUST have state - assign PERSISTED to loaded text elements
             elementStates.current[textElement.id] = ELEMENT_STATES.PERSISTED;
-
-            return textElement;
           });
           loadedElements.push(...textElements);
         }

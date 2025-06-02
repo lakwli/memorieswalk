@@ -3,6 +3,7 @@ import { authenticateToken } from "../middleware/auth.js";
 import upload from "../middleware/upload.js";
 import photoService from "../services/photoService.js";
 import { pool } from "../db.js";
+import { ELEMENT_STATES } from "../constants/index.js";
 
 const router = express.Router();
 
@@ -10,11 +11,11 @@ const router = express.Router();
  * Check if user has access to the photo
  * @param {string} photoId - Photo ID to check
  * @param {string} userId - User ID to verify against
- * @param {string} state - Photo state ("N" = NEW/temporary, "P" = PERSISTED/permanent)
+ * @param {string} state - Photo state (ELEMENT_STATES.NEW for temporary, ELEMENT_STATES.PERSISTED for permanent)
  * @returns {Promise<boolean>} True if user has access, false otherwise
  */
 async function checkPhotoAccess(photoId, userId, state) {
-  if (state === "N") {
+  if (state === ELEMENT_STATES.NEW) {
     // For temporary photos (NEW state), check session ownership
     // This will be handled by the frontend session state
     return true;
@@ -51,7 +52,7 @@ router.post(
         const result = await photoService.saveToTemp(file);
         return {
           id: result.id,
-          state: "N", // NEW photo state (temporary storage)
+          state: ELEMENT_STATES.NEW, // NEW photo state (temporary storage)
         };
       });
 
@@ -71,7 +72,7 @@ router.get("/retrieve/:id", authenticateToken, async (req, res, next) => {
   const { id } = req.params;
   const { state } = req.query;
 
-  if (!state || !["N", "P"].includes(state)) {
+  if (!state || ![ELEMENT_STATES.NEW, ELEMENT_STATES.PERSISTED].includes(state)) {
     return res
       .status(400)
       .json({

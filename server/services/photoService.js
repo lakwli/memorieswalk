@@ -3,6 +3,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { processImage, deleteFileAndEmptyParent } from "../utils/fileUtils.js";
 import { FILE_STORAGE_CONFIG } from "../config.js";
+import { ELEMENT_STATES } from "../constants/index.js";
 
 const { TEMP_PHOTOS_DIR, PERMANENT_PHOTOS_DIR } = FILE_STORAGE_CONFIG;
 
@@ -44,14 +45,14 @@ async function saveToTemp(file) {
 /**
  * Retrieves a photo file based on its state
  * @param {string} photoId - The photo ID
- * @param {string} state - The photo state ("N" = NEW/temporary, "P" = PERSISTED/permanent)
+ * @param {string} state - The photo state (ELEMENT_STATES.NEW for temporary, ELEMENT_STATES.PERSISTED for permanent)
  * @returns {Promise<{path: string, mimeType: string}>}
  */
 async function retrievePhoto(photoId, state) {
   const firstPartOfUuid = photoId.split("-")[0];
   const fileName = `${photoId}.webp`;
 
-  const baseDir = state === "N" ? TEMP_PHOTOS_DIR : PERMANENT_PHOTOS_DIR;
+  const baseDir = state === ELEMENT_STATES.NEW ? TEMP_PHOTOS_DIR : PERMANENT_PHOTOS_DIR;
   const filePath = path.join(baseDir, firstPartOfUuid, fileName);
 
   if (!(await fs.pathExists(filePath))) {

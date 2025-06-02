@@ -2,6 +2,7 @@ import express from "express";
 import { authenticateToken } from "../middleware/auth.js";
 import { pool } from "../db.js";
 import photoService from "../services/photoService.js";
+import { ELEMENT_STATES } from "../constants/index.js";
 
 const router = express.Router();
 
@@ -124,7 +125,7 @@ router.get("/:id", authenticateToken, async (req, res, next) => {
       originalWidth: photo.width,
       originalHeight: photo.height,
       size: photo.size_bytes,
-      state: "P", // Mark as permanent since they're from the database
+      state: ELEMENT_STATES.PERSISTED, // Mark as permanent since they're from the database
     }));
 
     await client.query("COMMIT");
@@ -232,7 +233,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       });
 
       // Handle new photos (N) - look up state in photoStates object by photo ID
-      const newPhotos = photos.filter((p) => photoStates[p.id] === "N");
+      const newPhotos = photos.filter((p) => photoStates[p.id] === ELEMENT_STATES.NEW);
       console.log("New photos to process:", {
         count: newPhotos.length,
         ids: newPhotos.map((p) => p.id),
@@ -296,7 +297,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
 
       // Handle removed photos (R) - look up state in photoStates object by photo ID
       const removedPhotoIds = Object.entries(photoStates)
-        .filter(([, state]) => state === "R")
+        .filter(([, state]) => state === ELEMENT_STATES.REMOVED)
         .map(([id]) => id);
 
       console.log("Removed photos to process:", {
@@ -398,7 +399,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       originalWidth: photo.width,
       originalHeight: photo.height,
       size: photo.size_bytes,
-      state: "P", // Mark as permanent since they're from the database
+      state: ELEMENT_STATES.PERSISTED, // Mark as permanent since they're from the database
     }));
 
     res.json(memory);
