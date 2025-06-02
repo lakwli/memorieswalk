@@ -55,10 +55,11 @@ import {
   useElementBehaviors,
   useCanvasNavigation,
   useUploadManager,
+  useCanvasTools,
 } from "../hooks";
-import { PhotoElement, TextElement } from "../components/canvas/elements";
+import { TextElement } from "../components/canvas/elements";
 import { ElementRenderer } from "../components/canvas/renderers";
-import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
+import { ELEMENT_TYPES, ELEMENT_STATES, TOOL_MODES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
@@ -138,6 +139,21 @@ const MemoryEditorPage = () => {
     activeTool: activeTool,
   });
 
+  // Canvas Tools hook - Initialize BEFORE Upload Manager to provide canvas config
+  const canvasToolsConfig = {
+    stageRef: konvaStageRef,
+    stageScale,
+    stagePosition,
+  };
+
+  const {
+    handleToolStageClick,
+    addTextAtCenter,
+    handleTextDrop,
+    getToolCursorStyle,
+    getTool,
+  } = useCanvasTools(canvasToolsConfig);
+
   // Upload Manager hook
   const {
     isUploading,
@@ -180,27 +196,27 @@ const MemoryEditorPage = () => {
     }
   }, [selectedElement]);
 
-  // Cursor management based on current tool
+  // Cursor management based on current tool - now uses tool system
   useEffect(() => {
     if (stageContainerRef.current) {
-      if (activeTool === "text") {
-        stageContainerRef.current.style.cursor = "text";
+      if (activeTool === ELEMENT_TYPES.TEXT) {
+        stageContainerRef.current.style.cursor = getToolCursorStyle();
       } else {
         // Default cursor for empty space should be "grab" (hand) to indicate draggable canvas
-        // When spacebar is held (activeTool === "pan"), it becomes "grab"
+        // When spacebar is held (activeTool === TOOL_MODES.PAN), it becomes "grab"
         stageContainerRef.current.style.cursor = "grab";
       }
     }
-  }, [activeTool]);
+  }, [activeTool, getToolCursorStyle]);
 
   // Keyboard event handling for tool switching
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === " " && !editingTitle) {
         e.preventDefault();
-        if (activeTool !== "pan") {
+        if (activeTool !== TOOL_MODES.PAN) {
           console.log("Setting activeTool to 'pan'");
-          setActiveTool("pan");
+          setActiveTool(TOOL_MODES.PAN);
         }
       }
     };
@@ -279,28 +295,14 @@ const MemoryEditorPage = () => {
                   img.onload = () => {
                     const photoConfig = photoConfigMap[photo.id] || {};
 
-                    // Use saved position if available, otherwise use fixed fallback position
-                    const fallbackPosition = { x: 100, y: 100 };
-
-                    const photoElement = new PhotoElement({
-                      ...photo,
-                      image: img,
-                      objectURL,
-                      x:
-                        photoConfig.x !== undefined
-                          ? photoConfig.x
-                          : fallbackPosition.x,
-                      y:
-                        photoConfig.y !== undefined
-                          ? photoConfig.y
-                          : fallbackPosition.y,
-                      width: photoConfig.width || img.naturalWidth / 4,
-                      height: photoConfig.height || img.naturalHeight / 4,
-                      rotation: photoConfig.rotation || 0,
-                      originalWidth: photo.originalWidth || img.naturalWidth,
-                      originalHeight: photo.originalHeight || img.naturalHeight,
-                      size: photo.size || 0,
-                    });
+                    // Use PhotoTool to create the photo element
+                    const photoTool = getTool(ELEMENT_TYPES.PHOTO);
+                    const photoElement = photoTool.createPhotoElementFromData(
+                      photo,
+                      photoConfig,
+                      img,
+                      objectURL
+                    );
                     resolve(photoElement);
                   };
                   img.onerror = () => {
@@ -359,7 +361,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, [id, toast, setElements, elementStates]);
+  }, [id, toast, setElements, elementStates, getTool]);
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
@@ -443,82 +445,28 @@ const MemoryEditorPage = () => {
     elementStates,
   ]);
 
-  // Add text element function
+  // Add text element function - now uses tool system
   const addTextElement = useCallback(() => {
-    // Calculate visible viewport center for text positioning
-    const stage = konvaStageRef.current;
-    let textX = 200;
-    let textY = 200;
+    return addTextAtCenter(addElement, setSelectedElement);
+  }, [addTextAtCenter, addElement, setSelectedElement]);
 
-    if (stage) {
-      const stageWidth = stage.width();
-      const stageHeight = stage.height();
-      const currentScale = stageScale;
-      const currentPosition = stagePosition;
-
-      // Calculate center of current viewport in canvas coordinates
-      textX = (-currentPosition.x + stageWidth / 2) / currentScale;
-      textY = (-currentPosition.y + stageHeight / 2) / currentScale;
-    }
-
-    const textElement = addElement(ELEMENT_TYPES.TEXT, {
-      x: textX,
-      y: textY,
-      text: "New Text",
-      fontSize: 24,
-      fontFamily: "Arial",
-      fill: "#000000",
-    });
-    setSelectedElement(textElement);
-    setActiveTool(null);
-  }, [
-    addElement,
-    setSelectedElement,
-    stageScale,
-    stagePosition,
-    konvaStageRef,
-  ]);
-
-  // Handle stage click for adding text elements
+  // Handle stage click for adding text elements - now uses tool system
   const handleStageClick = useCallback(
     (e) => {
       // Don't handle clicks if we're in pan mode or just finished dragging
-      if (activeTool === "pan") return;
+      if (activeTool === TOOL_MODES.PAN) return;
 
       if (e.target === e.target.getStage()) {
-        if (activeTool === "text") {
-          const stage = konvaStageRef.current;
-          const pointer = stage.getPointerPosition();
-          if (!pointer) return;
-
-          // Convert screen coordinates to world coordinates
-          const worldX = (pointer.x - stagePosition.x) / stageScale;
-          const worldY = (pointer.y - stagePosition.y) / stageScale;
-
-          const newTextElement = addElement(ELEMENT_TYPES.TEXT, {
-            x: worldX,
-            y: worldY,
-            text: "New Text",
-            fontSize: 24,
-            fontFamily: "Arial",
-            fill: "#000000",
-          });
-          setSelectedElement(newTextElement);
-          setActiveTool(null);
+        if (activeTool === ELEMENT_TYPES.TEXT) {
+          // Use tool-based stage click handling
+          return handleToolStageClick(e, addElement, setSelectedElement);
         } else {
           // Clear selection when clicking on empty space
           setSelectedElement(null);
         }
       }
     },
-    [
-      activeTool,
-      addElement,
-      setSelectedElement,
-      stagePosition.x,
-      stagePosition.y,
-      stageScale,
-    ]
+    [activeTool, handleToolStageClick, addElement, setSelectedElement]
   );
 
   // Update canvas position and scale when initialViewState changes
@@ -844,8 +792,8 @@ const MemoryEditorPage = () => {
           aria-label="Add Text"
           icon={<MdTextFields />}
           onClick={addTextElement}
-          colorScheme={activeTool === "text" ? "blue" : "gray"}
-          variant={activeTool === "text" ? "solid" : "outline"}
+          colorScheme={activeTool === ELEMENT_TYPES.TEXT ? "blue" : "gray"}
+          variant={activeTool === ELEMENT_TYPES.TEXT ? "solid" : "outline"}
           mb={2}
         />
       </Tooltip>
@@ -959,26 +907,11 @@ const MemoryEditorPage = () => {
             onDrop={(e) => {
               e.preventDefault();
               if (
-                activeTool === "text" &&
+                activeTool === ELEMENT_TYPES.TEXT &&
                 e.dataTransfer.types.includes("text/plain")
               ) {
                 const droppedText = e.dataTransfer.getData("text/plain");
-                const stage = konvaStageRef.current;
-                const dropPosition = stage.getPointerPosition() || {
-                  x: 50,
-                  y: 50,
-                };
-
-                const newTextElement = addElement(ELEMENT_TYPES.TEXT, {
-                  x: dropPosition.x,
-                  y: dropPosition.y,
-                  text: droppedText,
-                  fontSize: 24,
-                  fontFamily: "Arial",
-                  fill: "#000000",
-                });
-                setSelectedElement(newTextElement);
-                setActiveTool(null);
+                handleTextDrop(droppedText, addElement, setSelectedElement);
               }
             }}
             onDragOver={(e) => e.preventDefault()}

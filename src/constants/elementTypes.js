@@ -4,3 +4,7 @@ export const ELEMENT_TYPES = {
   PEN: "pen",
   SHAPE: "shape",
 };
+
+export const TOOL_MODES = {
+  PAN: "pan",
+};
