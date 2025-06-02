@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRef } from "react";
 import {
   Box,
   Button,
@@ -13,13 +14,6 @@ import {
   useTheme,
   Flex,
   IconButton,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
   useDisclosure,
 } from "@chakra-ui/react";
 import { SearchIcon, AddIcon, DeleteIcon } from "@chakra-ui/icons";
@@ -27,6 +21,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import memoryService from "../services/memoryService";
 import ErrorBoundary from "../components/ErrorBoundary";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import PageLayout from "../layouts/PageLayout";
 
 const DashboardPage = () => {
@@ -39,6 +34,7 @@ const DashboardPage = () => {
   const theme = useTheme();
   const [hoveredMemoryId, setHoveredMemoryId] = useState(null);
   const [memoryToDelete, setMemoryToDelete] = useState(null);
+  const cancelRef = useRef();
   const {
     isOpen: isDeleteModalOpen,
     onOpen: onDeleteModalOpen,
@@ -304,32 +300,23 @@ const DashboardPage = () => {
       {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
 
       {memoryToDelete && (
-        <Modal
+        <ConfirmationDialog
           isOpen={isDeleteModalOpen}
           onClose={onDeleteModalClose}
-          isCentered
-        >
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Confirm Deletion</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Text>
-                Are you sure you want to delete the memory titled{" "}
-                <strong>{memoryToDelete.title}</strong>? This action cannot be
-                undone.
-              </Text>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onDeleteModalClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteMemory}>
-                Delete
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+          onConfirm={handleDeleteMemory}
+          title="Confirm Deletion"
+          message={
+            <>
+              Are you sure you want to delete the memory titled{" "}
+              <strong>{memoryToDelete.title}</strong>? This action cannot be
+              undone.
+            </>
+          }
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmColorScheme="red"
+          leastDestructiveRef={cancelRef}
+        />
       )}
     </PageLayout>
   );

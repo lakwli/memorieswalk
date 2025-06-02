@@ -83,10 +83,6 @@ const components = {
         color: "brand.500",
         _hover: { bg: "brand.50" },
       },
-      ghost: {
-        color: "gray.600",
-        _hover: { bg: "gray.100" },
-      },
       createCanvas: {
         bg: "brand.primary",
         color: "textColors.buttonLight",
@@ -109,6 +105,125 @@ const components = {
         fontSize: "14px",
         padding: "8px 16px",
         _hover: { bg: "gray.100" }, // Slight darken on hover
+      },
+
+      // === STANDARDIZED SEMANTIC VARIANTS ===
+      // These can be used across dialogs, forms, notifications, etc.
+
+      // Secondary/Cancel actions (low visual weight)
+      secondary: {
+        bg: "transparent",
+        color: "gray.700",
+        border: "1px solid",
+        borderColor: "gray.300",
+        _hover: {
+          bg: "gray.50",
+          borderColor: "gray.400",
+        },
+        _active: { bg: "gray.100" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(160, 174, 192, 0.3)",
+        },
+      },
+
+      // Alternative secondary style (even less visual weight)
+      ghost: {
+        bg: "transparent",
+        color: "gray.600",
+        _hover: {
+          bg: "gray.100",
+          color: "gray.700",
+        },
+        _active: { bg: "gray.150" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(160, 174, 192, 0.3)",
+        },
+      },
+
+      // Primary positive actions (confirmations, saves, submissions)
+      primary: {
+        bg: "brand.500",
+        color: "white",
+        _hover: { bg: "brand.600" },
+        _active: { bg: "brand.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(53, 120, 229, 0.3)",
+        },
+      },
+
+      // Danger/Error actions (delete, remove, cancel operations)
+      danger: {
+        bg: "red.500",
+        color: "white",
+        _hover: { bg: "red.600" },
+        _active: { bg: "red.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(245, 101, 101, 0.3)",
+        },
+      },
+
+      // Warning actions (proceed with caution)
+      warning: {
+        bg: "orange.500",
+        color: "white",
+        _hover: { bg: "orange.600" },
+        _active: { bg: "orange.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(251, 146, 60, 0.3)",
+        },
+      },
+
+      // Success actions (completed states, positive confirmations)
+      success: {
+        bg: "green.500",
+        color: "white",
+        _hover: { bg: "green.600" },
+        _active: { bg: "green.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(72, 187, 120, 0.3)",
+        },
+      },
+
+      // === CONTEXT-SPECIFIC VARIANTS ===
+      // These use the semantic variants above but with specific sizing/spacing
+
+      // Dialog buttons (consistent sizing for all dialogs)
+      dialogSecondary: {
+        bg: "transparent",
+        color: "gray.700",
+        border: "1px solid",
+        borderColor: "gray.300",
+        minW: "80px",
+        _hover: {
+          bg: "gray.50",
+          borderColor: "gray.400",
+        },
+        _active: { bg: "gray.100" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(160, 174, 192, 0.3)",
+        },
+      },
+
+      dialogPrimary: {
+        bg: "brand.500",
+        color: "white",
+        minW: "80px",
+        _hover: { bg: "brand.600" },
+        _active: { bg: "brand.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(53, 120, 229, 0.3)",
+        },
+      },
+
+      dialogDanger: {
+        bg: "red.500",
+        color: "white",
+        minW: "80px",
+        _hover: { bg: "red.600" },
+        _active: { bg: "red.700" },
+        _focus: {
+          boxShadow: "0 0 0 3px rgba(245, 101, 101, 0.3)",
+        },
       },
     },
     defaultProps: {

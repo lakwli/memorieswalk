@@ -23,12 +23,6 @@ import {
   MenuDivider,
   Tooltip,
   Avatar,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
   Progress,
 } from "@chakra-ui/react";
 import {
@@ -64,6 +58,7 @@ import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
 import ErrorBoundary from "../components/ErrorBoundary";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
@@ -974,61 +969,38 @@ const MemoryEditorPage = () => {
       />
 
       {/* Delete confirmation dialog */}
-      <AlertDialog
+      <ConfirmationDialog
         isOpen={isDeleteDialogOpen}
-        leastDestructiveRef={cancelRef}
         onClose={() => setIsDeleteDialogOpen(false)}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Memory
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to delete this memory? This cannot be
-              undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button
-                ref={cancelRef}
-                onClick={() => setIsDeleteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                colorScheme="red"
-                onClick={async () => {
-                  try {
-                    await memoryService.deleteMemory(id);
-                    toast({
-                      title: "Deleted",
-                      description: "Memory deleted successfully",
-                      status: "success",
-                      duration: 3000,
-                      isClosable: true,
-                    });
-                    navigate("/dashboard");
-                  } catch (err) {
-                    toast({
-                      title: "Error",
-                      description: `Failed to delete memory: ${err.message}`,
-                      status: "error",
-                      duration: 5000,
-                      isClosable: true,
-                    });
-                  }
-                  setIsDeleteDialogOpen(false);
-                }}
-                ml={3}
-              >
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+        onConfirm={async () => {
+          try {
+            await memoryService.deleteMemory(id);
+            toast({
+              title: "Deleted",
+              description: "Memory deleted successfully",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+            });
+            navigate("/dashboard");
+          } catch (err) {
+            toast({
+              title: "Error",
+              description: `Failed to delete memory: ${err.message}`,
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+          }
+          setIsDeleteDialogOpen(false);
+        }}
+        title="Delete Memory"
+        message="Are you sure you want to delete this memory? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColorScheme="red"
+        leastDestructiveRef={cancelRef}
+      />
     </ErrorBoundary>
   );
 };
