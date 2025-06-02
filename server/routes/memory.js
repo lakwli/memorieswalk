@@ -233,7 +233,9 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       });
 
       // Handle new photos (N) - look up state in photoStates object by photo ID
-      const newPhotos = photos.filter((p) => photoStates[p.id] === ELEMENT_STATES.NEW);
+      const newPhotos = photos.filter(
+        (p) => photoStates[p.id] === ELEMENT_STATES.NEW
+      );
       console.log("New photos to process:", {
         count: newPhotos.length,
         ids: newPhotos.map((p) => p.id),

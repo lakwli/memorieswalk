@@ -72,12 +72,13 @@ router.get("/retrieve/:id", authenticateToken, async (req, res, next) => {
   const { id } = req.params;
   const { state } = req.query;
 
-  if (!state || ![ELEMENT_STATES.NEW, ELEMENT_STATES.PERSISTED].includes(state)) {
-    return res
-      .status(400)
-      .json({
-        error: "Invalid state parameter. Must be N (NEW) or P (PERSISTED).",
-      });
+  if (
+    !state ||
+    ![ELEMENT_STATES.NEW, ELEMENT_STATES.PERSISTED].includes(state)
+  ) {
+    return res.status(400).json({
+      error: "Invalid state parameter. Must be N (NEW) or P (PERSISTED).",
+    });
   }
 
   try {

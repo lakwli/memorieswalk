@@ -1,9 +1,9 @@
 /**
  * Element State Constants
- * 
+ *
  * These constants define the lifecycle states of elements in the system.
  * Used by both frontend and backend for consistency.
- * 
+ *
  * Note: These should match the frontend constants exactly.
  */
 

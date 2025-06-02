@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 /**
  * Photo State Values Used in Tests:
  * ELEMENT_STATES.NEW = "N" (temporary storage)
- * ELEMENT_STATES.PERSISTED = "P" (permanent storage) 
+ * ELEMENT_STATES.PERSISTED = "P" (permanent storage)
  * ELEMENT_STATES.REMOVED = "R" (marked for deletion)
  */
 
@@ -85,7 +85,9 @@ describe("Photo Management", () => {
 
     it("should retrieve a temporary photo", async () => {
       const response = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.NEW}`)
+        .get(
+          `/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.NEW}`
+        )
         .set("Authorization", `Bearer ${authToken}`)
         .expect("Content-Type", /image/);
 
@@ -110,7 +112,9 @@ describe("Photo Management", () => {
 
     it("should retrieve saved photo as permanent", async () => {
       const response = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
+        .get(
+          `/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`
+        )
         .set("Authorization", `Bearer ${authToken}`)
         .expect("Content-Type", /image/);
 
@@ -133,7 +137,9 @@ describe("Photo Management", () => {
 
       // Verify photo is no longer accessible
       const photoResponse = await request(app)
-        .get(`/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
+        .get(
+          `/api/photos/retrieve/${uploadedPhotoId}?state=${ELEMENT_STATES.PERSISTED}`
+        )
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(photoResponse.status).toBe(404);
@@ -192,7 +198,9 @@ describe("Photo Management", () => {
 
       // Try to access with other user
       const response = await request(app)
-        .get(`/api/photos/retrieve/${tempPhotoId}?state=${ELEMENT_STATES.PERSISTED}`)
+        .get(
+          `/api/photos/retrieve/${tempPhotoId}?state=${ELEMENT_STATES.PERSISTED}`
+        )
         .set("Authorization", `Bearer ${otherUserToken}`);
 
       expect(response.status).toBe(403);

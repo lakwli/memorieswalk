@@ -52,7 +52,8 @@ async function retrievePhoto(photoId, state) {
   const firstPartOfUuid = photoId.split("-")[0];
   const fileName = `${photoId}.webp`;
 
-  const baseDir = state === ELEMENT_STATES.NEW ? TEMP_PHOTOS_DIR : PERMANENT_PHOTOS_DIR;
+  const baseDir =
+    state === ELEMENT_STATES.NEW ? TEMP_PHOTOS_DIR : PERMANENT_PHOTOS_DIR;
   const filePath = path.join(baseDir, firstPartOfUuid, fileName);
 
   if (!(await fs.pathExists(filePath))) {
