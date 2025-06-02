@@ -54,6 +54,7 @@ import {
   useCanvasElements,
   useElementBehaviors,
   useCanvasNavigation,
+  useUploadManager,
 } from "../hooks";
 import { PhotoElement, TextElement } from "../components/canvas/elements";
 import { ElementRenderer } from "../components/canvas/renderers";
@@ -62,16 +63,6 @@ import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
 import ErrorBoundary from "../components/ErrorBoundary";
-
-// Helper function to format bytes
-const formatBytes = (bytes, decimals = 2) => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-};
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
@@ -111,15 +102,8 @@ const MemoryEditorPage = () => {
   const [activeTool, setActiveTool] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Upload progress state
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState("");
-  const [currentProgress, setCurrentProgress] = useState(0);
-  const [currentPhase, setCurrentPhase] = useState("");
-
   // Refs...
   const konvaStageRef = useRef(null);
-  const fileInputRef = useRef(null);
   const trRef = useRef(null);
   const cancelRef = useRef();
   const stageContainerRef = useRef(null);
@@ -152,6 +136,32 @@ const MemoryEditorPage = () => {
     initialScale: initialViewState.scale,
     initialPosition: initialViewState.position,
     activeTool: activeTool,
+  });
+
+  // Upload Manager hook
+  const {
+    isUploading,
+    uploadStatus,
+    currentProgress,
+    currentPhase,
+    handleFileUpload,
+    triggerPhotoUpload,
+    fileInputRef,
+  } = useUploadManager({
+    onPhotoAdded: (photoElements) => {
+      setElements((prev) => [...prev, ...photoElements]);
+      setSelectedElement(null);
+    },
+    onUploadStateChange: (state) => {
+      // Optional: handle upload state changes if needed
+      console.log("Upload state changed:", state);
+    },
+    canvasConfig: {
+      stageRef: konvaStageRef,
+      stageScale,
+      stagePosition,
+    },
+    elementStates,
   });
 
   // Update transformer when selection changes
@@ -211,246 +221,6 @@ const MemoryEditorPage = () => {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [editingTitle, activeTool]);
-
-  // Refactored file upload handler
-  const handleFileUpload = useCallback(
-    async (e) => {
-      const filesArray = Array.from(e.target.files);
-      if (!filesArray || filesArray.length === 0) return;
-
-      setIsUploading(true);
-      setCurrentPhase("compressing");
-      const firstFile = filesArray[0];
-      setUploadStatus(`Preparing ${firstFile.name}...`);
-      setCurrentProgress(0);
-
-      const onProgressCallback = (progress) => {
-        console.log("Upload Progress:", progress);
-
-        switch (progress.type) {
-          case "compression_start": {
-            setCurrentPhase("compressing");
-            const compressingFileName =
-              progress.fileName ||
-              (filesArray.length > 0 ? filesArray[0].name : "file");
-            setUploadStatus(`Compressing ${compressingFileName}...`);
-            setCurrentProgress(
-              filesArray.length > 1
-                ? (progress.fileIndex / progress.totalFiles) * 100
-                : 50
-            );
-            break;
-          }
-
-          case "compression_end": {
-            setCurrentPhase("compressing");
-            const compressedFileName =
-              progress.fileName ||
-              (filesArray.length > 0 ? filesArray[0].name : "file");
-            const originalSizeFormatted = formatBytes(progress.originalSize);
-            const processedSizeFormatted = formatBytes(progress.processedSize);
-            setUploadStatus(
-              `Compressed ${compressedFileName}: ${originalSizeFormatted} → ${processedSizeFormatted}`
-            );
-            setCurrentProgress(
-              filesArray.length > 1
-                ? ((progress.fileIndex + 1) / progress.totalFiles) * 100
-                : 100
-            );
-            break;
-          }
-
-          case "all_files_processed":
-            // All files compressed, preparing for upload
-            break;
-
-          case "upload_start":
-            setCurrentPhase("uploading");
-            setUploadStatus(
-              `Uploading (${formatBytes(progress.totalSizeToUpload)})...`
-            );
-            setCurrentProgress(0);
-            break;
-
-          case "upload_complete": {
-            setCurrentPhase("loading_to_canvas");
-            setUploadStatus("Processing...");
-            setCurrentProgress(50);
-
-            (async () => {
-              try {
-                const newPhotoElements = await Promise.all(
-                  progress.responseData.map(async (photo) => {
-                    const blob = await memoryService.getPhoto(photo.id, "N");
-                    const objectURL = URL.createObjectURL(blob);
-
-                    return new Promise((resolve) => {
-                      const img = new window.Image();
-                      img.crossOrigin = "anonymous";
-                      img.src = objectURL;
-                      img.onload = () => {
-                        // Store element state
-                        elementStates.current[photo.id] = "N";
-
-                        // Calculate visible viewport center for photo positioning
-                        const stage = konvaStageRef.current;
-                        let photoX = 200;
-                        let photoY = 200;
-
-                        if (stage) {
-                          const stageWidth = stage.width();
-                          const stageHeight = stage.height();
-                          const currentScale = stageScale;
-                          const currentPosition = stagePosition;
-
-                          // Calculate center of current viewport in canvas coordinates
-                          photoX =
-                            (-currentPosition.x + stageWidth / 2) /
-                            currentScale;
-                          photoY =
-                            (-currentPosition.y + stageHeight / 2) /
-                            currentScale;
-
-                          // Offset slightly to avoid overlapping photos
-                          photoX -= img.naturalWidth / 4 / 2;
-                          photoY -= img.naturalHeight / 4 / 2;
-                        }
-
-                        // Create PhotoElement with viewport-centered position
-                        const photoElement = new PhotoElement({
-                          ...photo,
-                          image: img,
-                          objectURL,
-                          x: photoX,
-                          y: photoY,
-                          width: img.naturalWidth / 4,
-                          height: img.naturalHeight / 4,
-                          rotation: 0,
-                          originalWidth: img.naturalWidth,
-                          originalHeight: img.naturalHeight,
-                          size: blob.size,
-                        });
-
-                        resolve(photoElement);
-                      };
-                      img.onerror = () => {
-                        URL.revokeObjectURL(objectURL);
-                        resolve(null);
-                      };
-                    });
-                  })
-                );
-
-                // Add elements to the canvas
-                setElements((prev) => [
-                  ...prev,
-                  ...newPhotoElements.filter((p) => p !== null),
-                ]);
-                setSelectedElement(null);
-
-                setCurrentPhase("completed");
-                setUploadStatus("Photo added!");
-                setCurrentProgress(100);
-                toast({
-                  title: "Photo Added",
-                  description: "Successfully added to the canvas.",
-                  status: "success",
-                  duration: 2000,
-                  isClosable: true,
-                });
-              } catch (loadErr) {
-                console.error("Error processing uploaded photos:", loadErr);
-                setCurrentPhase("failed");
-                setUploadStatus("Error displaying photo.");
-                setCurrentProgress(100);
-                toast({
-                  title: "Error after upload",
-                  description:
-                    "Photo uploaded, but failed to display it on canvas.",
-                  status: "warning",
-                  duration: 4000,
-                  isClosable: true,
-                });
-              } finally {
-                setTimeout(
-                  () => {
-                    setIsUploading(false);
-                    setUploadStatus("");
-                    setCurrentProgress(0);
-                    setCurrentPhase("");
-                  },
-                  currentPhase === "failed" ? 4000 : 2000
-                );
-              }
-            })();
-            break;
-          }
-
-          case "upload_error":
-            setCurrentPhase("failed");
-            setUploadStatus(
-              `Upload error: ${progress.error.message.substring(0, 30)}...`
-            );
-            setCurrentProgress(100);
-            toast({
-              title: "Upload Error",
-              description: `Failed to upload photo(s): ${progress.error.message}`,
-              status: "error",
-              duration: 4000,
-              isClosable: true,
-            });
-            setTimeout(() => {
-              setIsUploading(false);
-              setUploadStatus("");
-              setCurrentProgress(0);
-              setCurrentPhase("");
-            }, 4000);
-            break;
-
-          default:
-            break;
-        }
-      };
-
-      try {
-        await memoryService.uploadPhotos(filesArray, onProgressCallback);
-      } catch (uploadErr) {
-        console.error("Upload error:", uploadErr);
-        setCurrentPhase("failed");
-        setUploadStatus(
-          `Upload failed: ${uploadErr.message.substring(0, 30)}...`
-        );
-        setCurrentProgress(100);
-        toast({
-          title: "Upload Error",
-          description: `Failed to upload photo: ${uploadErr.message}`,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadStatus("");
-          setCurrentProgress(0);
-          setCurrentPhase("");
-        }, 4000);
-      } finally {
-        if (e.target) {
-          e.target.value = "";
-        }
-      }
-    },
-    [
-      toast,
-      setElements,
-      setSelectedElement,
-      elementStates,
-      currentPhase,
-      stageScale,
-      stagePosition,
-      konvaStageRef,
-    ]
-  );
 
   // Load memory with new element system
   useEffect(() => {
@@ -846,10 +616,6 @@ const MemoryEditorPage = () => {
       setSaving(false);
     }
   }, [memory, title, toast]);
-
-  const triggerPhotoUpload = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleTitleSave = () => {
     if (title.trim() === "") {

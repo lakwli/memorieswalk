@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: "", // This enables relative paths
   server: {
-    host: true,
+    host: "0.0.0.0", // Explicitly bind to all interfaces for Docker
     port: 3001,
     watch: {
       usePolling: true,
