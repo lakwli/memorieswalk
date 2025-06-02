@@ -109,6 +109,7 @@ Since you're aiming for low-complexity with existing components:
 ## Screen
 
 a floating, context-sensitive toolbar near the textbox
+example: /workspace/docs/To-solution/textbox.jpg
 
 ## 💡 Final Design Tip
 
