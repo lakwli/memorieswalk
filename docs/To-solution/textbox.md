@@ -3,6 +3,13 @@
 You're building a focused, memory-sharing app with a canvas-based experience for personal storytelling through photos and annotations.
 Based on the requirement in/workspace/docs/To-solution/textbox.md, start with Core Features for Textbox (MVP-Level), left the Optional but Differentiating (Delightful Features) for later. Please refer to /workspace/docs/To-solution/textboxcode.txt as example code. and please check the /workspace/src/components/canvas on textbox element, renderer, and tool, and also check the /workspace/src/pages/MemoryEditorPage.jsx as the main control of the memory editor page to adding textbox into canvas, and /workspace/src/services/memoryService.js responsible to call the backend for saving, and /workspace/server/routes/memory.js for saving into DB, and /workspace/database/schema.sql for db schema. Please advise your overall plan for the changes.
 
+THere is already a button exist for add text. please use this.
+
+current issue:
+The the toolbar hide the textbox
+the changing font will lost the focus of text, rather than changing on the fly
+cannot save.
+
 ---
 
 ## ✅ **Core Features for Textbox (MVP-Level)**

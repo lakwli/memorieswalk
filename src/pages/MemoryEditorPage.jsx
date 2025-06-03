@@ -42,6 +42,7 @@ import {
   AttachmentIcon,
   DeleteIcon,
 } from "@chakra-ui/icons";
+import TextToolUI from "../components/canvas/TextToolUI";
 
 // Import our new element system
 import {
@@ -955,6 +956,17 @@ const MemoryEditorPage = () => {
                 />
               </Layer>
             </Stage>
+
+            {/* Text Properties UI - Show when text element is selected */}
+            {selectedElement?.type === ELEMENT_TYPES.TEXT && (
+              <TextToolUI
+                selectedElement={selectedElement}
+                updateElement={(updatedElement) =>
+                  updateElement(selectedElement.id, updatedElement)
+                }
+                stageRef={konvaStageRef}
+              />
+            )}
           </Box>
         </Flex>
       </Flex>

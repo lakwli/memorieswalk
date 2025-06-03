@@ -12,9 +12,46 @@ export class TextTool {
       fontWeight: "normal",
       fontStyle: "normal",
       textDecoration: "",
-      align: "left",
-      verticalAlign: "top",
+      align: "center",
+      verticalAlign: "middle",
+      width: 200,
+      height: 60,
+      padding: 10,
+      backgroundColor: "",
+      backgroundShape: "none", // none, rectangle, rounded, cloud, speech
+      borderColor: "",
+      borderWidth: 0,
     };
+
+    // Available font families for the text tool
+    this.availableFontFamilies = [
+      { name: "Arial", type: "Sans-serif" },
+      { name: "Georgia", type: "Serif" },
+      { name: "Comic Sans MS", type: "Handwritten" },
+      { name: "Verdana", type: "Sans-serif" },
+      { name: "Times New Roman", type: "Serif" },
+    ];
+
+    // Available colors for the text tool
+    this.availableColors = [
+      "#000000", // Black
+      "#FFFFFF", // White
+      "#FF0000", // Red
+      "#00FF00", // Green
+      "#0000FF", // Blue
+      "#FFFF00", // Yellow
+      "#FF00FF", // Magenta
+      "#00FFFF", // Cyan
+    ];
+
+    // Available background shapes for the text tool
+    this.availableBackgroundShapes = [
+      "none",
+      "rectangle",
+      "rounded",
+      "cloud",
+      "speech",
+    ];
   }
 
   /**
