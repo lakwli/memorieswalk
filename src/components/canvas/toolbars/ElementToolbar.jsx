@@ -40,11 +40,11 @@ export const ElementToolbar = ({
 
     // Get stage container position in the viewport
     const stageContainer = stage.container().getBoundingClientRect();
-    
+
     // For rotated elements, we need to calculate the bounding box
     // Use the client rect to get the actual visual bounds regardless of rotation
     const nodeClientRect = node.getClientRect();
-    
+
     // getClientRect() already returns coordinates relative to the stage container
     // We just need to offset by the stage container's position in the viewport
     const elementScreenX = nodeClientRect.x + stageContainer.left;
@@ -59,7 +59,8 @@ export const ElementToolbar = ({
     const clearanceAbove = isEditing ? 60 : 80; // Less clearance in editing mode
 
     // Calculate preferred position (above element, centered)
-    let preferredLeft = elementScreenX + (elementScreenWidth / 2) - (toolbarWidth / 2);
+    let preferredLeft =
+      elementScreenX + elementScreenWidth / 2 - toolbarWidth / 2;
     let preferredTop = elementScreenY - toolbarHeight - clearanceAbove;
 
     // Viewport constraints
@@ -77,7 +78,7 @@ export const ElementToolbar = ({
     if (preferredTop < margin) {
       // If no space above, position below element
       constrainedTop = elementScreenY + elementScreenHeight + margin;
-      
+
       // If still no space below, position at top of viewport
       if (constrainedTop + toolbarHeight > viewportHeight - margin) {
         constrainedTop = margin;
