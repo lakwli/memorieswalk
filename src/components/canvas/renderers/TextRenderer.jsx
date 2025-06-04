@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import PropTypes from "prop-types";
-import { Text as KonvaText, Rect, Group, Path, Transformer } from "react-konva";
+import { Text as KonvaText, Rect, Group, Path } from "react-konva";
 
 // Helper function to generate cloud shape path
 const generateCloudPath = (width, height, padding = 10) => {
@@ -84,13 +84,12 @@ const generateSpeechBubblePath = (width, height, padding = 10) => {
 export const TextRenderer = ({
   element,
   behaviors,
-  isSelected,
-  onTransform,
   onUpdate,
+  onEditStart,
+  onEditEnd,
 }) => {
   const textRef = useRef();
   const groupRef = useRef();
-  const transformerRef = useRef();
   const [isEditing, setIsEditing] = useState(false);
 
   // Calculate actual width and height based on the text content
@@ -98,41 +97,14 @@ export const TextRenderer = ({
   const height = element.height || 60;
   const padding = element.padding || 10;
 
-  // Update transformer when selected
-  useEffect(() => {
-    if (isSelected && transformerRef.current && !isEditing) {
-      transformerRef.current.nodes([groupRef.current]);
-      transformerRef.current.getLayer().batchDraw();
-    }
-  }, [isSelected, isEditing]);
-
-  // Handle transform end
-  const handleTransformEnd = () => {
-    if (groupRef.current) {
-      const node = groupRef.current;
-      const scaleX = node.scaleX();
-      const scaleY = node.scaleY();
-
-      // Reset scale and apply new dimensions
-      node.scaleX(1);
-      node.scaleY(1);
-
-      if (onTransform) {
-        onTransform({
-          ...element,
-          x: node.x(),
-          y: node.y(),
-          width: width * scaleX,
-          height: height * scaleY,
-          rotation: node.rotation(),
-        });
-      }
-    }
-  };
-
   // Handle double-click to edit text
   const handleTextDblClick = (e) => {
     if (isEditing) return;
+    
+    // Notify parent that editing has started (this will trigger toolbar editing mode)
+    if (onEditStart) {
+      onEditStart();
+    }
 
     const stage = e.target.getStage();
     const textPosition = textRef.current.absolutePosition();
@@ -194,6 +166,11 @@ export const TextRenderer = ({
       setIsEditing(false);
       textRef.current.visible(true);
       stage.batchDraw();
+      
+      // Notify parent that editing has ended
+      if (onEditEnd) {
+        onEditEnd();
+      }
     };
 
     // Set event handlers
@@ -293,27 +270,6 @@ export const TextRenderer = ({
           textDecoration={element.textDecoration}
         />
       </Group>
-
-      {isSelected && !isEditing && (
-        <Transformer
-          ref={transformerRef}
-          boundBoxFunc={(oldBox, newBox) => {
-            // Minimum size for the text box
-            if (newBox.width < 30 || newBox.height < 20) {
-              return oldBox;
-            }
-            return newBox;
-          }}
-          onTransformEnd={handleTransformEnd}
-          rotateEnabled={true}
-          enabledAnchors={[
-            "top-left",
-            "top-right",
-            "bottom-left",
-            "bottom-right",
-          ]}
-        />
-      )}
     </React.Fragment>
   );
 };
@@ -349,7 +305,7 @@ TextRenderer.propTypes = {
     handleElementDragEnd: PropTypes.func.isRequired,
     handleElementClick: PropTypes.func.isRequired,
   }).isRequired,
-  isSelected: PropTypes.bool.isRequired,
-  onTransform: PropTypes.func,
   onUpdate: PropTypes.func,
+  onEditStart: PropTypes.func,
+  onEditEnd: PropTypes.func,
 };

@@ -7,8 +7,9 @@ import { PenRenderer } from "./PenRenderer.jsx";
 export const ElementRenderer = ({
   element,
   behaviors,
-  isSelected,
   onUpdate,
+  onEditStart,
+  onEditEnd,
 }) => {
   switch (element.type) {
     case ELEMENT_TYPES.PHOTO:
@@ -24,8 +25,9 @@ export const ElementRenderer = ({
         <TextRenderer
           element={element}
           behaviors={behaviors}
-          isSelected={isSelected}
           onUpdate={onUpdate}
+          onEditStart={onEditStart}
+          onEditEnd={onEditEnd}
         />
       );
     case ELEMENT_TYPES.PEN:
@@ -46,6 +48,7 @@ ElementRenderer.propTypes = {
     type: PropTypes.string.isRequired,
   }).isRequired,
   behaviors: PropTypes.object.isRequired,
-  isSelected: PropTypes.bool.isRequired,
   onUpdate: PropTypes.func,
+  onEditStart: PropTypes.func,
+  onEditEnd: PropTypes.func,
 };

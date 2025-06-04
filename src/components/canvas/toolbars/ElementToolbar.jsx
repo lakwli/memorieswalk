@@ -19,49 +19,76 @@ export const ElementToolbar = ({
   onDelete,
   onUpdate,
   stageRef,
-  stageBox,
 }) => {
   // Don't render if element is not selected
   if (!isSelected) {
     return null;
   }
 
-  // Calculate toolbar position based on element and stage
+  // Calculate toolbar position - zoom-independent, viewport-constrained
   const getToolbarPosition = () => {
     if (!stageRef?.current || !element) {
-      return { top: 0, left: 0 };
+      return { top: 100, left: 100 };
     }
 
     const stage = stageRef.current;
     const node = stage.findOne("#" + element.id);
 
     if (!node) {
-      return { top: 0, left: 0 };
+      return { top: 100, left: 100 };
     }
 
-    // Get the actual position and dimensions from the Konva node
+    // Get element position in canvas coordinates
     const nodePosition = node.getAbsolutePosition();
     const nodeWidth = node.width() || element.width || 100;
+    const nodeHeight = node.height() || element.height || 50;
 
-    // Convert node position to screen coordinates
+    // Get stage transformation and viewport info
     const scale = stage.scaleX();
-    const stageRect = stageBox || stage.container().getBoundingClientRect();
-    const screenX = nodePosition.x * scale + stageRect.left;
-    const screenY = nodePosition.y * scale + stageRect.top;
+    const stagePosition = stage.position();
+    const stageContainer = stage.container().getBoundingClientRect();
+    
+    // Convert element position to screen coordinates (viewport-relative)
+    const elementScreenX = (nodePosition.x * scale) + stagePosition.x + stageContainer.left;
+    const elementScreenY = (nodePosition.y * scale) + stagePosition.y + stageContainer.top;
+    const elementScreenWidth = nodeWidth * scale;
+    const elementScreenHeight = nodeHeight * scale;
 
-    // Position toolbar above the element with appropriate clearance
-    const toolbarHeight = 60; // Estimated toolbar height
-    const clearance = isEditing ? 80 : 120; // More clearance for selected mode (transformer handles)
+    // Toolbar configuration (zoom-independent sizes)
+    const toolbarWidth = 300;
+    const toolbarHeight = 50;
+    const margin = 20;
+    const clearanceAbove = isEditing ? 60 : 80; // Less clearance in editing mode
 
-    const newTop = screenY - toolbarHeight - clearance;
-    const newLeft = screenX + (nodeWidth * scale) / 2; // Center horizontally on the element
+    // Calculate preferred position (above element, centered)
+    let preferredLeft = elementScreenX + (elementScreenWidth / 2) - (toolbarWidth / 2);
+    let preferredTop = elementScreenY - toolbarHeight - clearanceAbove;
+
+    // Viewport constraints
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Constrain horizontal position
+    const constrainedLeft = Math.max(
+      margin,
+      Math.min(preferredLeft, viewportWidth - toolbarWidth - margin)
+    );
+
+    // Constrain vertical position with fallback to below element
+    let constrainedTop = preferredTop;
+    if (preferredTop < margin) {
+      // If no space above, position below element
+      constrainedTop = elementScreenY + elementScreenHeight + margin;
+      
+      // If still no space below, position at top of viewport
+      if (constrainedTop + toolbarHeight > viewportHeight - margin) {
+        constrainedTop = margin;
+      }
+    }
 
     return {
-      top: Math.max(stageRect.top + 10, newTop), // Ensure it's not offscreen at top
-      left: Math.max(
-        stageRect.left + 100,
-        Math.min(stageRect.right - 300, newLeft)
-      ), // Keep within stage bounds with margins
+      top: constrainedTop,
+      left: constrainedLeft,
     };
   };
 
@@ -69,10 +96,9 @@ export const ElementToolbar = ({
 
   return (
     <Box
-      position="absolute"
+      position="fixed" // Fixed to viewport, not affected by canvas zoom
       top={`${toolbarPosition.top}px`}
       left={`${toolbarPosition.left}px`}
-      transform="translateX(-50%)"
       zIndex={1000}
       bg="white"
       boxShadow="lg"
@@ -82,6 +108,8 @@ export const ElementToolbar = ({
       p={2}
       opacity={0.95}
       backdropFilter="blur(4px)"
+      minWidth="280px"
+      maxWidth="320px"
     >
       {isEditing ? (
         <EditingToolbar
@@ -115,5 +143,4 @@ ElementToolbar.propTypes = {
   onDelete: PropTypes.func.isRequired,
   onUpdate: PropTypes.func,
   stageRef: PropTypes.object,
-  stageBox: PropTypes.object,
 };

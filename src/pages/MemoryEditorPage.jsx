@@ -965,10 +965,11 @@ const MemoryEditorPage = () => {
                   <ElementRenderer
                     key={element.id}
                     element={element}
-                    isSelected={selectedElement?.id === element.id}
                     onSelect={() => setSelectedElement(element)}
                     onUpdate={(updates) => updateElement(element.id, updates)}
                     behaviors={elementBehaviors}
+                    onEditStart={() => handleElementEdit(element)}
+                    onEditEnd={() => handleElementFinishEdit()}
                   />
                 ))}
                 <Transformer
