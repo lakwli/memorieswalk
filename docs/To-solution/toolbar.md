@@ -214,6 +214,14 @@ interface ElementToolbarProps {
 - **Max width**: 800px to prevent oversized toolbars
 - **Z-index**: 1000 (above canvas elements, below modals)
 
+### Toolbar position
+
+Visual Bounding Box Positioning - Use post-transform visual bounds, not raw coordinates
+Fixed Orientation - Toolbar always horizontal regardless of element rotation
+Zoom Independence - Toolbar size constant, only position scales with zoom
+Transform Handle Awareness - Account for Konva transform control space
+Intelligent Fallbacks - Smart repositioning when primary position fails
+
 ### Button Styling
 
 - **Size**: Small (32px height) for compact appearance
@@ -349,15 +357,3 @@ This architecture provides a solid foundation for implementing a professional-gr
 
 - **Element Structure**: Each element type has a base class (BaseCanvasElement) and specific implementations
 - **Renderer Pattern\*\***: Each element type has its own renderer (TextRenderer, PhotoRenderer, etc.) that handles rendering logic
-
-### Current Selection/Editing States:
-
-Selection is handled by isSelected prop and shows DeleteButton + Transformer
-Text editing is handled separately in TextRenderer with double-click to edit
-TextToolUI provides editing controls that appear above text elements
-Current Issues:
-
-Delete button is rendered individually in each renderer
-No consistent toolbar system across element types
-Text editing UI is separate from selection UI
-PhotoRenderer has no editing capabilities
