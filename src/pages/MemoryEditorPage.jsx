@@ -100,7 +100,7 @@ const MemoryEditorPage = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
+
   // New state for tracking editing mode
   const [editingElement, setEditingElement] = useState(null);
 
@@ -461,20 +461,23 @@ const MemoryEditorPage = () => {
   }, []);
 
   // Handle element updates from toolbar
-  const handleElementToolbarUpdate = useCallback((elementId, updates) => {
-    updateElement(elementId, updates);
-  }, [updateElement]);
+  const handleElementToolbarUpdate = useCallback(
+    (elementId, updates) => {
+      updateElement(elementId, updates);
+    },
+    [updateElement]
+  );
 
   // Handle element layer changes
   const handleElementLayerChange = useCallback((elementId, direction) => {
     // TODO: Implement layer management
-    console.log('Layer change:', elementId, direction);
+    console.log("Layer change:", elementId, direction);
   }, []);
 
   // Handle element duplication
   const handleElementDuplicate = useCallback((elementId) => {
     // TODO: Implement element duplication
-    console.log('Duplicate element:', elementId);
+    console.log("Duplicate element:", elementId);
   }, []);
 
   // Handle stage click for adding text elements - now uses tool system

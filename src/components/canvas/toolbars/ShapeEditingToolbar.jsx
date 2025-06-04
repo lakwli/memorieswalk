@@ -21,7 +21,7 @@ import { MdCheck, MdColorLens, MdLineWeight } from "react-icons/md";
 
 /**
  * ShapeEditingToolbar - Editing controls for shape/pen elements
- * 
+ *
  * Provides shape-specific editing controls like stroke color, width, etc.
  */
 export const ShapeEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
@@ -93,7 +93,9 @@ export const ShapeEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
                     height="30px"
                     bg={color}
                     border="2px solid"
-                    borderColor={element.stroke === color ? "blue.500" : "gray.300"}
+                    borderColor={
+                      element.stroke === color ? "blue.500" : "gray.300"
+                    }
                     borderRadius="md"
                     cursor="pointer"
                     onClick={() => handleUpdateProperty("stroke", color)}

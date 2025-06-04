@@ -30,7 +30,7 @@ import {
 
 /**
  * TextEditingToolbar - Editing controls for text elements
- * 
+ *
  * Provides comprehensive text formatting controls when element is in editing mode
  */
 export const TextEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
@@ -98,7 +98,9 @@ export const TextEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
           size="sm"
           width="80px"
           value={element.fontSize}
-          onChange={(e) => handleUpdateProperty("fontSize", parseInt(e.target.value))}
+          onChange={(e) =>
+            handleUpdateProperty("fontSize", parseInt(e.target.value))
+          }
         >
           {fontSizes.map((size) => (
             <option key={size} value={size}>
@@ -131,7 +133,9 @@ export const TextEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
                     height="30px"
                     bg={color}
                     border="2px solid"
-                    borderColor={element.fill === color ? "blue.500" : "gray.300"}
+                    borderColor={
+                      element.fill === color ? "blue.500" : "gray.300"
+                    }
                     borderRadius="md"
                     cursor="pointer"
                     onClick={() => handleUpdateProperty("fill", color)}
@@ -195,8 +199,9 @@ export const TextEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
             <Tooltip label="Background Shape" hasArrow>
               <IconButton
                 icon={
-                  backgroundShapes.find(shape => shape.id === element.backgroundShape)?.icon || 
-                  <FaRegSquare />
+                  backgroundShapes.find(
+                    (shape) => shape.id === element.backgroundShape
+                  )?.icon || <FaRegSquare />
                 }
                 size="sm"
                 variant="outline"
@@ -213,10 +218,14 @@ export const TextEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {
                     key={shape.id}
                     leftIcon={shape.icon}
                     size="sm"
-                    variant={element.backgroundShape === shape.id ? "solid" : "ghost"}
+                    variant={
+                      element.backgroundShape === shape.id ? "solid" : "ghost"
+                    }
                     width="100%"
                     justifyContent="flex-start"
-                    onClick={() => handleUpdateProperty("backgroundShape", shape.id)}
+                    onClick={() =>
+                      handleUpdateProperty("backgroundShape", shape.id)
+                    }
                   >
                     {shape.name}
                   </Button>

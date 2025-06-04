@@ -5,7 +5,7 @@ import { EditingToolbar } from "./EditingToolbar.jsx";
 
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
- * 
+ *
  * Handles:
  * - State management between selected and editing modes
  * - Positioning logic that works for all element types
@@ -34,7 +34,7 @@ export const ElementToolbar = ({
 
     const stage = stageRef.current;
     const node = stage.findOne("#" + element.id);
-    
+
     if (!node) {
       return { top: 0, left: 0 };
     }
@@ -52,7 +52,7 @@ export const ElementToolbar = ({
     // Position toolbar above the element with appropriate clearance
     const toolbarHeight = 60; // Estimated toolbar height
     const clearance = isEditing ? 80 : 120; // More clearance for selected mode (transformer handles)
-    
+
     const newTop = screenY - toolbarHeight - clearance;
     const newLeft = screenX + (nodeWidth * scale) / 2; // Center horizontally on the element
 

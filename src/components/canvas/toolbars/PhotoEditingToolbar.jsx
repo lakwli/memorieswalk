@@ -13,7 +13,7 @@ import { MdCheck, MdBrightness6, MdContrast } from "react-icons/md";
 
 /**
  * PhotoEditingToolbar - Editing controls for photo elements
- * 
+ *
  * Provides photo-specific editing controls like brightness, contrast, etc.
  */
 export const PhotoEditingToolbar = ({ element, onUpdate, onFinishEditing }) => {

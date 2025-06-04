@@ -5,7 +5,7 @@ import { ShapeEditingToolbar } from "./ShapeEditingToolbar.jsx";
 
 /**
  * EditingToolbar - Toolbar shown when element is being edited (double-click)
- * 
+ *
  * Routes to appropriate editing toolbar based on element type
  */
 export const EditingToolbar = ({ element, onUpdate, onFinishEditing }) => {

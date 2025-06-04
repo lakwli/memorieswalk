@@ -1,11 +1,19 @@
 import PropTypes from "prop-types";
-import { HStack, IconButton, Tooltip, Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
+import {
+  HStack,
+  IconButton,
+  Tooltip,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+} from "@chakra-ui/react";
 import { MdEdit, MdMoreVert, MdDelete, MdContentCopy } from "react-icons/md";
 import { FaLayerGroup } from "react-icons/fa";
 
 /**
  * SelectedToolbar - Toolbar shown when element is selected (single-click)
- * 
+ *
  * Provides:
  * - Edit action (transitions to editing mode)
  * - Quick actions (copy, layer controls)
@@ -81,7 +89,7 @@ export const SelectedToolbar = ({ element, onEdit, onDelete }) => {
           aria-label="More options"
         />
         <MenuList>
-          <MenuItem 
+          <MenuItem
             icon={<MdDelete />}
             onClick={() => onDelete(element)}
             color="red.500"
