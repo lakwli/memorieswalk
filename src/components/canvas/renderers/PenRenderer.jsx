@@ -1,9 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { Line } from "react-konva";
-import { DeleteButton } from "./DeleteButton.jsx";
 
-export const PenRenderer = ({ element, behaviors, isSelected, onDelete }) => (
+export const PenRenderer = ({ element, behaviors }) => (
   <React.Fragment key={element.id}>
     <Line
       id={element.id}
@@ -19,13 +18,6 @@ export const PenRenderer = ({ element, behaviors, isSelected, onDelete }) => (
       onDragEnd={behaviors.handleElementDragEnd(element)}
       onClick={behaviors.handleElementClick(element)}
     />
-    {isSelected && (
-      <DeleteButton
-        x={element.getBounds().x + element.getBounds().width - 10}
-        y={element.getBounds().y - 15}
-        onClick={() => onDelete(element)}
-      />
-    )}
   </React.Fragment>
 );
 
@@ -47,6 +39,4 @@ PenRenderer.propTypes = {
     handleElementDragEnd: PropTypes.func.isRequired,
     handleElementClick: PropTypes.func.isRequired,
   }).isRequired,
-  isSelected: PropTypes.bool.isRequired,
-  onDelete: PropTypes.func.isRequired,
 };

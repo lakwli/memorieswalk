@@ -42,7 +42,6 @@ import {
   AttachmentIcon,
   DeleteIcon,
 } from "@chakra-ui/icons";
-import TextToolUI from "../components/canvas/TextToolUI";
 
 // Import our new element system
 import {
@@ -52,6 +51,9 @@ import {
   useUploadManager,
   useCanvasTools,
 } from "../hooks";
+
+// Import new toolbar system
+import { ElementToolbar } from "../components/canvas/toolbars";
 import { TextElement } from "../components/canvas/elements";
 import { ElementRenderer } from "../components/canvas/renderers";
 import { ELEMENT_TYPES, ELEMENT_STATES, TOOL_MODES } from "../constants";
@@ -98,6 +100,9 @@ const MemoryEditorPage = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // New state for tracking editing mode
+  const [editingElement, setEditingElement] = useState(null);
 
   // Refs...
   const konvaStageRef = useRef(null);
@@ -445,6 +450,32 @@ const MemoryEditorPage = () => {
   const addTextElement = useCallback(() => {
     return addTextAtCenter(addElement, setSelectedElement);
   }, [addTextAtCenter, addElement, setSelectedElement]);
+
+  // Handle editing mode transitions
+  const handleElementEdit = useCallback((element) => {
+    setEditingElement(element);
+  }, []);
+
+  const handleElementFinishEdit = useCallback(() => {
+    setEditingElement(null);
+  }, []);
+
+  // Handle element updates from toolbar
+  const handleElementToolbarUpdate = useCallback((elementId, updates) => {
+    updateElement(elementId, updates);
+  }, [updateElement]);
+
+  // Handle element layer changes
+  const handleElementLayerChange = useCallback((elementId, direction) => {
+    // TODO: Implement layer management
+    console.log('Layer change:', elementId, direction);
+  }, []);
+
+  // Handle element duplication
+  const handleElementDuplicate = useCallback((elementId) => {
+    // TODO: Implement element duplication
+    console.log('Duplicate element:', elementId);
+  }, []);
 
   // Handle stage click for adding text elements - now uses tool system
   const handleStageClick = useCallback(
@@ -934,7 +965,6 @@ const MemoryEditorPage = () => {
                     isSelected={selectedElement?.id === element.id}
                     onSelect={() => setSelectedElement(element)}
                     onUpdate={(updates) => updateElement(element.id, updates)}
-                    onDelete={(element) => removeElement(element.id)}
                     behaviors={elementBehaviors}
                   />
                 ))}
@@ -957,13 +987,18 @@ const MemoryEditorPage = () => {
               </Layer>
             </Stage>
 
-            {/* Text Properties UI - Show when text element is selected */}
-            {selectedElement?.type === ELEMENT_TYPES.TEXT && (
-              <TextToolUI
-                selectedElement={selectedElement}
-                updateElement={(updatedElement) =>
-                  updateElement(selectedElement.id, updatedElement)
-                }
+            {/* Element Toolbars - New integrated toolbar system */}
+            {selectedElement && (
+              <ElementToolbar
+                element={selectedElement}
+                isSelected={true}
+                isEditing={editingElement?.id === selectedElement.id}
+                onEdit={handleElementEdit}
+                onDelete={removeElement}
+                onUpdate={handleElementToolbarUpdate}
+                onLayerChange={handleElementLayerChange}
+                onDuplicate={handleElementDuplicate}
+                onFinishEdit={handleElementFinishEdit}
                 stageRef={konvaStageRef}
               />
             )}

@@ -8,7 +8,6 @@ export const ElementRenderer = ({
   element,
   behaviors,
   isSelected,
-  onDelete,
   onUpdate,
 }) => {
   switch (element.type) {
@@ -17,8 +16,6 @@ export const ElementRenderer = ({
         <PhotoRenderer
           element={element}
           behaviors={behaviors}
-          isSelected={isSelected}
-          onDelete={onDelete}
           onUpdate={onUpdate}
         />
       );
@@ -28,7 +25,6 @@ export const ElementRenderer = ({
           element={element}
           behaviors={behaviors}
           isSelected={isSelected}
-          onDelete={onDelete}
           onUpdate={onUpdate}
         />
       );
@@ -37,8 +33,6 @@ export const ElementRenderer = ({
         <PenRenderer
           element={element}
           behaviors={behaviors}
-          isSelected={isSelected}
-          onDelete={onDelete}
           onUpdate={onUpdate}
         />
       );
@@ -53,5 +47,5 @@ ElementRenderer.propTypes = {
   }).isRequired,
   behaviors: PropTypes.object.isRequired,
   isSelected: PropTypes.bool.isRequired,
-  onDelete: PropTypes.func.isRequired,
+  onUpdate: PropTypes.func,
 };

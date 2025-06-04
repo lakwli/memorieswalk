@@ -1,9 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { Image as KonvaImage } from "react-konva";
-import { DeleteButton } from "./DeleteButton.jsx";
 
-export const PhotoRenderer = ({ element, behaviors, isSelected, onDelete }) => (
+export const PhotoRenderer = ({ element, behaviors }) => (
   <React.Fragment key={element.id}>
     <KonvaImage
       id={element.id}
@@ -20,13 +19,6 @@ export const PhotoRenderer = ({ element, behaviors, isSelected, onDelete }) => (
       onDragEnd={behaviors.handleElementDragEnd(element)}
       onClick={behaviors.handleElementClick(element)}
     />
-    {isSelected && (
-      <DeleteButton
-        x={element.x + element.width - 10}
-        y={element.y - 15}
-        onClick={() => onDelete(element)}
-      />
-    )}
   </React.Fragment>
 );
 
@@ -48,6 +40,4 @@ PhotoRenderer.propTypes = {
     handleElementDragEnd: PropTypes.func.isRequired,
     handleElementClick: PropTypes.func.isRequired,
   }).isRequired,
-  isSelected: PropTypes.bool.isRequired,
-  onDelete: PropTypes.func.isRequired,
 };

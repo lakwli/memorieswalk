@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { Text as KonvaText, Rect, Group, Path, Transformer } from "react-konva";
-import { DeleteButton } from "./DeleteButton.jsx";
 
 // Helper function to generate cloud shape path
 const generateCloudPath = (width, height, padding = 10) => {
@@ -86,7 +85,6 @@ export const TextRenderer = ({
   element,
   behaviors,
   isSelected,
-  onDelete,
   onTransform,
   onUpdate,
 }) => {
@@ -297,31 +295,24 @@ export const TextRenderer = ({
       </Group>
 
       {isSelected && !isEditing && (
-        <>
-          <Transformer
-            ref={transformerRef}
-            boundBoxFunc={(oldBox, newBox) => {
-              // Minimum size for the text box
-              if (newBox.width < 30 || newBox.height < 20) {
-                return oldBox;
-              }
-              return newBox;
-            }}
-            onTransformEnd={handleTransformEnd}
-            rotateEnabled={true}
-            enabledAnchors={[
-              "top-left",
-              "top-right",
-              "bottom-left",
-              "bottom-right",
-            ]}
-          />
-          <DeleteButton
-            x={element.x + width - 10}
-            y={element.y - 15}
-            onClick={() => onDelete(element)}
-          />
-        </>
+        <Transformer
+          ref={transformerRef}
+          boundBoxFunc={(oldBox, newBox) => {
+            // Minimum size for the text box
+            if (newBox.width < 30 || newBox.height < 20) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+          onTransformEnd={handleTransformEnd}
+          rotateEnabled={true}
+          enabledAnchors={[
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right",
+          ]}
+        />
       )}
     </React.Fragment>
   );
@@ -359,7 +350,6 @@ TextRenderer.propTypes = {
     handleElementClick: PropTypes.func.isRequired,
   }).isRequired,
   isSelected: PropTypes.bool.isRequired,
-  onDelete: PropTypes.func.isRequired,
   onTransform: PropTypes.func,
   onUpdate: PropTypes.func,
 };
