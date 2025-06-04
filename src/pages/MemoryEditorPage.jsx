@@ -181,10 +181,14 @@ const MemoryEditorPage = () => {
     elementStates,
   });
 
-  // Update transformer when selection changes
+  // Update transformer when selection changes or editing mode changes
   useEffect(() => {
     if (trRef.current && konvaStageRef.current) {
-      if (selectedElement) {
+      // Hide transformer if element is being edited OR if no element is selected
+      if (
+        selectedElement &&
+        (!editingElement || editingElement.id !== selectedElement.id)
+      ) {
         const node = konvaStageRef.current.findOne("#" + selectedElement.id);
         if (node) {
           trRef.current.nodes([node]);
@@ -195,7 +199,7 @@ const MemoryEditorPage = () => {
         trRef.current.getLayer()?.batchDraw();
       }
     }
-  }, [selectedElement]);
+  }, [selectedElement, editingElement]);
 
   // Cursor management based on current tool - now uses tool system
   useEffect(() => {
@@ -452,9 +456,16 @@ const MemoryEditorPage = () => {
   }, [addTextAtCenter, addElement, setSelectedElement]);
 
   // Handle editing mode transitions
-  const handleElementEdit = useCallback((element) => {
-    setEditingElement(element);
-  }, []);
+  const handleElementEdit = useCallback(
+    (shouldEdit) => {
+      if (shouldEdit && selectedElement) {
+        setEditingElement(selectedElement);
+      } else {
+        setEditingElement(null);
+      }
+    },
+    [selectedElement]
+  );
 
   const handleElementFinishEdit = useCallback(() => {
     setEditingElement(null);
@@ -968,8 +979,11 @@ const MemoryEditorPage = () => {
                     onSelect={() => setSelectedElement(element)}
                     onUpdate={(updates) => updateElement(element.id, updates)}
                     behaviors={elementBehaviors}
-                    onEditStart={() => handleElementEdit(element)}
-                    onEditEnd={() => handleElementFinishEdit()}
+                    onEditStart={() => {
+                      setSelectedElement(element);
+                      setEditingElement(element);
+                    }}
+                    onEditEnd={() => setEditingElement(null)}
                   />
                 ))}
                 <Transformer
