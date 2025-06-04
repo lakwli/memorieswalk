@@ -100,7 +100,7 @@ export const TextRenderer = ({
   // Handle double-click to edit text
   const handleTextDblClick = (e) => {
     if (isEditing) return;
-    
+
     // Notify parent that editing has started (this will trigger toolbar editing mode)
     if (onEditStart) {
       onEditStart();
@@ -166,7 +166,7 @@ export const TextRenderer = ({
       setIsEditing(false);
       textRef.current.visible(true);
       stage.batchDraw();
-      
+
       // Notify parent that editing has ended
       if (onEditEnd) {
         onEditEnd();
