@@ -78,8 +78,20 @@ export const useElementBehaviors = (
               // Preserve the class instance by updating properties directly
               el.x = node.x();
               el.y = node.y();
-              el.width = Math.round(node.width() * scaleX);
-              el.height = Math.round(node.height() * scaleY);
+
+              // Handle textbox elements: resize the container, not the text
+              if (el.type === "text") {
+                // For text elements, scale the textbox dimensions
+                const currentWidth = el.width || 200;
+                const currentHeight = el.height || 60;
+                el.width = Math.round(currentWidth * scaleX);
+                el.height = Math.round(currentHeight * scaleY);
+              } else {
+                // For other elements (photos, etc.), scale the element directly
+                el.width = Math.round(node.width() * scaleX);
+                el.height = Math.round(node.height() * scaleY);
+              }
+
               el.rotation = node.rotation();
               return el;
             }

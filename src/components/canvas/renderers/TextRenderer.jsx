@@ -237,6 +237,7 @@ export const TextRenderer = ({
     <React.Fragment key={element.id}>
       <Group
         ref={groupRef}
+        id={element.id}
         x={element.x}
         y={element.y}
         rotation={element.rotation || 0}
@@ -256,7 +257,6 @@ export const TextRenderer = ({
         {/* Text content */}
         <KonvaText
           ref={textRef}
-          id={element.id}
           text={element.text}
           fontSize={element.fontSize}
           fontFamily={element.fontFamily}
