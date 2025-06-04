@@ -87,18 +87,29 @@ const TextToolUI = ({ selectedElement, updateElement, stageRef }) => {
       // Find the text node to position the toolbar near it
       const node = stage.findOne("#" + selectedElement.id);
       if (node) {
-        const nodePos = node.getAbsolutePosition();
-        const scale = stage.scaleX();
+        // Get the actual position and dimensions from the Konva node
+        const nodePosition = node.getAbsolutePosition();
+        const nodeWidth = node.width() || selectedElement.width || 200;
+        const nodeHeight = node.height() || selectedElement.height || 50;
 
-        // Calculate toolbar position relative to the stage and text element
-        // Position it above the text element
-        const newTop = nodePos.y * scale + stageRect.top - 60; // 60px above the element
-        const newLeft =
-          nodePos.x * scale + stageRect.left + (node.width() * scale) / 2;
+        // Convert node position to screen coordinates
+        const scale = stage.scaleX();
+        const screenX = nodePosition.x * scale + stageRect.left;
+        const screenY = nodePosition.y * scale + stageRect.top;
+
+        // Position toolbar well above the text element, centered horizontally
+        const toolbarHeight = 60; // Toolbar height
+        const topGap = 80; // Gap between toolbar and text element to prevent overlap
+
+        const newTop = screenY - toolbarHeight - topGap;
+        const newLeft = screenX + (nodeWidth * scale) / 2; // Center horizontally on the text element
 
         setToolbarPosition({
-          top: Math.max(stageRect.top + 10, newTop), // Ensure it's not offscreen
-          left: Math.max(stageRect.left + 10, newLeft),
+          top: Math.max(stageRect.top + 10, newTop), // Ensure it's not offscreen at top
+          left: Math.max(
+            stageRect.left + 100,
+            Math.min(stageRect.right - 300, newLeft)
+          ), // Keep within stage bounds with margins
         });
       }
     }

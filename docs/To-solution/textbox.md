@@ -6,7 +6,7 @@ Based on the requirement in/workspace/docs/To-solution/textbox.md, start with Co
 THere is already a button exist for add text. please use this.
 
 current issue:
-The the toolbar hide the textbox
+The the toolbar hide the rotation.
 the changing font will lost the focus of text, rather than changing on the fly
 cannot save.
 
