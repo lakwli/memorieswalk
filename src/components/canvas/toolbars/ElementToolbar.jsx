@@ -38,21 +38,19 @@ export const ElementToolbar = ({
       return { top: 100, left: 100 };
     }
 
-    // Get element position in canvas coordinates
-    const nodePosition = node.getAbsolutePosition();
-    const nodeWidth = node.width() || element.width || 100;
-    const nodeHeight = node.height() || element.height || 50;
-
-    // Get stage transformation and viewport info
-    const scale = stage.scaleX();
-    const stagePosition = stage.position();
+    // Get stage container position in the viewport
     const stageContainer = stage.container().getBoundingClientRect();
     
-    // Convert element position to screen coordinates (viewport-relative)
-    const elementScreenX = (nodePosition.x * scale) + stagePosition.x + stageContainer.left;
-    const elementScreenY = (nodePosition.y * scale) + stagePosition.y + stageContainer.top;
-    const elementScreenWidth = nodeWidth * scale;
-    const elementScreenHeight = nodeHeight * scale;
+    // For rotated elements, we need to calculate the bounding box
+    // Use the client rect to get the actual visual bounds regardless of rotation
+    const nodeClientRect = node.getClientRect();
+    
+    // getClientRect() already returns coordinates relative to the stage container
+    // We just need to offset by the stage container's position in the viewport
+    const elementScreenX = nodeClientRect.x + stageContainer.left;
+    const elementScreenY = nodeClientRect.y + stageContainer.top;
+    const elementScreenWidth = nodeClientRect.width;
+    const elementScreenHeight = nodeClientRect.height;
 
     // Toolbar configuration (zoom-independent sizes)
     const toolbarWidth = 300;
