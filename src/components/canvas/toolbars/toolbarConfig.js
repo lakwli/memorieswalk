@@ -12,13 +12,13 @@ export const GLOBAL_SELECT_CONTROLS = [
 
 export const TOOLBAR_CONFIG = {
   select: {
-    textbox: [...GLOBAL_SELECT_CONTROLS],
+    text: [...GLOBAL_SELECT_CONTROLS],
     photo: [...GLOBAL_SELECT_CONTROLS],
     shape: [...GLOBAL_SELECT_CONTROLS],
     // Add more element types as needed
   },
   edit: {
-    textbox: [
+    text: [
       "fontFamily",
       "fontSize",
       "textColor",
