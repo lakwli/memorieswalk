@@ -1,4 +1,4 @@
-For textbox,when i double click, it is edit mode. the toolbar show the editingtoobar. but when i change fontstyle, the toolbar disappear, then nothing happen
+For textbox,when i double click, it is edit mode. the toolbar show the editingtoobar. but when i change fontstyle, the toolbar disappear, then nothing happen. The element itself will return to non-select and non-edit mode.
 
 there is another problem apply to photo as well. if you click on edit, the transform control is disappear (which is correct, apply the same to textbox as well), and if i try to change brightness (similar to if you change font style to textbox, it is however the textbox in this case doesn't show the the same as double click), once you release your mouse, the toolbar disappear, and nothing happen. it should be common behavior on how the toolbar control can reflect correponding element. There is architectural design to manage the common and specific so that what is common should have generic code apply to them to have consistent behavior while what is specific would be control by child class. it is however, currently it is separate class, e..g. useElementBehavior manage the elements which a lot of common logic happen in these class rather than child class. based on the architectural which i have already include here, to investigate what could be the problem. we need to find out the root cause before making any changes.
 
@@ -8,6 +8,8 @@ there is another problem apply to photo as well. if you click on edit, the trans
 
 /workspace/docs/To-solution/done/ELEMENT_SYSTEM_SUMMARY.md
 /workspace/src/components/canvas
+//workspace/src/hooks
+/workspace/src/pages/MemoryEditorPage.jsx
 
 ### The architecture is based on a clear separation:
 
@@ -16,3 +18,11 @@ there is another problem apply to photo as well. if you click on edit, the trans
 - **Renderers** (e.g., TextRenderer.jsx, PhotoRenderer.jsx) are React components responsible for rendering and UI behaviors. Renderers are stateless except for ephemeral UI state
 - **ElementRenderer.jsx** is the universal renderer that delegates to the correct renderer based on element type.
 - **State management** (selection, editing, etc.) is handled at the React component level, typically in the page or a coordinating component, NOT in the element classes.
+
+## AI Question:
+
+Step 1:
+act as architect, please advise how should we proper design it to cater for the common behavior between the toolbar and element. this include the toolbar position (already handle perfectly, nothing to fix), toolbar changes upon click on element or double click on element (already handle perfectly, nothing to fix), single clikc on element with respective element toolbar shown in selectToolbar while for double click on element with respective element toolbar shown in editingtoolbar (handle perfectly, nothing to fix).
+It is however, upon double click on element with the editing toolbar, or single click on the selecttoolbar to bring to edit, any change apply from the editing toolbar, e.g. change contrast for photo element OR change font style for text, the toolbar disappear and nothing is changed.
+From architectural point of view, this editing mode should be manage centrally, either from the base class, or another class manage overall element, for the generic behavior. This should also apply to the toolbox should be stay there until user exit the edit mode (either click on 'Done', or click on another element, or click on empty canvas space). the element will reflect the changes on the fly with its state management with respective element control.
+Please act as architect, to propose changes to cater for the what could be the issue of change contrast or font style, result the toolbar disappear while there is no changes on the element, while keep the architectural in mind if there is some changes should apply to fit for the architectural pricinple: no repeate code, separate of concern, separate of common and specific handling, and simplify without over enginnering.
