@@ -2,7 +2,8 @@ import React from "react";
 import PropTypes from "prop-types";
 import { Line } from "react-konva";
 
-export const PenRenderer = ({ element, behaviors }) => (
+// eslint-disable-next-line no-unused-vars
+export const PenRenderer = ({ element, behaviors, isBeingEdited }) => (
   <React.Fragment key={element.id}>
     <Line
       id={element.id}
@@ -39,4 +40,5 @@ PenRenderer.propTypes = {
     handleElementDragEnd: PropTypes.func.isRequired,
     handleElementClick: PropTypes.func.isRequired,
   }).isRequired,
+  isBeingEdited: PropTypes.bool.isRequired,
 };

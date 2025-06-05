@@ -10,6 +10,7 @@ export const ElementRenderer = ({
   onUpdate,
   onEditStart,
   onEditEnd,
+  isBeingEdited,
 }) => {
   switch (element.type) {
     case ELEMENT_TYPES.PHOTO:
@@ -18,6 +19,9 @@ export const ElementRenderer = ({
           element={element}
           behaviors={behaviors}
           onUpdate={onUpdate}
+          onEditStart={onEditStart}
+          onEditEnd={onEditEnd}
+          isBeingEdited={isBeingEdited}
         />
       );
     case ELEMENT_TYPES.TEXT:
@@ -28,6 +32,7 @@ export const ElementRenderer = ({
           onUpdate={onUpdate}
           onEditStart={onEditStart}
           onEditEnd={onEditEnd}
+          isBeingEdited={isBeingEdited}
         />
       );
     case ELEMENT_TYPES.PEN:
@@ -36,6 +41,7 @@ export const ElementRenderer = ({
           element={element}
           behaviors={behaviors}
           onUpdate={onUpdate}
+          isBeingEdited={isBeingEdited}
         />
       );
     default:
@@ -51,4 +57,5 @@ ElementRenderer.propTypes = {
   onUpdate: PropTypes.func,
   onEditStart: PropTypes.func,
   onEditEnd: PropTypes.func,
+  isBeingEdited: PropTypes.bool,
 };

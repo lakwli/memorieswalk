@@ -4,8 +4,50 @@ export const useElementBehaviors = (
   elements,
   setElements,
   selectedElement,
-  setSelectedElement
+  setSelectedElement,
+  editingElement,
+  setEditingElement
 ) => {
+  // Central Editing State Manager
+  const editingManager = {
+    // Check if element is in editing mode
+    isElementEditing: useCallback(
+      (elementId) => {
+        return editingElement?.id === elementId;
+      },
+      [editingElement]
+    ),
+
+    // Start editing mode for an element
+    startEditing: useCallback(
+      (element) => {
+        setEditingElement(element);
+      },
+      [setEditingElement]
+    ),
+
+    // End editing mode
+    endEditing: useCallback(() => {
+      setEditingElement(null);
+    }, [setEditingElement]),
+
+    // Update element while preserving editing state
+    updateElementInEditMode: useCallback(
+      (elementId, updates) => {
+        console.log("📝 updateElementInEditMode called with:", {
+          elementId,
+          updates,
+        });
+        setElements((prev) =>
+          prev.map((el) => (el.id === elementId ? { ...el, ...updates } : el))
+        );
+        console.log("📝 Element updated, editing state should persist");
+        // editingElement state persists because it's managed separately
+      },
+      [setElements]
+    ),
+  };
+
   // Common drag handlers
   const handleElementDragStart = useCallback(() => {
     return (e) => {
@@ -130,5 +172,6 @@ export const useElementBehaviors = (
     handleElementClick,
     handleElementTransform,
     handleElementDelete,
+    editingManager,
   };
 };

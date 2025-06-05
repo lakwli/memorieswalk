@@ -44,6 +44,7 @@ This document analyzes the root cause of toolbar disappearing issues during elem
 ### 2. Event Flow Breakdown
 
 **Current problematic flow**:
+
 ```
 User clicks toolbar control
     ↓
@@ -63,6 +64,7 @@ Toolbar disappears
 ### 3. Missing Central Editing Coordinator
 
 **Issue**: No single authority manages editing lifecycle across:
+
 - Element data updates
 - Toolbar visibility
 - Transform control state
@@ -88,29 +90,29 @@ export const useElementBehaviors = (
   const editingManager = {
     // Check if element is in editing mode
     isElementEditing: (elementId) => editingElement?.id === elementId,
-    
+
     // Start editing mode for an element
     startEditing: (element) => {
       setEditingElement(element);
     },
-    
+
     // End editing mode
     endEditing: () => {
       setEditingElement(null);
     },
-    
+
     // Update element while preserving editing state
     updateElementInEditMode: (elementId, updates) => {
-      setElements(prev => prev.map(el => 
-        el.id === elementId ? { ...el, ...updates } : el
-      ));
+      setElements((prev) =>
+        prev.map((el) => (el.id === elementId ? { ...el, ...updates } : el))
+      );
       // editingElement state persists because it's managed separately
-    }
+    },
   };
 
   return {
     ...existingBehaviors,
-    editingManager
+    editingManager,
   };
 };
 ```
@@ -124,23 +126,23 @@ Remove all local editing state from renderers and pass editing state as props:
 const [isEditing, setIsEditing] = useState(false); // ❌ Local state
 
 // TextRenderer.jsx - AFTER (solution)
-export const TextRenderer = ({ 
-  element, 
-  behaviors, 
+export const TextRenderer = ({
+  element,
+  behaviors,
   onUpdate,
   isBeingEdited, // ✅ Received from central state
   onEditStart,
-  onEditEnd 
+  onEditEnd,
 }) => {
   const handleTextDblClick = (e) => {
     if (isBeingEdited) return;
-    
+
     // Notify central manager to start editing
     onEditStart(element);
-    
+
     // Continue with editing logic...
   };
-  
+
   // No local state management needed
 };
 ```
@@ -151,17 +153,17 @@ ElementToolbar receives editing state from central authority:
 
 ```javascript
 // ElementToolbar.jsx
-export const ElementToolbar = ({ 
-  element, 
-  isSelected, 
+export const ElementToolbar = ({
+  element,
+  isSelected,
   isEditing, // ✅ From central state, stable across updates
   onEdit,
   onUpdate,
-  stageRef 
+  stageRef,
 }) => {
-  // Toolbar visibility now stable because isEditing 
+  // Toolbar visibility now stable because isEditing
   // comes from central state that persists through element updates
-  
+
   return (
     <Box /* toolbar styling */>
       {isEditing ? (
@@ -191,11 +193,11 @@ Main page coordinates all systems with clear separation:
 const MemoryEditorPage = () => {
   // Element data management
   const { elements, setElements, updateElement } = useCanvasElements();
-  
+
   // Selection and editing state
   const [selectedElement, setSelectedElement] = useState(null);
   const [editingElement, setEditingElement] = useState(null);
-  
+
   // Enhanced behaviors with editing manager
   const elementBehaviors = useElementBehaviors(
     elements,
@@ -223,7 +225,10 @@ const MemoryEditorPage = () => {
   const handleElementUpdate = (elementId, updates) => {
     if (editingElement?.id === elementId) {
       // Use editing-aware update method
-      elementBehaviors.editingManager.updateElementInEditMode(elementId, updates);
+      elementBehaviors.editingManager.updateElementInEditMode(
+        elementId,
+        updates
+      );
     } else {
       // Regular update
       updateElement(elementId, updates);
@@ -243,7 +248,9 @@ const MemoryEditorPage = () => {
               onSelect={() => handleElementSelect(element)}
               onUpdate={(updates) => handleElementUpdate(element.id, updates)}
               behaviors={elementBehaviors}
-              isBeingEdited={elementBehaviors.editingManager.isElementEditing(element.id)}
+              isBeingEdited={elementBehaviors.editingManager.isElementEditing(
+                element.id
+              )}
               onEditStart={() => handleElementEditStart(element)}
               onEditEnd={handleElementEditEnd}
             />
@@ -257,10 +264,14 @@ const MemoryEditorPage = () => {
           element={selectedElement}
           isSelected={true}
           isEditing={editingElement?.id === selectedElement.id}
-          onEdit={(shouldEdit) => 
-            shouldEdit ? handleElementEditStart(selectedElement) : handleElementEditEnd()
+          onEdit={(shouldEdit) =>
+            shouldEdit
+              ? handleElementEditStart(selectedElement)
+              : handleElementEditEnd()
           }
-          onUpdate={(updates) => handleElementUpdate(selectedElement.id, updates)}
+          onUpdate={(updates) =>
+            handleElementUpdate(selectedElement.id, updates)
+          }
           stageRef={konvaStageRef}
         />
       )}
@@ -323,21 +334,25 @@ Element re-renders with new properties
 ## Implementation Strategy
 
 ### Phase 1: Central State Manager
+
 1. **Enhance useElementBehaviors**: Add editing manager with central state coordination
 2. **Update MemoryEditorPage**: Implement separate handlers for editing vs. selection
 3. **Ensure state persistence**: Verify editing state survives element updates
 
 ### Phase 2: Remove Local States
+
 1. **Update TextRenderer**: Remove local `isEditing` state, use props
 2. **Update PhotoRenderer**: Add editing awareness if needed
 3. **Update all renderers**: Consistent props-based editing state
 
 ### Phase 3: Stable Toolbar Integration
+
 1. **Update ElementToolbar**: Rely on central editing state
 2. **Enhanced EditingToolbar**: Ensure updates don't break editing mode
 3. **Test all element types**: Verify consistent behavior
 
 ### Phase 4: Validation & Polish
+
 1. **Test editing persistence**: Verify toolbar stays during property changes
 2. **Test edit mode exit**: Ensure proper cleanup on Done/click away
 3. **Cross-element consistency**: Verify all element types behave identically
@@ -345,27 +360,32 @@ Element re-renders with new properties
 ## Architectural Principles Applied
 
 ### 1. **Separation of Concerns**
+
 - **Element Data**: Pure data management (elements array, properties)
 - **UI State**: Selection, editing mode, toolbar visibility
 - **Rendering**: Element appearance and interaction handlers
 - **Behavior**: Common interactions (drag, click, transform)
 
 ### 2. **Single Source of Truth**
+
 - Editing state: `editingElement` in MemoryEditorPage
-- Selection state: `selectedElement` in MemoryEditorPage  
+- Selection state: `selectedElement` in MemoryEditorPage
 - Element data: `elements` array in useCanvasElements
 
 ### 3. **Props-Down, Events-Up**
+
 - State flows down as props
 - User actions flow up as events
 - No local state conflicts
 
 ### 4. **DRY (Don't Repeat Yourself)**
+
 - Common editing logic in `editingManager`
 - Shared toolbar behaviors in `ElementToolbar`
 - Element-specific logic only in respective renderers
 
 ### 5. **Fail-Safe Design**
+
 - Editing state persists through updates
 - Graceful fallbacks for missing state
 - Consistent cleanup on mode transitions

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import { Text as KonvaText, Rect, Group, Path } from "react-konva";
 
@@ -87,19 +87,53 @@ export const TextRenderer = ({
   onUpdate,
   onEditStart,
   onEditEnd,
+  isBeingEdited = false,
 }) => {
   const textRef = useRef();
   const groupRef = useRef();
-  const [isEditing, setIsEditing] = useState(false);
+  const textareaRef = useRef(null); // Track active textarea
 
   // Calculate actual width and height based on the text content
   const width = element.width || 200;
   const height = element.height || 60;
   const padding = element.padding || 10;
 
+  // Helper function to update textarea styling
+  const updateTextareaStyle = useCallback(
+    (textarea, elementProps) => {
+      if (!textarea || !elementProps) return;
+
+      const stage = textRef.current?.getStage();
+      if (!stage) return;
+
+      const textPosition = textRef.current?.absolutePosition();
+      if (!textPosition) return;
+
+      const scale = stage.scaleX();
+
+      textarea.style.width = `${(elementProps.width || width) * scale}px`;
+      textarea.style.height = `${(elementProps.height || height) * scale}px`;
+      textarea.style.fontSize = `${elementProps.fontSize * scale}px`;
+      textarea.style.fontFamily = elementProps.fontFamily;
+      textarea.style.color = elementProps.fill;
+      textarea.style.background =
+        elementProps.backgroundColor || "rgba(255, 255, 255, 0.7)";
+      textarea.style.textAlign = elementProps.align || "center";
+      textarea.style.padding = `${(elementProps.padding || padding) * scale}px`;
+    },
+    [width, height, padding]
+  );
+
+  // Effect to update textarea styling when element properties change during editing
+  useEffect(() => {
+    if (isBeingEdited && textareaRef.current) {
+      updateTextareaStyle(textareaRef.current, element);
+    }
+  }, [element, isBeingEdited, updateTextareaStyle]);
+
   // Handle double-click to edit text
   const handleTextDblClick = (e) => {
-    if (isEditing) return;
+    if (isBeingEdited) return;
 
     // Notify parent that editing has started (this will trigger toolbar editing mode)
     if (onEditStart) {
@@ -111,40 +145,33 @@ export const TextRenderer = ({
 
     // Create textarea overlay for editing
     const textarea = document.createElement("textarea");
+    textareaRef.current = textarea; // Store reference for updates
     document.body.appendChild(textarea);
 
     // Position the textarea over the text element
     const stageBox = stage.container().getBoundingClientRect();
-    const scale = stage.scaleX();
 
-    // Set textarea style
+    // Set initial textarea style
     textarea.value = element.text;
     textarea.style.position = "absolute";
     textarea.style.top = `${stageBox.top + textPosition.y}px`;
     textarea.style.left = `${stageBox.left + textPosition.x}px`;
-    textarea.style.width = `${width * scale}px`;
-    textarea.style.height = `${height * scale}px`;
-    textarea.style.fontSize = `${element.fontSize * scale}px`;
-    textarea.style.fontFamily = element.fontFamily;
-    textarea.style.color = element.fill;
     textarea.style.border = "1px dashed #000";
-    textarea.style.padding = `${padding * scale}px`;
     textarea.style.margin = "0";
     textarea.style.overflow = "hidden";
-    textarea.style.background = "rgba(255, 255, 255, 0.7)";
     textarea.style.outline = "none";
     textarea.style.resize = "none";
     textarea.style.lineHeight = "1";
-    textarea.style.textAlign = element.align || "center";
     textarea.style.zIndex = "1000";
     textarea.style.transformOrigin = "left top";
     textarea.style.transform = `rotate(${element.rotation || 0}deg)`;
 
+    // Apply current element styling
+    updateTextareaStyle(textarea, element);
+
     // Hide the text on canvas while editing
     textRef.current.visible(false);
     stage.batchDraw();
-
-    setIsEditing(true);
 
     // Focus and select all text
     textarea.focus();
@@ -162,8 +189,8 @@ export const TextRenderer = ({
 
     // Finish editing
     const finishEditing = () => {
+      textareaRef.current = null; // Clear reference
       document.body.removeChild(textarea);
-      setIsEditing(false);
       textRef.current.visible(true);
       stage.batchDraw();
 
@@ -308,4 +335,5 @@ TextRenderer.propTypes = {
   onUpdate: PropTypes.func,
   onEditStart: PropTypes.func,
   onEditEnd: PropTypes.func,
+  isBeingEdited: PropTypes.bool,
 };

@@ -77,17 +77,22 @@ const MemoryEditorPage = () => {
     setSelectedElement,
     elementStates, // This replaces photoStates.current
     addElement,
-    removeElement,
+    removeElement, // Add removeElement to handle proper deletion
     updateElement,
     getElementsByType,
   } = useCanvasElements();
 
-  // Get element behaviors
+  // New state for tracking editing mode (must be before useElementBehaviors)
+  const [editingElement, setEditingElement] = useState(null);
+
+  // Get element behaviors with editing state management
   const elementBehaviors = useElementBehaviors(
     elements,
     setElements,
     selectedElement,
-    setSelectedElement
+    setSelectedElement,
+    editingElement,
+    setEditingElement
   );
 
   // Other existing state...
@@ -100,9 +105,6 @@ const MemoryEditorPage = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  // New state for tracking editing mode
-  const [editingElement, setEditingElement] = useState(null);
 
   // Refs...
   const konvaStageRef = useRef(null);
@@ -180,6 +182,43 @@ const MemoryEditorPage = () => {
     },
     elementStates,
   });
+
+  // Synchronize selectedElement and editingElement with updated elements
+  useEffect(() => {
+    let needsUpdate = false;
+
+    // Update selectedElement reference if it exists in updated elements
+    if (selectedElement) {
+      const updatedSelectedElement = elements.find(
+        (el) => el.id === selectedElement.id
+      );
+      if (
+        updatedSelectedElement &&
+        updatedSelectedElement !== selectedElement
+      ) {
+        console.log("Updating selectedElement reference:", selectedElement.id);
+        setSelectedElement(updatedSelectedElement);
+        needsUpdate = true;
+      }
+    }
+
+    // Update editingElement reference if it exists in updated elements
+    if (editingElement) {
+      const updatedEditingElement = elements.find(
+        (el) => el.id === editingElement.id
+      );
+      if (updatedEditingElement && updatedEditingElement !== editingElement) {
+        console.log("Updating editingElement reference:", editingElement.id);
+        setEditingElement(updatedEditingElement);
+        needsUpdate = true;
+      }
+    }
+
+    if (needsUpdate) {
+      console.log("State references updated successfully");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elements]); // Only depend on elements to avoid circular dependencies
 
   // Update transformer when selection changes or editing mode changes
   useEffect(() => {
@@ -455,28 +494,66 @@ const MemoryEditorPage = () => {
     return addTextAtCenter(addElement, setSelectedElement);
   }, [addTextAtCenter, addElement, setSelectedElement]);
 
-  // Handle editing mode transitions
+  // Handle editing mode transitions using central editing manager
   const handleElementEdit = useCallback(
     (shouldEdit) => {
       if (shouldEdit && selectedElement) {
-        setEditingElement(selectedElement);
+        elementBehaviors.editingManager.startEditing(selectedElement);
       } else {
-        setEditingElement(null);
+        elementBehaviors.editingManager.endEditing();
       }
     },
-    [selectedElement]
+    [selectedElement, elementBehaviors.editingManager]
   );
 
   const handleElementFinishEdit = useCallback(() => {
-    setEditingElement(null);
-  }, []);
+    elementBehaviors.editingManager.endEditing();
+  }, [elementBehaviors.editingManager]);
 
-  // Handle element updates from toolbar
+  // Handle element updates from toolbar with editing awareness
   const handleElementToolbarUpdate = useCallback(
-    (elementId, updates) => {
-      updateElement(elementId, updates);
+    (elementIdOrUpdatedElement, updates) => {
+      // Handle both call patterns:
+      // 1. (elementId, updates) - from ElementRenderer
+      // 2. (updatedElement) - from EditingToolbar via ElementToolbar
+
+      let elementId, elementUpdates;
+
+      if (typeof elementIdOrUpdatedElement === "string") {
+        // Called as (elementId, updates)
+        elementId = elementIdOrUpdatedElement;
+        elementUpdates = updates;
+      } else {
+        // Called as (updatedElement)
+        const updatedElement = elementIdOrUpdatedElement;
+        elementId = updatedElement.id;
+        elementUpdates = updatedElement;
+      }
+
+      if (editingElement?.id === elementId) {
+        // Use editing-aware update method to preserve editing state
+        elementBehaviors.editingManager.updateElementInEditMode(
+          elementId,
+          elementUpdates
+        );
+      } else {
+        // Regular update for non-editing elements
+        if (typeof elementIdOrUpdatedElement === "string") {
+          updateElement(elementId, elementUpdates);
+        } else {
+          // For complete element updates, find and update
+          setElements((prev) =>
+            prev.map((el) => (el.id === elementId ? elementUpdates : el))
+          );
+        }
+      }
     },
-    [updateElement]
+    [
+      updateElement,
+      editingElement,
+      elementBehaviors.editingManager,
+      setElements,
+    ]
   );
 
   // Handle element layer changes
@@ -977,13 +1054,20 @@ const MemoryEditorPage = () => {
                     key={element.id}
                     element={element}
                     onSelect={() => setSelectedElement(element)}
-                    onUpdate={(updates) => updateElement(element.id, updates)}
+                    onUpdate={(updates) =>
+                      handleElementToolbarUpdate(element.id, updates)
+                    }
                     behaviors={elementBehaviors}
+                    isBeingEdited={elementBehaviors.editingManager.isElementEditing(
+                      element.id
+                    )}
                     onEditStart={() => {
                       setSelectedElement(element);
-                      setEditingElement(element);
+                      elementBehaviors.editingManager.startEditing(element);
                     }}
-                    onEditEnd={() => setEditingElement(null)}
+                    onEditEnd={() =>
+                      elementBehaviors.editingManager.endEditing()
+                    }
                   />
                 ))}
                 <Transformer
@@ -1012,7 +1096,7 @@ const MemoryEditorPage = () => {
                 isSelected={true}
                 isEditing={editingElement?.id === selectedElement.id}
                 onEdit={handleElementEdit}
-                onDelete={removeElement}
+                onDelete={(element) => removeElement(element.id)}
                 onUpdate={handleElementToolbarUpdate}
                 onLayerChange={handleElementLayerChange}
                 onDuplicate={handleElementDuplicate}

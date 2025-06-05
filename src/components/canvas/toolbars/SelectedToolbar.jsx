@@ -61,8 +61,8 @@ export const SelectedToolbar = ({ element, onEdit, onDelete }) => {
       </Tooltip>
 
       {/* Layer Controls */}
-      <Tooltip label="Layer Controls" hasArrow placement="top">
-        <Menu size="sm">
+      <Menu size="sm">
+        <Tooltip label="Layer Controls" hasArrow placement="top">
           <MenuButton
             as={IconButton}
             icon={<FaLayerGroup />}
@@ -70,14 +70,14 @@ export const SelectedToolbar = ({ element, onEdit, onDelete }) => {
             variant="ghost"
             aria-label="Layer controls"
           />
-          <MenuList>
-            <MenuItem onClick={handleBringForward}>Bring Forward</MenuItem>
-            <MenuItem onClick={handleSendBackward}>Send Backward</MenuItem>
-            <MenuItem>Bring to Front</MenuItem>
-            <MenuItem>Send to Back</MenuItem>
-          </MenuList>
-        </Menu>
-      </Tooltip>
+        </Tooltip>
+        <MenuList>
+          <MenuItem onClick={handleBringForward}>Bring Forward</MenuItem>
+          <MenuItem onClick={handleSendBackward}>Send Backward</MenuItem>
+          <MenuItem>Bring to Front</MenuItem>
+          <MenuItem>Send to Back</MenuItem>
+        </MenuList>
+      </Menu>
 
       {/* More Menu with Delete */}
       <Menu size="sm">
