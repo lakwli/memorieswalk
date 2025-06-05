@@ -1,7 +1,8 @@
 import PropTypes from "prop-types";
 import { Box } from "@chakra-ui/react";
-import { SelectedToolbar } from "./SelectedToolbar.jsx";
-import { EditingToolbar } from "./EditingToolbar.jsx";
+import { UniversalControlBar } from "./UniversalControlBar.jsx";
+import { TOOLBAR_CONFIG } from "./toolbarConfig";
+import { CONTROL_REGISTRY } from "./controls/index.js";
 
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
@@ -19,8 +20,21 @@ export const ElementToolbar = ({
   onDelete,
   onUpdate,
   stageRef,
+  // Add these as optional props for future extensibility
+  onCopy,
+  onBringForward,
+  onSendBackward,
+  onBringToFront,
+  onSendToBack,
 }) => {
-  // Don't render if element is not selected
+  // No-op handlers for controls if not provided
+  const noop = () => {};
+  onCopy = typeof onCopy === "function" ? onCopy : noop;
+  onBringForward = typeof onBringForward === "function" ? onBringForward : noop;
+  onSendBackward = typeof onSendBackward === "function" ? onSendBackward : noop;
+  onBringToFront = typeof onBringToFront === "function" ? onBringToFront : noop;
+  onSendToBack = typeof onSendToBack === "function" ? onSendToBack : noop;
+
   if (!isSelected) {
     return null;
   }
@@ -38,53 +52,32 @@ export const ElementToolbar = ({
       return { top: 100, left: 100 };
     }
 
-    // Get stage container position in the viewport
     const stageContainer = stage.container().getBoundingClientRect();
-
-    // For rotated elements, we need to calculate the bounding box
-    // Use the client rect to get the actual visual bounds regardless of rotation
     const nodeClientRect = node.getClientRect();
-
-    // getClientRect() already returns coordinates relative to the stage container
-    // We just need to offset by the stage container's position in the viewport
     const elementScreenX = nodeClientRect.x + stageContainer.left;
     const elementScreenY = nodeClientRect.y + stageContainer.top;
     const elementScreenWidth = nodeClientRect.width;
     const elementScreenHeight = nodeClientRect.height;
-
-    // Toolbar configuration (zoom-independent sizes)
     const toolbarWidth = 300;
     const toolbarHeight = 50;
     const margin = 20;
     const clearanceAbove = isEditing ? 60 : 80; // Less clearance in editing mode
-
-    // Calculate preferred position (above element, centered)
     let preferredLeft =
       elementScreenX + elementScreenWidth / 2 - toolbarWidth / 2;
     let preferredTop = elementScreenY - toolbarHeight - clearanceAbove;
-
-    // Viewport constraints
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-
-    // Constrain horizontal position
     const constrainedLeft = Math.max(
       margin,
       Math.min(preferredLeft, viewportWidth - toolbarWidth - margin)
     );
-
-    // Constrain vertical position with fallback to below element
     let constrainedTop = preferredTop;
     if (preferredTop < margin) {
-      // If no space above, position below element
       constrainedTop = elementScreenY + elementScreenHeight + margin;
-
-      // If still no space below, position at top of viewport
       if (constrainedTop + toolbarHeight > viewportHeight - margin) {
         constrainedTop = margin;
       }
     }
-
     return {
       top: constrainedTop,
       left: constrainedLeft,
@@ -92,6 +85,23 @@ export const ElementToolbar = ({
   };
 
   const toolbarPosition = getToolbarPosition();
+
+  // Determine mode and controls
+  const mode = isEditing ? "edit" : "select";
+  const controls = TOOLBAR_CONFIG[mode]?.[element.type] || [];
+
+  // Compose controlProps for all controls
+  const controlProps = {
+    element,
+    onUpdate,
+    onDelete,
+    onEdit,
+    onCopy,
+    onBringForward,
+    onSendBackward,
+    onBringToFront,
+    onSendToBack,
+  };
 
   return (
     <Box
@@ -110,19 +120,11 @@ export const ElementToolbar = ({
       minWidth="280px"
       maxWidth="320px"
     >
-      {isEditing ? (
-        <EditingToolbar
-          element={element}
-          onUpdate={onUpdate}
-          onFinishEditing={() => onEdit(false)}
-        />
-      ) : (
-        <SelectedToolbar
-          element={element}
-          onEdit={() => onEdit(true)}
-          onDelete={onDelete}
-        />
-      )}
+      <UniversalControlBar
+        controls={controls}
+        controlProps={controlProps}
+        controlRegistry={CONTROL_REGISTRY}
+      />
     </Box>
   );
 };
@@ -142,4 +144,9 @@ ElementToolbar.propTypes = {
   onDelete: PropTypes.func.isRequired,
   onUpdate: PropTypes.func,
   stageRef: PropTypes.object,
+  onCopy: PropTypes.func,
+  onBringForward: PropTypes.func,
+  onSendBackward: PropTypes.func,
+  onBringToFront: PropTypes.func,
+  onSendToBack: PropTypes.func,
 };

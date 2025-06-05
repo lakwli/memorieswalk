@@ -557,16 +557,69 @@ const MemoryEditorPage = () => {
   );
 
   // Handle element layer changes
-  const handleElementLayerChange = useCallback((elementId, direction) => {
-    // TODO: Implement layer management
-    console.log("Layer change:", elementId, direction);
-  }, []);
+  const handleElementLayerChange = useCallback(
+    (elementId, direction) => {
+      // TODO: Implement layer management
+      setElements((prev) => {
+        const idx = prev.findIndex((el) => el.id === elementId);
+        if (idx === -1) return prev;
+        let newElements = [...prev];
+        if (direction === "up" && idx < prev.length - 1) {
+          [newElements[idx], newElements[idx + 1]] = [
+            newElements[idx + 1],
+            newElements[idx],
+          ];
+        } else if (direction === "down" && idx > 0) {
+          [newElements[idx], newElements[idx - 1]] = [
+            newElements[idx - 1],
+            newElements[idx],
+          ];
+        } else if (direction === "top") {
+          const [el] = newElements.splice(idx, 1);
+          newElements.push(el);
+        } else if (direction === "bottom") {
+          const [el] = newElements.splice(idx, 1);
+          newElements.unshift(el);
+        }
+        return newElements;
+      });
+    },
+    [setElements]
+  );
 
   // Handle element duplication
-  const handleElementDuplicate = useCallback((elementId) => {
-    // TODO: Implement element duplication
-    console.log("Duplicate element:", elementId);
-  }, []);
+  const handleElementDuplicate = useCallback(
+    (elementId) => {
+      setElements((prev) => {
+        const el = prev.find((e) => e.id === elementId);
+        if (!el) return prev;
+        const newEl = { ...el, id: `${el.id}_copy_${Date.now()}` };
+        return [...prev, newEl];
+      });
+    },
+    [setElements]
+  );
+
+  // Universal toolbar handlers for controls
+  const handleToolbarCopy = useCallback(() => {
+    if (selectedElement) handleElementDuplicate(selectedElement.id);
+  }, [selectedElement, handleElementDuplicate]);
+
+  const handleToolbarBringForward = useCallback(() => {
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "up");
+  }, [selectedElement, handleElementLayerChange]);
+
+  const handleToolbarSendBackward = useCallback(() => {
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "down");
+  }, [selectedElement, handleElementLayerChange]);
+
+  const handleToolbarBringToFront = useCallback(() => {
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "top");
+  }, [selectedElement, handleElementLayerChange]);
+
+  const handleToolbarSendToBack = useCallback(() => {
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "bottom");
+  }, [selectedElement, handleElementLayerChange]);
 
   // Handle stage click for adding text elements - now uses tool system
   const handleStageClick = useCallback(
@@ -1096,11 +1149,13 @@ const MemoryEditorPage = () => {
                 isSelected={true}
                 isEditing={editingElement?.id === selectedElement.id}
                 onEdit={handleElementEdit}
-                onDelete={(element) => removeElement(element.id)}
+                onDelete={() => removeElement(selectedElement.id)}
                 onUpdate={handleElementToolbarUpdate}
-                onLayerChange={handleElementLayerChange}
-                onDuplicate={handleElementDuplicate}
-                onFinishEdit={handleElementFinishEdit}
+                onCopy={handleToolbarCopy}
+                onBringForward={handleToolbarBringForward}
+                onSendBackward={handleToolbarSendBackward}
+                onBringToFront={handleToolbarBringToFront}
+                onSendToBack={handleToolbarSendToBack}
                 stageRef={konvaStageRef}
               />
             )}
