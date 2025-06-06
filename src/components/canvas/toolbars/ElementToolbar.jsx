@@ -119,6 +119,14 @@ export const ElementToolbar = ({
       backdropFilter="blur(4px)"
       minWidth="280px"
       maxWidth="320px"
+      onClick={(e) => {
+        // Prevent clicks on toolbar from bubbling up to stage or document
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        // Prevent mousedown events from bubbling up
+        e.stopPropagation();
+      }}
     >
       <UniversalControlBar
         controls={controls}
