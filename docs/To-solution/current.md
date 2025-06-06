@@ -1,6 +1,8 @@
 # Problem
 
-Toolbar disappear upon i click on any control in the toolbar. It happen in both select and edit mode. this is what as expected.
+After i double click on an element to go into edit mode, when i click on edit mode, it will switch to select mode and then exit (toolbar disappear, element de-select, lost focus).
+
+It could be the issue of how the property been update, which control the re-render of impacted screen part. When click on a control, e.g. font, the selecting/editing element property value should get updated and then result re-render reflect the new changes. But other non-related state should not get updated.
 
 ## What is expected:
 
