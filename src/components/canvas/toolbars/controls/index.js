@@ -21,14 +21,12 @@ import {
   ContrastControl,
   StrokeWidthControl,
   StrokeColorControl,
-  EditControl,
   CopyControl,
   BringForwardControl,
   SendBackwardControl,
   BringToFrontControl,
   SendToBackControl,
   DeleteControl,
-  DoneControl,
 } from "./UniversalToolbarControls.jsx";
 
 export const CONTROL_REGISTRY = {
@@ -43,12 +41,10 @@ export const CONTROL_REGISTRY = {
   contrast: ContrastControl,
   strokeWidth: StrokeWidthControl,
   strokeColor: StrokeColorControl,
-  edit: EditControl,
   copy: CopyControl,
   bringForward: BringForwardControl,
   sendBackward: SendBackwardControl,
   bringToFront: BringToFrontControl,
   sendToBack: SendToBackControl,
   delete: DeleteControl,
-  done: DoneControl,
 };
