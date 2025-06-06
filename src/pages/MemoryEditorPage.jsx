@@ -506,9 +506,10 @@ const MemoryEditorPage = () => {
     [selectedElement, elementBehaviors.editingManager]
   );
 
-  const handleElementFinishEdit = useCallback(() => {
-    elementBehaviors.editingManager.endEditing();
-  }, [elementBehaviors.editingManager]);
+  // Handle finishing edit mode (for future use)
+  // const handleElementFinishEdit = useCallback(() => {
+  //   elementBehaviors.editingManager.endEditing();
+  // }, [elementBehaviors.editingManager]);
 
   // Handle element updates from toolbar with editing awareness
   const handleElementToolbarUpdate = useCallback(
@@ -701,6 +702,27 @@ const MemoryEditorPage = () => {
       document.removeEventListener("fullscreenchange", handleFullScreenChange);
     };
   }, []);
+
+  // Handle ESC key to dismiss toolbar/clear selection
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        // Clear selection (which dismisses toolbar) when ESC is pressed
+        if (selectedElement) {
+          setSelectedElement(null);
+        }
+        // Also end editing mode if active
+        if (editingElement) {
+          setEditingElement(null);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedElement, editingElement, setSelectedElement, setEditingElement]);
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
