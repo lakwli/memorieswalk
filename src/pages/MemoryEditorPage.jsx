@@ -635,10 +635,18 @@ const MemoryEditorPage = () => {
         } else {
           // Clear selection when clicking on empty space
           setSelectedElement(null);
+          // Also clear editing element when deselecting
+          setEditingElement(null);
         }
       }
     },
-    [activeTool, handleToolStageClick, addElement, setSelectedElement]
+    [
+      activeTool,
+      handleToolStageClick,
+      addElement,
+      setSelectedElement,
+      setEditingElement,
+    ]
   );
 
   // Update canvas position and scale when initialViewState changes
@@ -1128,7 +1136,11 @@ const MemoryEditorPage = () => {
                   <ElementRenderer
                     key={element.id}
                     element={element}
-                    onSelect={() => setSelectedElement(element)}
+                    onSelect={() => {
+                      setSelectedElement(element);
+                      // Clear editing element when selecting a different element
+                      setEditingElement(null);
+                    }}
                     onUpdate={(updates) =>
                       handleElementToolbarUpdate(element.id, updates)
                     }

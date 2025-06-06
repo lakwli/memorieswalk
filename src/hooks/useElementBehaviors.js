@@ -97,9 +97,13 @@ export const useElementBehaviors = (
   // Common click handler
   const handleElementClick = useCallback(
     (element) => {
-      return () => setSelectedElement(element);
+      return () => {
+        setSelectedElement(element);
+        // Clear editing element when selecting any element (ensures clean state)
+        setEditingElement(null);
+      };
     },
-    [setSelectedElement]
+    [setSelectedElement, setEditingElement]
   );
 
   // Common transform handler
