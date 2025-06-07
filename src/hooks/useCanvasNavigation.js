@@ -177,7 +177,13 @@ const useCanvasNavigation = ({
    * This helps determine when canvas panning should be enabled
    */
   const isStageTarget = useCallback((e) => {
-    return e.target === e.target.getStage();
+    const isStage = e.target === e.target.getStage();
+    console.log("🎯 isStageTarget check:", {
+      isStage,
+      targetName: e.target.getClassName(),
+      stageName: e.target.getStage().getClassName(),
+    });
+    return isStage;
   }, []);
 
   /**
@@ -186,13 +192,15 @@ const useCanvasNavigation = ({
    */
   const handleStageDragStart = useCallback(
     (e) => {
+      console.log("🖱️ Stage drag start event triggered");
       // Only allow dragging if clicking on the Stage itself (empty space), not on elements
       if (!isStageTarget(e)) {
         // Prevent dragging by canceling the event
+        console.log("🚫 Stage drag blocked - not clicking on Stage");
         e.target.stopDrag();
         return;
       }
-      console.log("🖱️ Stage drag started on empty space");
+      console.log("🖱️ Stage drag started on empty space - panning should work");
     },
     [isStageTarget]
   );

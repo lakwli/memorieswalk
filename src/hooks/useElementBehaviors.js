@@ -6,7 +6,9 @@ export const useElementBehaviors = (
   selectedElement,
   setSelectedElement,
   editingElement,
-  setEditingElement
+  setEditingElement,
+  activeTool,
+  setActiveTool
 ) => {
   // Central Editing State Manager
   const editingManager = {
@@ -130,9 +132,12 @@ export const useElementBehaviors = (
           setEditingElement(null);
         }
         setSelectedElement(element);
+
+        // Update activeTool to reflect element selection - this prevents Stage dragging
+        setActiveTool(element.type);
       };
     },
-    [setSelectedElement, setEditingElement, editingElement]
+    [setSelectedElement, setEditingElement, editingElement, setActiveTool]
   );
 
   // Common transform handler

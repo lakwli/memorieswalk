@@ -85,6 +85,9 @@ const MemoryEditorPage = () => {
   // New state for tracking editing mode (must be before useElementBehaviors)
   const [editingElement, setEditingElement] = useState(null);
 
+  // Active tool state (must be declared before useElementBehaviors)
+  const [activeTool, setActiveTool] = useState(null);
+
   // Use a ref to track current editing element for immediate access in callbacks
   const editingElementRef = useRef(null);
 
@@ -114,7 +117,9 @@ const MemoryEditorPage = () => {
     selectedElement,
     setSelectedElement,
     editingElement,
-    setEditingElement
+    setEditingElement,
+    activeTool,
+    setActiveTool
   );
 
   // Other existing state...
@@ -125,7 +130,6 @@ const MemoryEditorPage = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [activeTool, setActiveTool] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Refs...
@@ -664,6 +668,8 @@ const MemoryEditorPage = () => {
           setSelectedElement(null);
           // Also clear editing element when deselecting
           setEditingElement(null);
+          // Reset activeTool to null so Stage becomes draggable again
+          setActiveTool(null);
         }
       }
     },
@@ -1144,6 +1150,14 @@ const MemoryEditorPage = () => {
             }}
             onDragOver={(e) => e.preventDefault()}
           >
+            {console.log(
+              "Debug - activeTool:",
+              activeTool,
+              "PAN mode:",
+              TOOL_MODES.PAN,
+              "Stage draggable:",
+              activeTool === TOOL_MODES.PAN || activeTool === null
+            )}
             <Stage
               ref={konvaStageRef}
               width={window.innerWidth - 60}
@@ -1155,8 +1169,37 @@ const MemoryEditorPage = () => {
               onWheel={handleWheel}
               onClick={handleStageClick}
               draggable={activeTool === TOOL_MODES.PAN || activeTool === null}
-              onDragStart={handleStageDragStart}
-              onDragEnd={handleStageDragEnd}
+              onDragStart={(e) => {
+                console.log(
+                  "Stage drag start - activeTool:",
+                  activeTool,
+                  "draggable should be:",
+                  activeTool === TOOL_MODES.PAN || activeTool === null
+                );
+                // Prevent drag if tool is active (like TEXT tool) but allow for PAN mode or null
+                if (activeTool !== TOOL_MODES.PAN && activeTool !== null) {
+                  e.evt.preventDefault();
+                  e.target.stopDrag();
+                  console.log(
+                    "Prevented Stage drag - active tool blocks panning:",
+                    activeTool
+                  );
+                  return;
+                }
+                handleStageDragStart(e);
+              }}
+              onDragEnd={(e) => {
+                console.log(
+                  "Stage drag end - activeTool:",
+                  activeTool,
+                  "draggable should be:",
+                  activeTool === TOOL_MODES.PAN || activeTool === null
+                );
+                // Only handle drag end if we're in PAN mode or null (normal panning)
+                if (activeTool === TOOL_MODES.PAN || activeTool === null) {
+                  handleStageDragEnd(e);
+                }
+              }}
             >
               <Layer>
                 {elements.map((element) => (
