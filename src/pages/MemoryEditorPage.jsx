@@ -1167,7 +1167,7 @@ const MemoryEditorPage = () => {
               y={stagePosition.y}
               onWheel={handleWheel}
               onClick={handleStageClick}
-              draggable={activeTool === TOOL_MODES.PAN || activeTool === null}
+              draggable={true}
               onDragStart={(e) => {
                 console.log(
                   "Stage drag start - activeTool:",
@@ -1175,27 +1175,30 @@ const MemoryEditorPage = () => {
                   "draggable should be:",
                   activeTool === TOOL_MODES.PAN || activeTool === null
                 );
-                // Prevent drag if tool is active (like TEXT tool) but allow for PAN mode or null
-                if (activeTool !== TOOL_MODES.PAN && activeTool !== null) {
+
+                // Check if we're clicking on empty space (Stage itself)
+                const isStageTarget = e.target === e.target.getStage();
+
+                if (isStageTarget) {
+                  // If clicking on empty space, allow panning regardless of activeTool
+                  console.log("Clicking on empty space - allowing pan");
+                  handleStageDragStart(e);
+                } else {
+                  // If clicking on an element, prevent Stage drag (preserve element interaction)
+                  console.log("Clicking on element - preventing Stage drag");
                   e.evt.preventDefault();
                   e.target.stopDrag();
-                  console.log(
-                    "Prevented Stage drag - active tool blocks panning:",
-                    activeTool
-                  );
-                  return;
                 }
-                handleStageDragStart(e);
               }}
               onDragEnd={(e) => {
-                console.log(
-                  "Stage drag end - activeTool:",
-                  activeTool,
-                  "draggable should be:",
-                  activeTool === TOOL_MODES.PAN || activeTool === null
-                );
-                // Only handle drag end if we're in PAN mode or null (normal panning)
-                if (activeTool === TOOL_MODES.PAN || activeTool === null) {
+                console.log("Stage drag end - activeTool:", activeTool);
+
+                // Check if we're on empty space (Stage itself)
+                const isStageTarget = e.target === e.target.getStage();
+
+                if (isStageTarget) {
+                  // If on empty space, handle drag end for panning
+                  console.log("Ending pan on empty space");
                   handleStageDragEnd(e);
                 }
               }}
