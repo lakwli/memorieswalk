@@ -1,5 +1,7 @@
 # Problem
 
+## Problem 1: Element/Toolbar Exit uppon click on any control in the toolbar
+
 After i double click on an element to go into edit mode, when i click on any control from the toolbar, e.g. font family drop down, The dropdown opens and immediately closes without giving a chance to select anything, toolbar and element will switch to select mode and then exit (toolbar disappear, element de-select, lost focus), in flash second.
 
 If i single click on an element to go into select mode, when i click on any control from the toolbar, element will exit (toolbar disappear, element de-select, lost focus), in flash second.
@@ -8,12 +10,6 @@ it could be NOTHING TO DO with the editing mode. It could be DUE TO rerender, wh
 It could be the issue of how the property been update, which control the re-render of impacted screen part. When click on a control, e.g. font, the selecting/editing element property value should get updated and then result re-render reflect the new changes. But other non-related state should not get updated (to prevent 'exit' happen)
 
 Please investigate. Please think from proper state management and control based on current archtiectural.
-
-### Technical:
-
-It seems that the UniversalToolbarControl fontFamily button is not detect onChange but on clik, which is not right for drop box. we click to select, release after selected.
-
-it should based on drag or onchange, not detect mouse down and mouse up. This will inference othe's control
 
 ### Test:
 
