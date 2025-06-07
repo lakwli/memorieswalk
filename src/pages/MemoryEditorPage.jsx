@@ -659,8 +659,13 @@ const MemoryEditorPage = () => {
       if (activeTool === TOOL_MODES.PAN) return;
 
       if (e.target === e.target.getStage()) {
-        if (activeTool === ELEMENT_TYPES.TEXT) {
-          // Use tool-based stage click handling
+        // Check if we're in "tool mode" vs "element selected mode"
+        // If activeTool matches a selectedElement's type, we're in "element selected mode"
+        const isElementSelectedMode =
+          selectedElement && activeTool === selectedElement.type;
+
+        if (activeTool === ELEMENT_TYPES.TEXT && !isElementSelectedMode) {
+          // Only add new text if we're in actual "text tool mode" (not just having a text element selected)
           return handleToolStageClick(e, addElement, setSelectedElement);
         } else {
           // Clear selection when clicking on empty space
@@ -674,10 +679,12 @@ const MemoryEditorPage = () => {
     },
     [
       activeTool,
+      selectedElement,
       handleToolStageClick,
       addElement,
       setSelectedElement,
       setEditingElement,
+      setActiveTool,
     ]
   );
 
