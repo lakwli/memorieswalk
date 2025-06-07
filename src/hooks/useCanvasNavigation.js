@@ -12,20 +12,16 @@ const ZOOM_FACTOR = 1.2;
  * @param {React.MutableRefObject} options.stageRef - Reference to the Konva Stage
  * @param {number} options.initialScale - Initial zoom scale (default: 1)
  * @param {Object} options.initialPosition - Initial pan position (default: {x: 0, y: 0})
- * @param {string} options.activeTool - Current active tool (used to enable/disable panning)
  * @returns {Object} Canvas navigation state and handlers
  */
 const useCanvasNavigation = ({
   stageRef,
   initialScale = 1,
   initialPosition = { x: 0, y: 0 },
-  activeTool = null,
 }) => {
   // State for canvas transformation
   const [stageScale, setStageScale] = useState(initialScale);
   const [stagePosition, setStagePosition] = useState(initialPosition);
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastPointerPosition, setLastPointerPosition] = useState(null);
 
   // Calculate zoom percentage for display
   const zoomPercentage = useMemo(() => {
@@ -160,78 +156,45 @@ const useCanvasNavigation = ({
   );
 
   /**
-   * Handle stage mouse events for dragging
+   * Handle stage drag end for panning
+   * This uses React/Konva's built-in draggable system instead of raw mouse events
    */
-  const handleStageMouseDown = useCallback(
-    (e) => {
-      const clickedOnEmpty = e.target === e.target.getStage();
+  const handleStageDragEnd = useCallback((e) => {
+    const stage = e.target;
+    console.log(
+      "🖱️ handleStageDragEnd called - panning completed via draggable"
+    );
 
-      // Allow dragging when:
-      // 1. Clicked on empty space AND
-      // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
-      if (
-        !clickedOnEmpty ||
-        (activeTool !== "pan" &&
-          activeTool !== null &&
-          activeTool !== undefined)
-      ) {
+    // Update our position state to match the stage's new position
+    setStagePosition({
+      x: stage.x(),
+      y: stage.y(),
+    });
+  }, []);
+
+  /**
+   * Check if the target is the Stage itself (empty space) for conditional dragging
+   * This helps determine when canvas panning should be enabled
+   */
+  const isStageTarget = useCallback((e) => {
+    return e.target === e.target.getStage();
+  }, []);
+
+  /**
+   * Handle stage drag start - only allow dragging when clicking on empty space
+   * This prevents canvas panning when clicking on elements
+   */
+  const handleStageDragStart = useCallback(
+    (e) => {
+      // Only allow dragging if clicking on the Stage itself (empty space), not on elements
+      if (!isStageTarget(e)) {
+        // Prevent dragging by canceling the event
+        e.target.stopDrag();
         return;
       }
-
-      // Change cursor to grabbing when starting to drag the canvas
-      const stage = e.target.getStage();
-      stage.container().style.cursor = "grabbing";
-
-      setIsDragging(true);
-      setLastPointerPosition(e.target.getStage().getPointerPosition());
+      console.log("🖱️ Stage drag started on empty space");
     },
-    [activeTool]
-  );
-
-  const handleStageMouseMove = useCallback(
-    (e) => {
-      // Allow dragging when:
-      // 1. isDragging is true AND
-      // 2. Either activeTool is "pan" (spacebar held) OR activeTool is null/undefined (normal mode)
-      if (
-        !isDragging ||
-        (activeTool !== "pan" &&
-          activeTool !== null &&
-          activeTool !== undefined)
-      )
-        return;
-
-      const stage = e.target.getStage();
-      const currentPointerPosition = stage.getPointerPosition();
-      if (!currentPointerPosition || !lastPointerPosition) return;
-
-      const deltaX = currentPointerPosition.x - lastPointerPosition.x;
-      const deltaY = currentPointerPosition.y - lastPointerPosition.y;
-
-      setStagePosition((prev) => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY,
-      }));
-
-      setLastPointerPosition(currentPointerPosition);
-    },
-    [isDragging, lastPointerPosition, activeTool]
-  );
-
-  const handleStageMouseUp = useCallback(
-    (e) => {
-      if (isDragging) {
-        // Restore cursor to grab when finished dragging the canvas
-        const stage = e?.target?.getStage();
-        if (stage) {
-          stage.container().style.cursor = "grab";
-        }
-      }
-
-      setIsDragging(false);
-      setLastPointerPosition(null);
-    },
-    [isDragging]
+    [isStageTarget]
   );
 
   return {
@@ -239,7 +202,6 @@ const useCanvasNavigation = ({
     stageScale,
     stagePosition,
     zoomPercentage,
-    isDragging,
 
     // Actions
     setStageScale,
@@ -251,9 +213,9 @@ const useCanvasNavigation = ({
     handleZoomOut,
     handleZoomToFit,
     handleWheel,
-    handleStageMouseDown,
-    handleStageMouseMove,
-    handleStageMouseUp,
+    handleStageDragEnd,
+    handleStageDragStart,
+    isStageTarget,
 
     // Constants for external use
     MIN_SCALE,

@@ -34,14 +34,41 @@ export const useElementBehaviors = (
     // Update element while preserving editing state
     updateElementInEditMode: useCallback(
       (elementId, updates) => {
-        console.log("📝 updateElementInEditMode called with:", {
+        console.log("📝 updateElementInEditMode called:", {
           elementId,
           updates,
+          timestamp: new Date().toISOString(),
         });
-        setElements((prev) =>
-          prev.map((el) => (el.id === elementId ? { ...el, ...updates } : el))
-        );
-        console.log("📝 Element updated, editing state should persist");
+
+        setElements((prev) => {
+          console.log(
+            "📝 setElements prev state:",
+            prev.map((el) => ({ id: el.id, type: el.type }))
+          );
+
+          const newElements = prev.map((el) => {
+            if (el.id === elementId) {
+              console.log(
+                "📝 Updating element with Object.assign:",
+                el.id,
+                "with:",
+                updates
+              );
+              // Preserve the class instance by updating properties directly
+              // This prevents creating new object references that could disrupt editing state
+              Object.assign(el, updates);
+              return el;
+            }
+            return el;
+          });
+
+          console.log(
+            "📝 setElements new state:",
+            newElements.map((el) => ({ id: el.id, type: el.type }))
+          );
+          console.log("📝 Element updated, editing state preserved");
+          return newElements;
+        });
         // editingElement state persists because it's managed separately
       },
       [setElements]
@@ -98,12 +125,14 @@ export const useElementBehaviors = (
   const handleElementClick = useCallback(
     (element) => {
       return () => {
+        // Only clear editing if clicking on a different element
+        if (editingElement && editingElement.id !== element.id) {
+          setEditingElement(null);
+        }
         setSelectedElement(element);
-        // Clear editing element when selecting any element (ensures clean state)
-        setEditingElement(null);
       };
     },
-    [setSelectedElement, setEditingElement]
+    [setSelectedElement, setEditingElement, editingElement]
   );
 
   // Common transform handler

@@ -271,9 +271,18 @@ export const TextRenderer = ({
         draggable={element.draggable}
         onMouseEnter={behaviors.handleElementMouseEnter()}
         onMouseLeave={behaviors.handleElementMouseLeave()}
-        onDragStart={behaviors.handleElementDragStart()}
-        onDragEnd={behaviors.handleElementDragEnd(element)}
-        onClick={behaviors.handleElementClick(element)}
+        onDragStart={(e) => {
+          e.cancelBubble = true; // Prevent event from bubbling to Stage
+          return behaviors.handleElementDragStart()(e);
+        }}
+        onDragEnd={(e) => {
+          e.cancelBubble = true; // Prevent event from bubbling to Stage
+          return behaviors.handleElementDragEnd(element)(e);
+        }}
+        onClick={(e) => {
+          e.cancelBubble = true; // Prevent event from bubbling to Stage
+          return behaviors.handleElementClick(element)(e);
+        }}
         onDblClick={handleTextDblClick}
       >
         {/* Background shape if applicable */}

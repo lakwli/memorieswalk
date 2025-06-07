@@ -18,11 +18,26 @@ export const FontStyleControl = ({ element, onUpdate }) => (
       icon={<MdFormatBold />}
       size="sm"
       aria-label="Font Style"
-      onClick={() =>
-        onUpdate({
-          fontStyle: element.fontStyle === "bold" ? "normal" : "bold",
-        })
-      }
+      onClick={() => {
+        const oldValue = element.fontStyle || "normal";
+        const newValue = oldValue === "bold" ? "normal" : "bold";
+
+        console.log("🎨 FontStyleControl onClick triggered:", {
+          elementId: element.id,
+          oldValue,
+          newValue,
+          hasChanged: oldValue !== newValue,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Only trigger update if the value actually changed
+        if (oldValue !== newValue) {
+          console.log("🎨 FontStyleControl triggering update - value changed");
+          onUpdate({ fontStyle: newValue });
+        } else {
+          console.log("🎨 FontStyleControl NOT triggering update - same value");
+        }
+      }}
     />
   </Tooltip>
 );
@@ -35,8 +50,31 @@ FontStyleControl.propTypes = {
 export const FontFamilyControl = ({ element, onUpdate }) => (
   <Tooltip label="Font Family" hasArrow>
     <select
-      value={element.fontFamily || ""}
-      onChange={(e) => onUpdate({ fontFamily: e.target.value })}
+      value={element.fontFamily || "Arial"}
+      onChange={(e) => {
+        const oldValue = element.fontFamily || "Arial";
+        const newValue = e.target.value;
+
+        console.log("🎨 FontFamilyControl onChange triggered:", {
+          elementId: element.id,
+          oldValue,
+          newValue,
+          hasChanged: oldValue !== newValue,
+          selectedIndex: e.target.selectedIndex,
+          target: e.target,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Only trigger update if the value actually changed
+        if (oldValue !== newValue) {
+          console.log("🎨 FontFamilyControl triggering update - value changed");
+          onUpdate({ fontFamily: newValue });
+        } else {
+          console.log(
+            "🎨 FontFamilyControl NOT triggering update - same value"
+          );
+        }
+      }}
       style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}
     >
       <option value="Arial">Arial</option>
@@ -57,7 +95,26 @@ export const FontSizeControl = ({ element, onUpdate }) => (
   <Tooltip label="Font Size" hasArrow>
     <select
       value={element.fontSize || 16}
-      onChange={(e) => onUpdate({ fontSize: parseInt(e.target.value) })}
+      onChange={(e) => {
+        const oldValue = element.fontSize || 16;
+        const newValue = parseInt(e.target.value);
+
+        console.log("🎨 FontSizeControl onChange triggered:", {
+          elementId: element.id,
+          oldValue,
+          newValue,
+          hasChanged: oldValue !== newValue,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Only trigger update if the value actually changed
+        if (oldValue !== newValue) {
+          console.log("🎨 FontSizeControl triggering update - value changed");
+          onUpdate({ fontSize: newValue });
+        } else {
+          console.log("🎨 FontSizeControl NOT triggering update - same value");
+        }
+      }}
       style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}
     >
       {[8, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72].map((size) => (
@@ -81,9 +138,26 @@ export const TextColorControl = ({ element, onUpdate }) => (
       size="sm"
       aria-label="Text Color"
       style={{ color: element.fill || "#000" }}
-      onClick={() =>
-        onUpdate({ fill: element.fill === "#000" ? "#f00" : "#000" })
-      }
+      onClick={() => {
+        const oldValue = element.fill || "#000";
+        const newValue = oldValue === "#000" ? "#f00" : "#000";
+
+        console.log("🎨 TextColorControl onClick triggered:", {
+          elementId: element.id,
+          oldValue,
+          newValue,
+          hasChanged: oldValue !== newValue,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Only trigger update if the value actually changed
+        if (oldValue !== newValue) {
+          console.log("🎨 TextColorControl triggering update - value changed");
+          onUpdate({ fill: newValue });
+        } else {
+          console.log("🎨 TextColorControl NOT triggering update - same value");
+        }
+      }}
     />
   </Tooltip>
 );

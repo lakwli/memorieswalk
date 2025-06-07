@@ -17,17 +17,7 @@ export const UniversalControlBar = ({
   controlProps,
   controlRegistry = CONTROL_REGISTRY,
 }) => (
-  <HStack
-    spacing={1}
-    onClick={(e) => {
-      // Additional safety: prevent propagation at control bar level
-      e.stopPropagation();
-    }}
-    onMouseDown={(e) => {
-      // Additional safety: prevent mousedown propagation
-      e.stopPropagation();
-    }}
-  >
+  <HStack spacing={1}>
     {controls.map((key) => {
       const Control = controlRegistry[key];
       return Control ? <Control key={key} {...controlProps} /> : null;

@@ -85,6 +85,28 @@ const MemoryEditorPage = () => {
   // New state for tracking editing mode (must be before useElementBehaviors)
   const [editingElement, setEditingElement] = useState(null);
 
+  // Use a ref to track current editing element for immediate access in callbacks
+  const editingElementRef = useRef(null);
+
+  // Add logging for state changes
+  useEffect(() => {
+    console.log("🔵 selectedElement changed:", selectedElement?.id || "null");
+  }, [selectedElement]);
+
+  useEffect(() => {
+    console.log("🟠 editingElement changed:", editingElement?.id || "null");
+    // Keep ref in sync with state for immediate access in callbacks
+    editingElementRef.current = editingElement;
+  }, [editingElement]);
+
+  useEffect(() => {
+    console.log("📦 elements array changed:", {
+      count: elements.length,
+      elements: elements.map((el) => ({ id: el.id, type: el.type })),
+      timestamp: new Date().toISOString(),
+    });
+  }, [elements]);
+
   // Get element behaviors with editing state management
   const elementBehaviors = useElementBehaviors(
     elements,
@@ -121,7 +143,7 @@ const MemoryEditorPage = () => {
   // Ref to track if we've applied the view state
   const viewStateAppliedRef = useRef(false);
 
-  // Canvas navigation hook
+  // Canvas navigation hook with proper drag handler for panning
   const {
     stageScale,
     stagePosition,
@@ -132,14 +154,12 @@ const MemoryEditorPage = () => {
     setStageScale,
     setStagePosition,
     zoomPercentage,
-    handleStageMouseDown,
-    handleStageMouseMove,
-    handleStageMouseUp,
+    handleStageDragStart,
+    handleStageDragEnd,
   } = useCanvasNavigation({
     stageRef: konvaStageRef,
     initialScale: initialViewState.scale,
     initialPosition: initialViewState.position,
-    activeTool: activeTool,
   });
 
   // Canvas Tools hook - Initialize BEFORE Upload Manager to provide canvas config
@@ -184,41 +204,34 @@ const MemoryEditorPage = () => {
   });
 
   // Synchronize selectedElement and editingElement with updated elements
-  useEffect(() => {
-    let needsUpdate = false;
+  // DISABLED: This was causing toolbar to disappear due to unnecessary re-renders
+  // useEffect(() => {
+  //   // Update selectedElement reference if it exists in updated elements
+  //   if (selectedElement) {
+  //     const updatedSelectedElement = elements.find(
+  //       (el) => el.id === selectedElement.id
+  //     );
+  //     if (
+  //       updatedSelectedElement &&
+  //       updatedSelectedElement !== selectedElement
+  //     ) {
+  //       console.log("Updating selectedElement reference:", selectedElement.id);
+  //       setSelectedElement(updatedSelectedElement);
+  //     }
+  //   }
 
-    // Update selectedElement reference if it exists in updated elements
-    if (selectedElement) {
-      const updatedSelectedElement = elements.find(
-        (el) => el.id === selectedElement.id
-      );
-      if (
-        updatedSelectedElement &&
-        updatedSelectedElement !== selectedElement
-      ) {
-        console.log("Updating selectedElement reference:", selectedElement.id);
-        setSelectedElement(updatedSelectedElement);
-        needsUpdate = true;
-      }
-    }
-
-    // Update editingElement reference if it exists in updated elements
-    if (editingElement) {
-      const updatedEditingElement = elements.find(
-        (el) => el.id === editingElement.id
-      );
-      if (updatedEditingElement && updatedEditingElement !== editingElement) {
-        console.log("Updating editingElement reference:", editingElement.id);
-        setEditingElement(updatedEditingElement);
-        needsUpdate = true;
-      }
-    }
-
-    if (needsUpdate) {
-      console.log("State references updated successfully");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elements]); // Only depend on elements to avoid circular dependencies
+  //   // Update editingElement reference if it exists in updated elements
+  //   if (editingElement) {
+  //     const updatedEditingElement = elements.find(
+  //       (el) => el.id === editingElement.id
+  //     );
+  //     if (updatedEditingElement && updatedEditingElement !== editingElement) {
+  //       console.log("Updating editingElement reference:", editingElement.id);
+  //       setEditingElement(updatedEditingElement);
+  //     }
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [elements]); // Only depend on elements to avoid circular dependencies
 
   // Update transformer when selection changes or editing mode changes
   useEffect(() => {
@@ -511,9 +524,15 @@ const MemoryEditorPage = () => {
   //   elementBehaviors.editingManager.endEditing();
   // }, [elementBehaviors.editingManager]);
 
-  // Handle element updates from toolbar with editing awareness
+  // Handle element updates from toolbar with editing awareness - SIMPLIFIED VERSION
   const handleElementToolbarUpdate = useCallback(
     (elementIdOrUpdatedElement, updates) => {
+      console.log("🎯 TOOLBAR UPDATE TRIGGERED:", {
+        elementIdOrUpdatedElement,
+        updates,
+        timestamp: new Date().toISOString(),
+      });
+
       // Handle both call patterns:
       // 1. (elementId, updates) - from ElementRenderer
       // 2. (updatedElement) - from EditingToolbar via ElementToolbar
@@ -531,30 +550,38 @@ const MemoryEditorPage = () => {
         elementUpdates = updatedElement;
       }
 
-      if (editingElement?.id === elementId) {
-        // Use editing-aware update method to preserve editing state
-        elementBehaviors.editingManager.updateElementInEditMode(
-          elementId,
-          elementUpdates
-        );
-      } else {
-        // Regular update for non-editing elements
-        if (typeof elementIdOrUpdatedElement === "string") {
-          updateElement(elementId, elementUpdates);
-        } else {
-          // For complete element updates, find and update
-          setElements((prev) =>
-            prev.map((el) => (el.id === elementId ? elementUpdates : el))
-          );
-        }
-      }
+      console.log(
+        "🎯 Processing update for element:",
+        elementId,
+        "with:",
+        elementUpdates
+      );
+
+      // CRITICAL CHANGE: Always use the Object.assign approach to preserve editing state
+      // This prevents any re-renders from interfering with editing/selection state
+      setElements((prev) => {
+        console.log("🎯 setElements - updating element:", elementId);
+        return prev.map((el) => {
+          if (el.id === elementId) {
+            // Preserve the class instance by updating properties directly
+            // This prevents creating new object references that could disrupt editing state
+            if (typeof elementIdOrUpdatedElement === "string") {
+              // Pattern 1: apply partial updates
+              Object.assign(el, elementUpdates);
+            } else {
+              // Pattern 2: replace with new element but preserve reference
+              Object.assign(el, elementUpdates);
+            }
+            console.log("🎯 Element updated successfully:", el.id);
+            return el;
+          }
+          return el;
+        });
+      });
+
+      console.log("🎯 Update completed - editing state should be preserved");
     },
-    [
-      updateElement,
-      editingElement,
-      elementBehaviors.editingManager,
-      setElements,
-    ]
+    [setElements]
   );
 
   // Handle element layer changes
@@ -1126,10 +1153,10 @@ const MemoryEditorPage = () => {
               x={stagePosition.x}
               y={stagePosition.y}
               onWheel={handleWheel}
-              onMouseDown={handleStageMouseDown}
-              onMouseMove={handleStageMouseMove}
-              onMouseUp={handleStageMouseUp}
               onClick={handleStageClick}
+              draggable={activeTool === TOOL_MODES.PAN || activeTool === null}
+              onDragStart={handleStageDragStart}
+              onDragEnd={handleStageDragEnd}
             >
               <Layer>
                 {elements.map((element) => (
@@ -1138,8 +1165,10 @@ const MemoryEditorPage = () => {
                     element={element}
                     onSelect={() => {
                       setSelectedElement(element);
-                      // Clear editing element when selecting a different element
-                      setEditingElement(null);
+                      // Only clear editing element when selecting a DIFFERENT element
+                      if (editingElement && editingElement.id !== element.id) {
+                        setEditingElement(null);
+                      }
                     }}
                     onUpdate={(updates) =>
                       handleElementToolbarUpdate(element.id, updates)

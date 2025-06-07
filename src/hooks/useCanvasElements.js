@@ -48,16 +48,35 @@ export const useCanvasElements = () => {
 
   // Update element
   const updateElement = useCallback((elementId, updates) => {
-    setElements((prev) =>
-      prev.map((el) => {
+    console.log("🔄 updateElement called:", {
+      elementId,
+      updates,
+      timestamp: new Date().toISOString(),
+    });
+
+    setElements((prev) => {
+      console.log(
+        "🔄 setElements prev state:",
+        prev.map((el) => ({ id: el.id, type: el.type }))
+      );
+
+      const newElements = prev.map((el) => {
         if (el.id === elementId) {
+          console.log("🔄 Updating element:", el.id, "with:", updates);
           // Preserve the class instance by updating properties directly
+          // This avoids creating a new object reference
           Object.assign(el, updates);
           return el;
         }
         return el;
-      })
-    );
+      });
+
+      console.log(
+        "🔄 setElements new state:",
+        newElements.map((el) => ({ id: el.id, type: el.type }))
+      );
+      return newElements;
+    });
   }, []);
 
   // Get elements by type
