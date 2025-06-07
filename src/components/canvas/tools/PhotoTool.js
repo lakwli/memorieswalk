@@ -15,7 +15,7 @@ export class PhotoTool {
    * Create photo elements from uploaded files
    */
   async createPhotoElementsFromFiles(files, elementStates) {
-    const { stageRef, stageScale, stagePosition } = this.canvasConfig;
+    const { stageRef } = this.canvasConfig;
     const photoElements = [];
 
     for (const file of files) {
@@ -23,7 +23,7 @@ export class PhotoTool {
         const photoElement = await this.createPhotoElementFromFile(
           file,
           elementStates,
-          this.calculatePhotoPosition(stageRef, stageScale, stagePosition)
+          this.calculatePhotoPosition(stageRef)
         );
 
         if (photoElement) {
@@ -74,7 +74,7 @@ export class PhotoTool {
   /**
    * Calculate optimal position for new photo
    */
-  calculatePhotoPosition(stageRef, stageScale, stagePosition) {
+  calculatePhotoPosition(stageRef) {
     const stage = stageRef?.current;
     let photoX = 50;
     let photoY = 50;
@@ -82,6 +82,10 @@ export class PhotoTool {
     if (stage) {
       const stageWidth = stage.width();
       const stageHeight = stage.height();
+      
+      // Get current scale and position dynamically from the stage
+      const stageScale = stage.scaleX();
+      const stagePosition = { x: stage.x(), y: stage.y() };
 
       // Calculate center of current viewport in canvas coordinates
       photoX = (-stagePosition.x + stageWidth / 2) / stageScale;

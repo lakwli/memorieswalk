@@ -50,8 +50,7 @@ export class ToolManager {
 
       const elementData = tool.createTextFromStageClick(
         pointer,
-        this.canvasConfig.stagePosition,
-        this.canvasConfig.stageScale
+        this.canvasConfig.stageRef
       );
 
       const newElement = addElement(elementData.type, elementData);
@@ -86,9 +85,7 @@ export class ToolManager {
   addTextAtCenter(addElement, setSelectedElement) {
     const textTool = this.tools[ELEMENT_TYPES.TEXT];
     const elementData = textTool.createTextAtViewportCenter(
-      this.canvasConfig.stageRef,
-      this.canvasConfig.stageScale,
-      this.canvasConfig.stagePosition
+      this.canvasConfig.stageRef
     );
 
     const newElement = addElement(elementData.type, elementData);

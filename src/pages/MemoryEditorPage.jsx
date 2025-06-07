@@ -168,8 +168,8 @@ const MemoryEditorPage = () => {
   // Canvas Tools hook - Initialize BEFORE Upload Manager to provide canvas config
   const canvasToolsConfig = {
     stageRef: konvaStageRef,
-    stageScale,
-    stagePosition,
+    // Remove stageScale and stagePosition to prevent unnecessary re-renders
+    // Tools will get current scale/position dynamically when needed
   };
 
   const {
@@ -200,8 +200,8 @@ const MemoryEditorPage = () => {
     },
     canvasConfig: {
       stageRef: konvaStageRef,
-      stageScale,
-      stagePosition,
+      // Remove stageScale and stagePosition to prevent unnecessary re-renders
+      // Upload manager will get current scale/position dynamically when needed
     },
     elementStates,
   });
