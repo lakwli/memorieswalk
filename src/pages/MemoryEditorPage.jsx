@@ -78,7 +78,6 @@ const MemoryEditorPage = () => {
     elementStates, // This replaces photoStates.current
     addElement,
     removeElement, // Add removeElement to handle proper deletion
-    updateElement,
     getElementsByType,
   } = useCanvasElements();
 
