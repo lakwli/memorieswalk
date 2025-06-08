@@ -90,24 +90,24 @@ const MemoryEditorPage = () => {
   // Use a ref to track current editing element for immediate access in callbacks
   const editingElementRef = useRef(null);
 
-  // Add logging for state changes
-  useEffect(() => {
-    console.log("🔵 selectedElement changed:", selectedElement?.id || "null");
-  }, [selectedElement]);
+  // PERFORMANCE: Disabled expensive logging useEffects that were causing unnecessary re-renders
+  // useEffect(() => {
+  //   console.log("🔵 selectedElement changed:", selectedElement?.id || "null");
+  // }, [selectedElement]);
 
   useEffect(() => {
-    console.log("🟠 editingElement changed:", editingElement?.id || "null");
     // Keep ref in sync with state for immediate access in callbacks
+    // Note: Removed expensive console.log here for performance
     editingElementRef.current = editingElement;
   }, [editingElement]);
 
-  useEffect(() => {
-    console.log("📦 elements array changed:", {
-      count: elements.length,
-      elements: elements.map((el) => ({ id: el.id, type: el.type })),
-      timestamp: new Date().toISOString(),
-    });
-  }, [elements]);
+  // useEffect(() => {
+  //   console.log("📦 elements array changed:", {
+  //     count: elements.length,
+  //     elements: elements.map((el) => ({ id: el.id, type: el.type })),
+  //     timestamp: new Date().toISOString(),
+  //   });
+  // }, [elements]);
 
   // Get element behaviors with editing state management
   const elementBehaviors = useElementBehaviors(
