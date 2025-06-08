@@ -1,5 +1,7 @@
 # Problem:
 
+all events in MemoryEditorPage is not only apply to this page but all pages.
+
 Remove canvas scale/position from tool configuration - The tool system shouldn't need real-time scale/position updates
 Remove or disable logging useEffects in production - These are expensive and run frequently
 Memoize the elementBehaviors creation - Consider using useMemo for the behaviors object
