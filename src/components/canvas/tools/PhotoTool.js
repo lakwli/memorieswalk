@@ -82,7 +82,7 @@ export class PhotoTool {
     if (stage) {
       const stageWidth = stage.width();
       const stageHeight = stage.height();
-      
+
       // Get current scale and position dynamically from the stage
       const stageScale = stage.scaleX();
       const stagePosition = { x: stage.x(), y: stage.y() };
