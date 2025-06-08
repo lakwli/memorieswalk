@@ -1,6 +1,8 @@
 # Problem:
 
 all events in MemoryEditorPage is not only apply to this page but all pages.
+cursor is a problem that apply to all the page.
+another problem is cursor doesn't turn to grabbing when move. the cursor shoud change to hand.
 
 Remove canvas scale/position from tool configuration - The tool system shouldn't need real-time scale/position updates
 Remove or disable logging useEffects in production - These are expensive and run frequently
