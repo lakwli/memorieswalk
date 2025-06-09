@@ -1,4 +1,8 @@
-# Problem:
+# Problem 1:
+
+# Problem 2:
+
+refactor to lement State Management Refactor
 
 all events in MemoryEditorPage is not only apply to this page but all pages.
 cursor is a problem that apply to all the page.
