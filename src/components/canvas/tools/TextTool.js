@@ -69,30 +69,6 @@ export class TextTool {
   }
 
   /**
-   * Create text element at viewport center
-   */
-  createTextAtViewportCenter(stageRef) {
-    const stage = stageRef.current;
-    let textX = 200;
-    let textY = 200;
-
-    if (stage) {
-      const stageWidth = stage.width();
-      const stageHeight = stage.height();
-
-      // Get current scale and position dynamically from the stage
-      const stageScale = stage.scaleX();
-      const stagePosition = { x: stage.x(), y: stage.y() };
-
-      // Calculate center of current viewport in canvas coordinates
-      textX = (-stagePosition.x + stageWidth / 2) / stageScale;
-      textY = (-stagePosition.y + stageHeight / 2) / stageScale;
-    }
-
-    return this.createTextElement({ x: textX, y: textY });
-  }
-
-  /**
    * Create text element from stage click coordinates
    */
   createTextFromStageClick(pointer, stageRef) {

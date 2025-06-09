@@ -61,17 +61,6 @@ export const useCanvasTools = (canvasConfig) => {
     []
   );
 
-  // Add text at center
-  const addTextAtCenter = useCallback((createElement, setSelectedElement) => {
-    if (toolManagerRef.current) {
-      return toolManagerRef.current.addTextAtCenter(
-        createElement,
-        setSelectedElement
-      );
-    }
-    return null;
-  }, []);
-
   // Handle text drop
   const handleTextDrop = useCallback(
     (droppedText, createElement, setSelectedElement) => {
@@ -105,7 +94,6 @@ export const useCanvasTools = (canvasConfig) => {
     getActiveTool,
     handleToolStageClick,
     handleToolFileUpload,
-    addTextAtCenter,
     handleTextDrop,
     getToolCursorStyle,
     getTool,

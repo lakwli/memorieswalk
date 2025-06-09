@@ -80,21 +80,6 @@ export class ToolManager {
   }
 
   /**
-   * Add text element at viewport center
-   */
-  addTextAtCenter(createElement, setSelectedElement) {
-    const textTool = this.tools[ELEMENT_TYPES.TEXT];
-    const elementData = textTool.createTextAtViewportCenter(
-      this.canvasConfig.stageRef
-    );
-
-    const newElement = createElement(elementData.type, elementData);
-    setSelectedElement(newElement);
-    this.setActiveTool(null);
-    return newElement;
-  }
-
-  /**
    * Handle text drop operation
    */
   handleTextDrop(droppedText, createElement, setSelectedElement) {
