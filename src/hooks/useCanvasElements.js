@@ -7,8 +7,8 @@ export const useCanvasElements = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const elementStates = useRef({}); // For photo states or other element-specific state
 
-  // Add element
-  const addElement = useCallback((type, props = {}) => {
+  // Create element
+  const createElement = useCallback((type, props = {}) => {
     const newElement = createCanvasElement(type, props);
 
     // ALL elements MUST have state - assign NEW state to every new element
@@ -106,7 +106,7 @@ export const useCanvasElements = () => {
     selectedElement,
     setSelectedElement,
     elementStates,
-    addElement,
+    createElement,
     removeElement,
     updateElement,
     getElementsByType,

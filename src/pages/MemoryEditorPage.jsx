@@ -76,7 +76,7 @@ const MemoryEditorPage = () => {
     selectedElement,
     setSelectedElement,
     elementStates, // This replaces photoStates.current
-    addElement,
+    createElement,
     removeElement, // Add removeElement to handle proper deletion
     getElementsByType,
   } = useCanvasElements();
@@ -509,12 +509,12 @@ const MemoryEditorPage = () => {
   // Text creation from button click
   // Text creation from button click
   const addTextElementIntoCanvas = useCallback(() => {
-    const textElement = addElement(ELEMENT_TYPES.TEXT);
+    const textElement = createElement(ELEMENT_TYPES.TEXT);
 
     // Let behaviors handle positioning (modifies textElement in place)
     elementBehaviors.addElementIntoCanvas(textElement, konvaStageRef);
     setSelectedElement(textElement);
-  }, [elementBehaviors, konvaStageRef, addElement, setSelectedElement]);
+  }, [elementBehaviors, konvaStageRef, createElement, setSelectedElement]);
 
   // Handle editing mode transitions using central editing manager
   const handleElementEdit = useCallback(
@@ -672,7 +672,7 @@ const MemoryEditorPage = () => {
 
         if (activeTool === ELEMENT_TYPES.TEXT && !isElementSelectedMode) {
           // Only add new text if we're in actual "text tool mode" (not just having a text element selected)
-          return handleToolStageClick(e, addElement, setSelectedElement);
+          return handleToolStageClick(e, createElement, setSelectedElement);
         } else {
           // Clear selection when clicking on empty space
           setSelectedElement(null);
@@ -687,7 +687,7 @@ const MemoryEditorPage = () => {
       activeTool,
       selectedElement,
       handleToolStageClick,
-      addElement,
+      createElement,
       setSelectedElement,
       setEditingElement,
       setActiveTool,
@@ -1157,7 +1157,7 @@ const MemoryEditorPage = () => {
                 e.dataTransfer.types.includes("text/plain")
               ) {
                 const droppedText = e.dataTransfer.getData("text/plain");
-                handleTextDrop(droppedText, addElement, setSelectedElement);
+                handleTextDrop(droppedText, createElement, setSelectedElement);
               }
             }}
             onDragOver={(e) => e.preventDefault()}

@@ -37,7 +37,7 @@ export class ToolManager {
   /**
    * Handle stage click based on active tool
    */
-  handleStageClick(e, addElement, setSelectedElement) {
+  handleStageClick(e, createElement, setSelectedElement) {
     if (!this.activeTool) return null;
 
     const tool = this.tools[this.activeTool];
@@ -53,7 +53,7 @@ export class ToolManager {
         this.canvasConfig.stageRef
       );
 
-      const newElement = addElement(elementData.type, elementData);
+      const newElement = createElement(elementData.type, elementData);
       setSelectedElement(newElement);
       this.setActiveTool(null);
       return newElement;
@@ -82,13 +82,13 @@ export class ToolManager {
   /**
    * Add text element at viewport center
    */
-  addTextAtCenter(addElement, setSelectedElement) {
+  addTextAtCenter(createElement, setSelectedElement) {
     const textTool = this.tools[ELEMENT_TYPES.TEXT];
     const elementData = textTool.createTextAtViewportCenter(
       this.canvasConfig.stageRef
     );
 
-    const newElement = addElement(elementData.type, elementData);
+    const newElement = createElement(elementData.type, elementData);
     setSelectedElement(newElement);
     this.setActiveTool(null);
     return newElement;
@@ -97,14 +97,14 @@ export class ToolManager {
   /**
    * Handle text drop operation
    */
-  handleTextDrop(droppedText, addElement, setSelectedElement) {
+  handleTextDrop(droppedText, createElement, setSelectedElement) {
     const textTool = this.tools[ELEMENT_TYPES.TEXT];
     const elementData = textTool.createTextFromDrop(
       this.canvasConfig.stageRef,
       droppedText
     );
 
-    const newElement = addElement(elementData.type, elementData);
+    const newElement = createElement(elementData.type, elementData);
     setSelectedElement(newElement);
     this.setActiveTool(null);
     return newElement;

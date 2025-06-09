@@ -33,11 +33,11 @@ export const useCanvasTools = (canvasConfig) => {
 
   // Handle stage click
   const handleToolStageClick = useCallback(
-    (e, addElement, setSelectedElement) => {
+    (e, createElement, setSelectedElement) => {
       if (toolManagerRef.current) {
         return toolManagerRef.current.handleStageClick(
           e,
-          addElement,
+          createElement,
           setSelectedElement
         );
       }
@@ -62,10 +62,10 @@ export const useCanvasTools = (canvasConfig) => {
   );
 
   // Add text at center
-  const addTextAtCenter = useCallback((addElement, setSelectedElement) => {
+  const addTextAtCenter = useCallback((createElement, setSelectedElement) => {
     if (toolManagerRef.current) {
       return toolManagerRef.current.addTextAtCenter(
-        addElement,
+        createElement,
         setSelectedElement
       );
     }
@@ -74,11 +74,11 @@ export const useCanvasTools = (canvasConfig) => {
 
   // Handle text drop
   const handleTextDrop = useCallback(
-    (droppedText, addElement, setSelectedElement) => {
+    (droppedText, createElement, setSelectedElement) => {
       if (toolManagerRef.current) {
         return toolManagerRef.current.handleTextDrop(
           droppedText,
-          addElement,
+          createElement,
           setSelectedElement
         );
       }
