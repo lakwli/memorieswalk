@@ -172,7 +172,7 @@ const MemoryEditorPage = () => {
     // Tools will get current scale/position dynamically when needed
   };
 
-  const { handleToolStageClick, handleTextDrop, getToolCursorStyle, getTool } =
+  const { handleTextDrop, getToolCursorStyle, getTool } =
     useCanvasTools(canvasToolsConfig);
 
   // Upload Manager hook
@@ -263,35 +263,6 @@ const MemoryEditorPage = () => {
       }
     }
   }, [activeTool, getToolCursorStyle]);
-
-  // Keyboard event handling for tool switching
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === " " && !editingTitle) {
-        e.preventDefault();
-        if (activeTool !== TOOL_MODES.PAN) {
-          console.log("Setting activeTool to 'pan'");
-          setActiveTool(TOOL_MODES.PAN);
-        }
-      }
-    };
-
-    const handleKeyUp = (e) => {
-      if (e.key === " " && !editingTitle) {
-        e.preventDefault();
-        console.log("Setting activeTool to null");
-        setActiveTool(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [editingTitle, activeTool]);
 
   // Load memory with new element system
   useEffect(() => {
@@ -661,37 +632,13 @@ const MemoryEditorPage = () => {
   // Handle stage click for adding text elements - now uses tool system
   const handleStageClick = useCallback(
     (e) => {
-      // Don't handle clicks if we're in pan mode or just finished dragging
-      if (activeTool === TOOL_MODES.PAN) return;
-
+      // Only handle clicks on empty canvas (Stage itself)
       if (e.target === e.target.getStage()) {
-        // Check if we're in "tool mode" vs "element selected mode"
-        // If activeTool matches a selectedElement's type, we're in "element selected mode"
-        const isElementSelectedMode =
-          selectedElement && activeTool === selectedElement.type;
-
-        if (activeTool === ELEMENT_TYPES.TEXT && !isElementSelectedMode) {
-          // Only add new text if we're in actual "text tool mode" (not just having a text element selected)
-          return handleToolStageClick(e, createElement, setSelectedElement);
-        } else {
-          // Clear selection when clicking on empty space
-          setSelectedElement(null);
-          // Also clear editing element when deselecting
-          setEditingElement(null);
-          // Reset activeTool to null so Stage becomes draggable again
-          setActiveTool(null);
-        }
+        setSelectedElement(null);
+        setEditingElement(null);
       }
     },
-    [
-      activeTool,
-      selectedElement,
-      handleToolStageClick,
-      createElement,
-      setSelectedElement,
-      setEditingElement,
-      setActiveTool,
-    ]
+    [setSelectedElement, setEditingElement]
   );
 
   // Update canvas position and scale when initialViewState changes
@@ -756,15 +703,14 @@ const MemoryEditorPage = () => {
     };
   }, []);
 
-  // Handle ESC key to dismiss toolbar/clear selection
+  // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Handle Escape key only
       if (e.key === "Escape") {
-        // Clear selection (which dismisses toolbar) when ESC is pressed
         if (selectedElement) {
           setSelectedElement(null);
         }
-        // Also end editing mode if active
         if (editingElement) {
           setEditingElement(null);
         }
@@ -772,6 +718,7 @@ const MemoryEditorPage = () => {
     };
 
     document.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
