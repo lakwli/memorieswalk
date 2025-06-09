@@ -172,13 +172,8 @@ const MemoryEditorPage = () => {
     // Tools will get current scale/position dynamically when needed
   };
 
-  const {
-    handleToolStageClick,
-    addTextAtCenter,
-    handleTextDrop,
-    getToolCursorStyle,
-    getTool,
-  } = useCanvasTools(canvasToolsConfig);
+  const { handleToolStageClick, handleTextDrop, getToolCursorStyle, getTool } =
+    useCanvasTools(canvasToolsConfig);
 
   // Upload Manager hook
   const {
@@ -506,9 +501,20 @@ const MemoryEditorPage = () => {
   ]);
 
   // Add text element function - now uses tool system
-  const addTextElement = useCallback(() => {
-    return addTextAtCenter(addElement, setSelectedElement);
-  }, [addTextAtCenter, addElement, setSelectedElement]);
+  //const addTextElement = useCallback(() => {
+  //  return addTextAtCenter(addElement, setSelectedElement);
+  //}, [addTextAtCenter, addElement, setSelectedElement]);
+
+  // Replace current addTextElement function
+  // Text creation from button click
+  // Text creation from button click
+  const addTextElementIntoCanvas = useCallback(() => {
+    const textElement = addElement(ELEMENT_TYPES.TEXT);
+
+    // Let behaviors handle positioning (modifies textElement in place)
+    elementBehaviors.addElementIntoCanvas(textElement, konvaStageRef);
+    setSelectedElement(textElement);
+  }, [elementBehaviors, konvaStageRef, addElement, setSelectedElement]);
 
   // Handle editing mode transitions using central editing manager
   const handleElementEdit = useCallback(
@@ -1031,7 +1037,7 @@ const MemoryEditorPage = () => {
         <IconButton
           aria-label="Add Text"
           icon={<MdTextFields />}
-          onClick={addTextElement}
+          onClick={addTextElementIntoCanvas}
           colorScheme={activeTool === ELEMENT_TYPES.TEXT ? "blue" : "gray"}
           variant={activeTool === ELEMENT_TYPES.TEXT ? "solid" : "outline"}
           mb={2}

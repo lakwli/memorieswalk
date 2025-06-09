@@ -202,7 +202,28 @@ export const useElementBehaviors = (
     [setElements, selectedElement, setSelectedElement]
   );
 
+  const addElementIntoCanvas = useCallback((element, stageRef) => {
+    // Calculate center position using element's getBounds()
+    const stage = stageRef.current;
+    if (stage) {
+      const stageWidth = stage.width();
+      const stageHeight = stage.height();
+      const stageScale = stage.scaleX();
+      const stagePosition = { x: stage.x(), y: stage.y() };
+
+      const viewportCenterX = (-stagePosition.x + stageWidth / 2) / stageScale;
+      const viewportCenterY = (-stagePosition.y + stageHeight / 2) / stageScale;
+
+      const bounds = element.getBounds();
+      element.x = viewportCenterX - bounds.width / 2;
+      element.y = viewportCenterY - bounds.height / 2;
+    }
+
+    return element;
+  }, []);
+
   return {
+    addElementIntoCanvas,
     handleElementDragStart,
     handleElementDragEnd,
     handleElementMouseEnter,
