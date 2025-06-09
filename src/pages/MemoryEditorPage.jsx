@@ -56,7 +56,7 @@ import {
 import { ElementToolbar } from "../components/canvas/toolbars";
 import { TextElement } from "../components/canvas/elements";
 import { ElementRenderer } from "../components/canvas/renderers";
-import { ELEMENT_TYPES, ELEMENT_STATES, TOOL_MODES } from "../constants";
+import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
@@ -258,7 +258,6 @@ const MemoryEditorPage = () => {
         stageContainerRef.current.style.cursor = getToolCursorStyle();
       } else {
         // Default cursor for empty space should be "grab" (hand) to indicate draggable canvas
-        // When spacebar is held (activeTool === TOOL_MODES.PAN), it becomes "grab"
         stageContainerRef.current.style.cursor = "grab";
       }
     }
@@ -1109,14 +1108,6 @@ const MemoryEditorPage = () => {
             }}
             onDragOver={(e) => e.preventDefault()}
           >
-            {console.log(
-              "Debug - activeTool:",
-              activeTool,
-              "PAN mode:",
-              TOOL_MODES.PAN,
-              "Stage draggable:",
-              activeTool === TOOL_MODES.PAN || activeTool === null
-            )}
             <Stage
               ref={konvaStageRef}
               width={window.innerWidth - 60}
@@ -1129,36 +1120,24 @@ const MemoryEditorPage = () => {
               onClick={handleStageClick}
               draggable={true}
               onDragStart={(e) => {
-                console.log(
-                  "Stage drag start - activeTool:",
-                  activeTool,
-                  "draggable should be:",
-                  activeTool === TOOL_MODES.PAN || activeTool === null
-                );
-
                 // Check if we're clicking on empty space (Stage itself)
                 const isStageTarget = e.target === e.target.getStage();
 
                 if (isStageTarget) {
                   // If clicking on empty space, allow panning regardless of activeTool
-                  console.log("Clicking on empty space - allowing pan");
                   handleStageDragStart(e);
                 } else {
                   // If clicking on an element, prevent Stage drag (preserve element interaction)
-                  console.log("Clicking on element - preventing Stage drag");
                   e.evt.preventDefault();
                   e.target.stopDrag();
                 }
               }}
               onDragEnd={(e) => {
-                console.log("Stage drag end - activeTool:", activeTool);
-
                 // Check if we're on empty space (Stage itself)
                 const isStageTarget = e.target === e.target.getStage();
 
                 if (isStageTarget) {
                   // If on empty space, handle drag end for panning
-                  console.log("Ending pan on empty space");
                   handleStageDragEnd(e);
                 }
               }}
