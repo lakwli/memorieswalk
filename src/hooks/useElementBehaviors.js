@@ -6,9 +6,7 @@ export const useElementBehaviors = (
   selectedElement,
   setSelectedElement,
   editingElement,
-  setEditingElement,
-  activeTool,
-  setActiveTool
+  setEditingElement
 ) => {
   // Central Editing State Manager
   const editingManager = {
@@ -123,7 +121,7 @@ export const useElementBehaviors = (
     };
   }, []);
 
-  // Common click handler
+  // Common click handler - SIMPLIFIED (no more activeTool)
   const handleElementClick = useCallback(
     (element) => {
       return () => {
@@ -132,12 +130,10 @@ export const useElementBehaviors = (
           setEditingElement(null);
         }
         setSelectedElement(element);
-
-        // Update activeTool to reflect element selection - this prevents Stage dragging
-        setActiveTool(element.type);
+        // No more activeTool setting - keeps UI clean and simple
       };
     },
-    [setSelectedElement, setEditingElement, editingElement, setActiveTool]
+    [setSelectedElement, setEditingElement, editingElement]
   );
 
   // Common transform handler

@@ -84,9 +84,6 @@ const MemoryEditorPage = () => {
   // New state for tracking editing mode (must be before useElementBehaviors)
   const [editingElement, setEditingElement] = useState(null);
 
-  // Active tool state (must be declared before useElementBehaviors)
-  const [activeTool, setActiveTool] = useState(null);
-
   // Use a ref to track current editing element for immediate access in callbacks
   const editingElementRef = useRef(null);
 
@@ -109,16 +106,14 @@ const MemoryEditorPage = () => {
   //   });
   // }, [elements]);
 
-  // Get element behaviors with editing state management
+  // Get element behaviors with editing state management (no more activeTool)
   const elementBehaviors = useElementBehaviors(
     elements,
     setElements,
     selectedElement,
     setSelectedElement,
     editingElement,
-    setEditingElement,
-    activeTool,
-    setActiveTool
+    setEditingElement
   );
 
   // Other existing state...
@@ -172,8 +167,7 @@ const MemoryEditorPage = () => {
     // Tools will get current scale/position dynamically when needed
   };
 
-  const { handleTextDrop, getToolCursorStyle, getTool } =
-    useCanvasTools(canvasToolsConfig);
+  const { handleTextDrop, getTool } = useCanvasTools(canvasToolsConfig);
 
   // Upload Manager hook
   const {
@@ -251,17 +245,13 @@ const MemoryEditorPage = () => {
     }
   }, [selectedElement, editingElement]);
 
-  // Cursor management based on current tool - now uses tool system
+  // Simplified cursor management - always use grab cursor for canvas
   useEffect(() => {
     if (stageContainerRef.current) {
-      if (activeTool === ELEMENT_TYPES.TEXT) {
-        stageContainerRef.current.style.cursor = getToolCursorStyle();
-      } else {
-        // Default cursor for empty space should be "grab" (hand) to indicate draggable canvas
-        stageContainerRef.current.style.cursor = "grab";
-      }
+      // Default cursor for empty space should be "grab" (hand) to indicate draggable canvas
+      stageContainerRef.current.style.cursor = "grab";
     }
-  }, [activeTool, getToolCursorStyle]);
+  }, []);
 
   // Load memory with new element system
   useEffect(() => {
@@ -967,7 +957,7 @@ const MemoryEditorPage = () => {
     </Flex>
   );
 
-  // EditorControls component for the left toolbar
+  // EditorControls component for the left toolbar - simplified Add Text button
   const EditorControls = () => (
     <Flex
       direction="column"
@@ -984,8 +974,8 @@ const MemoryEditorPage = () => {
           aria-label="Add Text"
           icon={<MdTextFields />}
           onClick={addTextElementIntoCanvas}
-          colorScheme={activeTool === ELEMENT_TYPES.TEXT ? "blue" : "gray"}
-          variant={activeTool === ELEMENT_TYPES.TEXT ? "solid" : "outline"}
+          colorScheme="gray"
+          variant="outline"
           mb={2}
         />
       </Tooltip>
@@ -1098,10 +1088,7 @@ const MemoryEditorPage = () => {
             overflow="hidden"
             onDrop={(e) => {
               e.preventDefault();
-              if (
-                activeTool === ELEMENT_TYPES.TEXT &&
-                e.dataTransfer.types.includes("text/plain")
-              ) {
+              if (e.dataTransfer.types.includes("text/plain")) {
                 const droppedText = e.dataTransfer.getData("text/plain");
                 handleTextDrop(droppedText, createElement, setSelectedElement);
               }
