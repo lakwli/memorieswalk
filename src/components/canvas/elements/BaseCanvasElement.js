@@ -15,6 +15,7 @@ export class BaseCanvasElement {
     // Common behavior flags
     this.isSelected = false;
     this.isHovered = false;
+    this._isDirty = false;
   }
 
   // Common methods that all elements should have
