@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export const useElementBehaviors = (
   elements,
@@ -8,32 +8,26 @@ export const useElementBehaviors = (
   editingElement,
   setEditingElement
 ) => {
-  // Central Editing State Manager
-  const editingManager = {
-    // Check if element is in editing mode
-    isElementEditing: useCallback(
-      (elementId) => {
+  // Central Editing State Manager - wrapped in useMemo to prevent recreation
+  const editingManager = useMemo(
+    () => ({
+      // Check if element is in editing mode
+      isElementEditing: (elementId) => {
         return editingElement?.id === elementId;
       },
-      [editingElement]
-    ),
 
-    // Start editing mode for an element
-    startEditing: useCallback(
-      (element) => {
+      // Start editing mode for an element
+      startEditing: (element) => {
         setEditingElement(element);
       },
-      [setEditingElement]
-    ),
 
-    // End editing mode
-    endEditing: useCallback(() => {
-      setEditingElement(null);
-    }, [setEditingElement]),
+      // End editing mode
+      endEditing: () => {
+        setEditingElement(null);
+      },
 
-    // Update element while preserving editing state
-    updateElementInEditMode: useCallback(
-      (elementId, updates) => {
+      // Update element while preserving editing state
+      updateElementInEditMode: (elementId, updates) => {
         console.log("📝 updateElementInEditMode called:", {
           elementId,
           updates,
@@ -71,9 +65,9 @@ export const useElementBehaviors = (
         });
         // editingElement state persists because it's managed separately
       },
-      [setElements]
-    ),
-  };
+    }),
+    [editingElement, setEditingElement, setElements]
+  );
 
   // Common drag handlers
   const handleElementDragStart = useCallback(() => {
@@ -106,21 +100,6 @@ export const useElementBehaviors = (
     [setElements]
   );
 
-  // Common mouse handlers
-  const handleElementMouseEnter = useCallback(() => {
-    return (e) => {
-      const stage = e.target.getStage();
-      stage.container().style.cursor = "move";
-    };
-  }, []);
-
-  const handleElementMouseLeave = useCallback(() => {
-    return (e) => {
-      const stage = e.target.getStage();
-      stage.container().style.cursor = "grab";
-    };
-  }, []);
-
   // Common click handler - SIMPLIFIED (no more activeTool)
   const handleElementClick = useCallback(
     (element) => {
@@ -134,6 +113,23 @@ export const useElementBehaviors = (
       };
     },
     [setSelectedElement, setEditingElement, editingElement]
+  );
+
+  // Common double-click handler - now has stable editingManager dependency
+  const handleElementDoubleClick = useCallback(
+    (element) => {
+      return (e) => {
+        // Start editing mode for the element
+        editingManager.startEditing(element);
+
+        // Also ensure it's selected
+        setSelectedElement(element);
+
+        // Allow event to bubble to specific renderer handlers
+        return true;
+      };
+    },
+    [editingManager, setSelectedElement]
   );
 
   // Common transform handler
@@ -222,9 +218,8 @@ export const useElementBehaviors = (
     addElementIntoCanvas,
     handleElementDragStart,
     handleElementDragEnd,
-    handleElementMouseEnter,
-    handleElementMouseLeave,
     handleElementClick,
+    handleElementDoubleClick,
     handleElementTransform,
     handleElementDelete,
     editingManager,

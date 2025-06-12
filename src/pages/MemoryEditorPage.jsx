@@ -55,7 +55,7 @@ import {
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
 import { TextElement } from "../components/canvas/elements";
-import { ElementRenderer } from "../components/canvas/renderers";
+import { RendererFactory } from "../components/canvas/renderers/RendererFactory";
 import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import memoryService from "../services/memoryService";
@@ -1106,14 +1106,26 @@ const MemoryEditorPage = () => {
               onWheel={handleWheel}
               onClick={handleStageClick}
               draggable={true}
+              onMouseMove={(e) => {
+                // Only change cursor if not currently dragging
+                if (!e.target.isDragging()) {
+                  const isOverElement = e.target !== e.target.getStage();
+                  e.target.getStage().container().style.cursor = isOverElement
+                    ? "move"
+                    : "grab";
+                }
+              }}
               onDragStart={(e) => {
                 // Check if we're clicking on empty space (Stage itself)
                 const isStageTarget = e.target === e.target.getStage();
 
                 if (isStageTarget) {
-                  // If clicking on empty space, allow panning regardless of activeTool
+                  // Canvas drag - set grabbing cursor
+                  e.target.getStage().container().style.cursor = "grabbing";
                   handleStageDragStart(e);
                 } else {
+                  // Element drag - set grabbing cursor for element drag
+                  e.target.getStage().container().style.cursor = "grabbing";
                   // If clicking on an element, prevent Stage drag (preserve element interaction)
                   e.evt.preventDefault();
                   e.target.stopDrag();
@@ -1124,39 +1136,48 @@ const MemoryEditorPage = () => {
                 const isStageTarget = e.target === e.target.getStage();
 
                 if (isStageTarget) {
-                  // If on empty space, handle drag end for panning
+                  // Canvas drag end - return to grab cursor
+                  e.target.getStage().container().style.cursor = "grab";
                   handleStageDragEnd(e);
+                } else {
+                  // Element drag end - determine cursor based on current mouse position
+                  const currentTarget = e.target
+                    .getStage()
+                    .getIntersection(e.target.getStage().getPointerPosition());
+                  const isStillOverElement =
+                    currentTarget && currentTarget !== e.target.getStage();
+                  e.target.getStage().container().style.cursor =
+                    isStillOverElement ? "move" : "grab";
                 }
               }}
             >
               <Layer>
-                {elements.map((element) => (
-                  <ElementRenderer
-                    key={element.id}
-                    element={element}
-                    onSelect={() => {
+                {elements.map((element) =>
+                  RendererFactory.createRenderer(element, {
+                    // Remove key from here - it will be handled by the factory
+                    onSelect: () => {
                       setSelectedElement(element);
                       // Only clear editing element when selecting a DIFFERENT element
                       if (editingElement && editingElement.id !== element.id) {
                         setEditingElement(null);
                       }
-                    }}
-                    onUpdate={(updates) =>
-                      handleElementToolbarUpdate(element.id, updates)
-                    }
-                    behaviors={elementBehaviors}
-                    isBeingEdited={elementBehaviors.editingManager.isElementEditing(
-                      element.id
-                    )}
-                    onEditStart={() => {
+                    },
+                    onUpdate: (updates) =>
+                      handleElementToolbarUpdate(element.id, updates),
+                    interactionHandlers: elementBehaviors, // Change from 'behaviors' to 'interactionHandlers'
+                    isBeingEdited:
+                      elementBehaviors.editingManager.isElementEditing(
+                        element.id
+                      ),
+                    onEditStart: () => {
                       setSelectedElement(element);
                       elementBehaviors.editingManager.startEditing(element);
-                    }}
-                    onEditEnd={() =>
-                      elementBehaviors.editingManager.endEditing()
-                    }
-                  />
-                ))}
+                    },
+                    onEditEnd: () =>
+                      elementBehaviors.editingManager.endEditing(),
+                  })
+                )}
+
                 <Transformer
                   ref={trRef}
                   boundBoxFunc={(oldBox, newBox) => {

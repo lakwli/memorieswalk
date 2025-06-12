@@ -22,6 +22,27 @@ export class TextElement extends BaseCanvasElement {
     this.borderWidth = props.borderWidth || 0;
   }
 
+  // Override to include text-specific properties
+  getProps() {
+    return {
+      ...super.getProps(),
+      text: this.text,
+      fontSize: this.fontSize,
+      fontFamily: this.fontFamily,
+      fill: this.fill,
+      fontStyle: this.fontStyle,
+      textDecoration: this.textDecoration,
+      align: this.align,
+      verticalAlign: this.verticalAlign,
+      wrap: this.wrap,
+      padding: this.padding,
+      backgroundColor: this.backgroundColor,
+      backgroundShape: this.backgroundShape,
+      borderColor: this.borderColor,
+      borderWidth: this.borderWidth,
+    };
+  }
+
   toSaveData() {
     return {
       ...super.toSaveData(),

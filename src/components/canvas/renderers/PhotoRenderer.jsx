@@ -1,74 +1,39 @@
-import React from "react";
 import PropTypes from "prop-types";
 import { Image as KonvaImage } from "react-konva";
+import { BaseRenderer } from "./BaseRenderer.jsx";
 
-export const PhotoRenderer = ({
-  element,
-  behaviors,
-  isBeingEdited = false,
-  onEditStart,
-  onEditEnd,
-}) => {
-  // Handle double-click to enter editing mode
-  const handlePhotoDblClick = () => {
-    if (isBeingEdited) return;
+class PhotoRendererClass extends BaseRenderer {
+  constructor(props) {
+    super(props);
+  }
 
-    // Notify parent that editing has started
-    if (onEditStart) {
-      onEditStart();
-    }
-  };
-
-  return (
-    <React.Fragment key={element.id}>
+  renderContent() {
+    return (
       <KonvaImage
-        id={element.id}
-        image={element.image}
-        x={element.x}
-        y={element.y}
-        width={element.width}
-        height={element.height}
-        rotation={element.rotation}
-        draggable={element.draggable}
-        onMouseEnter={behaviors.handleElementMouseEnter()}
-        onMouseLeave={behaviors.handleElementMouseLeave()}
-        onDragStart={(e) => {
-          e.cancelBubble = true; // Prevent event from bubbling to Stage
-          return behaviors.handleElementDragStart()(e);
-        }}
-        onDragEnd={(e) => {
-          e.cancelBubble = true; // Prevent event from bubbling to Stage
-          return behaviors.handleElementDragEnd(element)(e);
-        }}
-        onClick={(e) => {
-          e.cancelBubble = true; // Prevent event from bubbling to Stage
-          return behaviors.handleElementClick(element)(e);
-        }}
-        onDblClick={handlePhotoDblClick}
+        {...this.elementProps}
+        onDblClick={this.interactionHandlers.handleElementDoubleClick(
+          this.element
+        )}
+        image={this.element.image}
+        width={this.element.width}
+        height={this.element.height}
       />
-    </React.Fragment>
-  );
+    );
+  }
+}
+
+export const PhotoRenderer = (props) => {
+  const renderer = new PhotoRendererClass(props);
+  return renderer.render();
 };
 
+// Only define photo-specific PropTypes, inherit base from parent
 PhotoRenderer.propTypes = {
+  ...BaseRenderer.basePropTypes,
   element: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    ...BaseRenderer.basePropTypes.element,
     image: PropTypes.object,
-    x: PropTypes.number.isRequired,
-    y: PropTypes.number.isRequired,
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
-    rotation: PropTypes.number,
-    draggable: PropTypes.bool,
   }).isRequired,
-  behaviors: PropTypes.shape({
-    handleElementMouseEnter: PropTypes.func.isRequired,
-    handleElementMouseLeave: PropTypes.func.isRequired,
-    handleElementDragStart: PropTypes.func.isRequired,
-    handleElementDragEnd: PropTypes.func.isRequired,
-    handleElementClick: PropTypes.func.isRequired,
-  }).isRequired,
-  isBeingEdited: PropTypes.bool,
-  onEditStart: PropTypes.func,
-  onEditEnd: PropTypes.func,
 };

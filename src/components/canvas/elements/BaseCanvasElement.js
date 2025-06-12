@@ -36,6 +36,22 @@ export class BaseCanvasElement {
     return this;
   }
 
+  // Generic method to get element properties - can be overridden by child classes
+  getProps() {
+    return {
+      id: this.id,
+      type: this.type,
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+      rotation: this.rotation,
+      draggable: this.draggable,
+      selectable: this.selectable,
+      deletable: this.deletable,
+    };
+  }
+
   // Transform data for saving
   toSaveData() {
     return {
