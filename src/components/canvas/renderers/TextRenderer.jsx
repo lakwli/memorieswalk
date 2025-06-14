@@ -1,6 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Text as KonvaText, Rect, Path, Group } from "react-konva";
+import { Text as KonvaText, Rect, Path } from "react-konva";
 import { BaseRenderer } from "./BaseRenderer.jsx";
 
 // Helper function to generate cloud shape path
@@ -122,6 +122,20 @@ class TextRendererClass extends BaseRenderer {
 
     // Then add text-specific behavior
     this.handleTextSpecificDoubleClick(e);
+  }
+
+  // Override resize behavior for text elements
+  resize(scaleX, scaleY) {
+    console.log("📝 TextRenderer handleElementResize");
+
+    // For text, resize the container dimensions, not the font
+    const currentWidth = this.element.width || 200;
+    const currentHeight = this.element.height || 60;
+
+    return {
+      width: Math.round(currentWidth * scaleX),
+      height: Math.round(currentHeight * scaleY),
+    };
   }
 
   handleTextSpecificDoubleClick(e) {
@@ -259,11 +273,13 @@ class TextRendererClass extends BaseRenderer {
     const width = this.element.width || 200;
     const height = this.element.height || 60;
 
+    // Debug what elementProps contains
+    console.log("🔍 TextRenderer elementProps:", this.elementProps);
+    console.log("🔍 Element ID:", this.element.id);
+    console.log("🔍 Element getProps():", this.element.getProps?.());
+
     return (
-      <Group
-        {...this.elementProps}
-        onDblClick={this.handleElementDoubleClick.bind(this)}
-      >
+      <React.Fragment>
         {this.element.backgroundShape &&
           this.element.backgroundShape !== "none" &&
           this.renderBackground()}
@@ -282,7 +298,7 @@ class TextRendererClass extends BaseRenderer {
           fontStyle={this.element.fontStyle}
           textDecoration={this.element.textDecoration}
         />
-      </Group>
+      </React.Fragment>
     );
   }
 }

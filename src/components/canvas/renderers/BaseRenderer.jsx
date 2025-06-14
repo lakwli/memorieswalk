@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { Group } from "react-konva";
 
 export class BaseRenderer {
   constructor(props) {
@@ -14,28 +15,74 @@ export class BaseRenderer {
 
   // Base properties - automatically available to all child classes
   get elementProps() {
+    const props = this.element.getProps?.() || {};
     return {
-      ...this.element.getProps(), // Element owns its data
-      // Renderer only adds interaction behaviors
+      ref: this.groupRef, // ← Add generic ref to all Groups
+      id: this.element.id, // ← Ensure all Groups have element ID
+      ...props,
       onDragStart: this.handleElementDragStart.bind(this),
       onDragEnd: this.handleElementDragEnd.bind(this),
-      onClick: this.handleElementClick.bind(this),
+      onDblClick: this.handleElementDoubleClick.bind(this), // ← Called by BaseRenderer
+      onTransformEnd: this.handleElementTransform.bind(this), // ← Called by BaseRenderer
     };
   }
 
   handleElementDragStart(e) {
+    console.log("🔶 ===== BaseRenderer handleElementDragStart =====");
+    console.log("🔶 Element ID:", this.element.id);
+
     e.cancelBubble = true;
-    return this.interactionHandlers.handleElementDragStart()(e);
+
+    // Set grabbing cursor when element drag starts
+    const stage = e.target.getStage();
+    if (stage && stage.container()) {
+      stage.container().style.cursor = "grabbing";
+    }
+
+    console.log("🔶 handleElementDragStart completed");
   }
 
   handleElementDragEnd(e) {
-    e.cancelBubble = true;
-    return this.interactionHandlers.handleElementDragEnd(this.element)(e);
-  }
+    console.log("🔶 ===== BaseRenderer handleElementDragEnd =====");
+    console.log("🔶 Element ID:", this.element.id);
 
-  handleElementClick(e) {
     e.cancelBubble = true;
-    return this.interactionHandlers.handleElementClick(this.element)(e);
+
+    // Element updates its own position first
+    const node = e.target;
+    const oldX = this.element.x;
+    const oldY = this.element.y;
+    const newX = node.x();
+    const newY = node.y();
+
+    console.log("🔶 Position change:", {
+      from: { x: oldX, y: oldY },
+      to: { x: newX, y: newY },
+    });
+
+    this.element.x = newX;
+    this.element.y = newY;
+
+    // Reset cursor based on current mouse position
+    const stage = node.getStage();
+    if (stage && stage.container()) {
+      const currentTarget = stage.getIntersection(stage.getPointerPosition());
+      const isStillOverElement = currentTarget && currentTarget !== stage;
+      stage.container().style.cursor = isStillOverElement ? "move" : "grab";
+    }
+
+    console.log("🔶 About to call onUpdate...");
+
+    // Directly call updateElement to sync with React state
+    if (this.onUpdate) {
+      this.onUpdate(this.element.id, {
+        x: this.element.x,
+        y: this.element.y,
+      });
+    }
+
+    console.log("🔶 onUpdate called");
+    console.log("🔶 handleElementDragEnd completed");
   }
 
   handleElementDoubleClick(e) {
@@ -44,8 +91,39 @@ export class BaseRenderer {
   }
 
   handleElementTransform(e) {
+    console.log("🔶 BaseRenderer handleElementTransform");
     e.cancelBubble = true;
-    return this.interactionHandlers.handleElementTransform(this.element)(e);
+
+    const node = e.target;
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+
+    // Reset scale to avoid compounding
+    node.scaleX(1);
+    node.scaleY(1);
+
+    const updates = {
+      x: node.x(),
+      y: node.y(),
+      rotation: node.rotation(),
+    };
+
+    // Call overridable resize method for element-specific sizing
+    const sizeUpdates = this.resize(scaleX, scaleY, node);
+    Object.assign(updates, sizeUpdates);
+
+    console.log("🔶 Transform updates:", updates);
+
+    // Update through the onUpdate prop
+    this.onUpdate(this.element.id, updates);
+  }
+
+  // Default resize behavior - can be overridden by subclasses
+  resize(scaleX, scaleY, node) {
+    return {
+      width: Math.round(node.width() * scaleX),
+      height: Math.round(node.height() * scaleY),
+    };
   }
 
   handleElementDelete() {
@@ -61,7 +139,7 @@ export class BaseRenderer {
   render() {
     return (
       <React.Fragment key={this.element.id}>
-        {this.renderContent()}
+        <Group {...this.elementProps}>{this.renderContent()}</Group>
       </React.Fragment>
     );
   }
@@ -77,11 +155,7 @@ BaseRenderer.basePropTypes = {
     draggable: PropTypes.bool,
   }).isRequired,
   interactionHandlers: PropTypes.shape({
-    handleElementDragStart: PropTypes.func.isRequired,
-    handleElementDragEnd: PropTypes.func.isRequired,
-    handleElementClick: PropTypes.func.isRequired,
     handleElementDoubleClick: PropTypes.func.isRequired,
-    handleElementTransform: PropTypes.func.isRequired,
     handleElementDelete: PropTypes.func.isRequired,
   }).isRequired,
   onUpdate: PropTypes.func,
