@@ -1,51 +1,168 @@
-export const photoUtils = {
-  // Configuration
-  MAX_FILE_SIZE: 1024 * 1024, // 1MB in bytes
-  MIN_COMPRESSION_QUALITY: 0.5, // Minimum quality level for lossy compression
-  // Resize target widths, from larger to smaller.
-  // MAX_DIMENSION from original was 1200, using it as the smallest common target.
-  RESIZE_TARGET_WIDTHS: [2048, 1600, 1200],
-  TARGET_FORMAT_TYPE: "image/webp",
-  TARGET_FORMAT_EXTENSION: ".webp",
+import { appConfig } from "../config/appConfig";
+import { deviceUtils } from "./deviceUtils";
 
+export const photoUtils = {
+  get config() {
+    return appConfig();
+  },
+  /**
+   * Calculate optimal display size for photos on canvas
+   * @param {number} originalWidth - Original photo width
+   * @param {number} originalHeight - Original photo height
+   * @param {number} canvasWidth - Available canvas width
+   * @param {number} canvasHeight - Available canvas height
+   * @returns {Object} { width, height, scale, reason }
+   */
+  calculateDisplaySize: function (
+    originalWidth,
+    originalHeight,
+    canvasWidth,
+    canvasHeight
+  ) {
+    if (!canvasWidth || !canvasHeight) {
+      const defaults = this.config.CANVAS.DEFAULT_DIMENSIONS;
+      canvasWidth = canvasWidth || defaults.WIDTH;
+      canvasHeight = canvasHeight || defaults.HEIGHT;
+    }
+
+    const screenSizeCategory = deviceUtils.getScreenSizeCategory(
+      canvasWidth,
+      canvasHeight
+    );
+    const config = this.config.PHOTO_DISPLAY.SIZE_CONFIGS[screenSizeCategory];
+
+    console.log("📱 Screen size detection:", {
+      canvasSize: { width: canvasWidth, height: canvasHeight },
+      screenCategory: screenSizeCategory,
+      config: config,
+    });
+
+    //const aspectRatio = originalWidth / originalHeight;
+    const maxCanvasWidth = canvasWidth * config.maxCanvasRatio;
+    const maxCanvasHeight = canvasHeight * config.maxCanvasRatio;
+
+    // ✅ Add debug logging
+    console.log("🔍 Photo sizing debug:", {
+      original: { width: originalWidth, height: originalHeight },
+      canvas: { width: canvasWidth, height: canvasHeight },
+      maxCanvas: { width: maxCanvasWidth, height: maxCanvasHeight },
+      config: config,
+      smallThreshold: this.config.PHOTO_DISPLAY.SMALL_PHOTO_THRESHOLD,
+    });
+
+    let targetWidth, targetHeight, reason;
+
+    // Case 1: Very small photos
+    if (
+      originalWidth < this.config.PHOTO_DISPLAY.SMALL_PHOTO_THRESHOLD ||
+      originalHeight < this.config.PHOTO_DISPLAY.SMALL_PHOTO_THRESHOLD
+    ) {
+      console.log("📏 Case 1: Small photo optimization");
+      // ... existing small photo logic
+    }
+    // Case 2: Large photos that exceed canvas bounds
+    else if (
+      originalWidth > maxCanvasWidth ||
+      originalHeight > maxCanvasHeight
+    ) {
+      console.log("📏 Case 2: Large photo constraint");
+      const canvasScale = Math.min(
+        maxCanvasWidth / originalWidth,
+        maxCanvasHeight / originalHeight
+      );
+      const maxSizeScale = Math.min(
+        config.maxSize / originalWidth,
+        config.maxSize / originalHeight
+      );
+      const finalScale = Math.min(canvasScale, maxSizeScale);
+
+      console.log("🔍 Scaling calculations:", {
+        canvasScale: canvasScale,
+        maxSizeScale: maxSizeScale,
+        finalScale: finalScale,
+      });
+
+      targetWidth = originalWidth * finalScale;
+      targetHeight = originalHeight * finalScale;
+      reason = `large_photo_constrained_${screenSizeCategory}`;
+    }
+    // Case 3: Medium photos
+    else {
+      console.log("📏 Case 3: Medium photo handling");
+      const maxDimension = Math.max(originalWidth, originalHeight);
+      console.log("🔍 Max dimension check:", {
+        maxDimension: maxDimension,
+        configMaxSize: config.maxSize,
+        needsScaling: maxDimension > config.maxSize,
+      });
+
+      if (maxDimension > config.maxSize) {
+        const scale = config.maxSize / maxDimension;
+        targetWidth = originalWidth * scale;
+        targetHeight = originalHeight * scale;
+        reason = `medium_photo_scaled_${screenSizeCategory}`;
+        console.log("🔍 Scaling medium photo:", { scale: scale });
+      } else {
+        targetWidth = originalWidth;
+        targetHeight = originalHeight;
+        reason = `original_size_kept_${screenSizeCategory}`;
+        console.log("🔍 Keeping original size");
+      }
+    }
+
+    const result = {
+      width: Math.round(targetWidth),
+      height: Math.round(targetHeight),
+      scale: targetWidth / originalWidth,
+      reason: reason,
+      screenSizeCategory: screenSizeCategory,
+    };
+
+    console.log("🎯 Final sizing result:", result);
+
+    return result;
+  },
   // Determines starting quality based on original file size (as per md Step 4)
+  // ✅ Updated to use config instead of hardcoded values
   _getStartingQuality: function (fileSize) {
-    if (fileSize <= 2 * 1024 * 1024) return 0.8; // Up to 2MB
-    if (fileSize <= 4 * 1024 * 1024) return 0.7; // 2MB - 4MB
-    if (fileSize <= 8 * 1024 * 1024) return 0.6; // 4MB - 8MB
-    return 0.5; // > 8MB
+    const thresholds = this.config.FILE_PROCESSING.QUALITY_THRESHOLDS;
+    const levels = this.config.FILE_PROCESSING.QUALITY_LEVELS;
+
+    if (fileSize <= thresholds.SMALL_FILE) return levels.SMALL_FILE; // Up to 2MB
+    if (fileSize <= thresholds.MEDIUM_FILE) return levels.MEDIUM_FILE; // 2MB - 4MB
+    if (fileSize <= thresholds.LARGE_FILE) return levels.LARGE_FILE; // 4MB - 8MB
+    return levels.HUGE_FILE; // > 8MB
   },
 
   // Generates a list of quality values to try, from startingQuality down to minQuality
   _generateQualitiesToTry: function (startingQuality) {
+    const minQuality = this.config.FILE_PROCESSING.MIN_COMPRESSION_QUALITY; // ✅ Use config
     const qualities = [];
-    for (let q = startingQuality; q >= this.MIN_COMPRESSION_QUALITY; q -= 0.1) {
+
+    for (let q = startingQuality; q >= minQuality; q -= 0.1) {
       qualities.push(parseFloat(q.toFixed(1)));
     }
-    if (
-      !qualities.includes(this.MIN_COMPRESSION_QUALITY) &&
-      startingQuality > this.MIN_COMPRESSION_QUALITY
-    ) {
-      qualities.push(this.MIN_COMPRESSION_QUALITY);
+
+    if (!qualities.includes(minQuality) && startingQuality > minQuality) {
+      qualities.push(minQuality);
     }
-    if (
-      qualities.length === 0 &&
-      startingQuality < this.MIN_COMPRESSION_QUALITY
-    ) {
-      qualities.push(this.MIN_COMPRESSION_QUALITY); // Ensure at least min_quality is tried
+
+    if (qualities.length === 0 && startingQuality < minQuality) {
+      qualities.push(minQuality);
     }
-    // Ensure unique values, in case of floating point issues, though toFixed(1) should handle it.
+
     return [...new Set(qualities)].sort((a, b) => b - a);
   },
 
   _generateWebPFileName: function (originalName) {
+    const extension = this.config.FILE_PROCESSING.TARGET_FORMAT_EXTENSION; // ✅ Use config
     const nameWithoutExtension =
       originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
-    return `${nameWithoutExtension}${this.TARGET_FORMAT_EXTENSION}`;
+    return `${nameWithoutExtension}${extension}`;
   },
 
   _loadImage: async function (file) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -84,14 +201,16 @@ export const photoUtils = {
   },
 
   processImage: async function (file) {
+    const config = this.config.FILE_PROCESSING; // ✅ Get config once
+
     if (!file || !file.type || !file.type.startsWith("image/")) {
-      return file; // Not an image or invalid file object
+      return file;
     }
 
-    // If already WebP and within size limit, no processing needed.
+    // ✅ Use config values
     if (
-      file.type === this.TARGET_FORMAT_TYPE &&
-      file.size <= this.MAX_FILE_SIZE
+      file.type === config.TARGET_FORMAT_TYPE &&
+      file.size <= config.MAX_FILE_SIZE
     ) {
       return file;
     }
@@ -99,70 +218,72 @@ export const photoUtils = {
     const img = await this._loadImage(file);
     if (!img) {
       console.warn("Image loading failed, returning original file.");
-      return file; // Loading failed
+      return file;
     }
 
     const originalWidth = img.width;
     const originalHeight = img.height;
-    let processedFile = null;
 
-    // Handle small non-WebP images: convert to WebP with high quality/lossless attempt.
+    // Handle small non-WebP images
     if (
-      file.type !== this.TARGET_FORMAT_TYPE &&
-      file.size <= this.MAX_FILE_SIZE
+      file.type !== config.TARGET_FORMAT_TYPE &&
+      file.size <= config.MAX_FILE_SIZE
     ) {
       const isPngOrSvg =
         file.type === "image/png" || file.type === "image/svg+xml";
-      const qualityForSmallFile = isPngOrSvg ? undefined : 0.9; // Undefined for lossless attempt (PNG/SVG), 0.9 for others
+      const qualityForSmallFile = isPngOrSvg ? undefined : 0.9;
 
       const blob = await this._drawAndEncodeOnCanvas(
         img,
         originalWidth,
         originalHeight,
-        this.TARGET_FORMAT_TYPE,
+        config.TARGET_FORMAT_TYPE, // ✅ Use config
         qualityForSmallFile
       );
-      if (blob && blob.size <= this.MAX_FILE_SIZE) {
+
+      if (blob && blob.size <= config.MAX_FILE_SIZE) {
+        // ✅ Use config
         return new File([blob], this._generateWebPFileName(file.name), {
-          type: this.TARGET_FORMAT_TYPE,
+          type: config.TARGET_FORMAT_TYPE, // ✅ Use config
         });
       }
-      // If this conversion is too large, it will proceed to the main compression logic.
     }
 
-    // Specific path for SVG: Try lossless WebP at original dimensions.
-    // If >1MB, return original file as per strict interpretation of spec for SVG.
+    // Specific path for SVG
     if (file.type === "image/svg+xml") {
       const blob = await this._drawAndEncodeOnCanvas(
         img,
         originalWidth,
         originalHeight,
-        this.TARGET_FORMAT_TYPE,
+        config.TARGET_FORMAT_TYPE, // ✅ Use config
         undefined
-      ); // Undefined quality for lossless attempt
-      if (blob && blob.size <= this.MAX_FILE_SIZE) {
+      );
+
+      if (blob && blob.size <= config.MAX_FILE_SIZE) {
+        // ✅ Use config
         return new File([blob], this._generateWebPFileName(file.name), {
-          type: this.TARGET_FORMAT_TYPE,
+          type: config.TARGET_FORMAT_TYPE, // ✅ Use config
         });
       }
-      return file; // SVG as lossless WebP > 1MB, return original
+      return file;
     }
 
-    // Specific path for PNG: Try lossless WebP first.
+    // Specific path for PNG
     if (file.type === "image/png") {
       const blob = await this._drawAndEncodeOnCanvas(
         img,
         originalWidth,
         originalHeight,
-        this.TARGET_FORMAT_TYPE,
+        config.TARGET_FORMAT_TYPE, // ✅ Use config
         undefined
-      ); // Attempt lossless
-      if (blob && blob.size <= this.MAX_FILE_SIZE) {
+      );
+
+      if (blob && blob.size <= config.MAX_FILE_SIZE) {
+        // ✅ Use config
         return new File([blob], this._generateWebPFileName(file.name), {
-          type: this.TARGET_FORMAT_TYPE,
+          type: config.TARGET_FORMAT_TYPE, // ✅ Use config
         });
       }
-      // If lossless WebP from PNG is > 1MB, continue to general lossy compression below.
     }
 
     // General lossy compression strategy
@@ -175,18 +296,21 @@ export const photoUtils = {
         img,
         originalWidth,
         originalHeight,
-        this.TARGET_FORMAT_TYPE,
+        config.TARGET_FORMAT_TYPE, // ✅ Use config
         quality
       );
-      if (blob && blob.size <= this.MAX_FILE_SIZE) {
+
+      if (blob && blob.size <= config.MAX_FILE_SIZE) {
+        // ✅ Use config
         return new File([blob], this._generateWebPFileName(file.name), {
-          type: this.TARGET_FORMAT_TYPE,
+          type: config.TARGET_FORMAT_TYPE, // ✅ Use config
         });
       }
     }
 
-    // If still too large, attempt resizing then varying quality
-    const resizeWidthsToTry = this.RESIZE_TARGET_WIDTHS.filter(
+    // ✅ Fix the resize section - this was the main error
+    const resizeWidthsToTry = config.RESIZE_TARGET_WIDTHS.filter(
+      // ✅ Use config
       (w) => w < originalWidth && w > 0
     );
 
@@ -201,21 +325,23 @@ export const photoUtils = {
           img,
           targetWidth,
           targetHeight,
-          this.TARGET_FORMAT_TYPE,
+          config.TARGET_FORMAT_TYPE, // ✅ Use config
           quality
         );
-        if (blob && blob.size <= this.MAX_FILE_SIZE) {
+
+        if (blob && blob.size <= config.MAX_FILE_SIZE) {
+          // ✅ Use config
           return new File([blob], this._generateWebPFileName(file.name), {
-            type: this.TARGET_FORMAT_TYPE,
+            type: config.TARGET_FORMAT_TYPE, // ✅ Use config
           });
         }
       }
     }
 
-    // If all attempts fail, return the original file.
+    // If all attempts fail
     console.warn(
       `All compression attempts failed to bring the image under ${
-        this.MAX_FILE_SIZE / (1024 * 1024)
+        config.MAX_FILE_SIZE / (1024 * 1024) // ✅ Use config
       }MB. Returning original file.`
     );
     return file;

@@ -62,6 +62,8 @@ import memoryService from "../services/memoryService";
 import LogoSvg from "../assets/logo.svg";
 import ErrorBoundary from "../components/ErrorBoundary";
 import ConfirmationDialog from "../components/ConfirmationDialog";
+import { canvasUtils } from "../utils/canvasUtils";
+import { photoUtils } from "../utils/photoUtils";
 
 const MemoryEditorPage = () => {
   const { id } = useParams();
@@ -171,21 +173,100 @@ const MemoryEditorPage = () => {
     triggerPhotoUpload,
     fileInputRef,
   } = useUploadManager({
-    onPhotoAdded: (photoElements) => {
-      setElements((prev) => [...prev, ...photoElements]);
-      setSelectedElement(null);
+    onUploadComplete: (imageDataArray) => {
+      // ✅ Handle photo creation in MemoryEditorPage
+      addPhotoElementsIntoCanvas(imageDataArray);
     },
     onUploadStateChange: (state) => {
-      // Optional: handle upload state changes if needed
       console.log("Upload state changed:", state);
     },
-    canvasConfig: {
-      stageRef: konvaStageRef,
-      // Remove stageScale and stagePosition to prevent unnecessary re-renders
-      // Upload manager will get current scale/position dynamically when needed
-    },
-    elementStates,
   });
+
+  // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
+  const addPhotoElementsIntoCanvas = useCallback(
+    async (imageDataArray) => {
+      console.log("🚀 ===== STARTING PHOTO ELEMENT CREATION =====");
+
+      try {
+        const {
+          width: canvasWidth,
+          height: canvasHeight,
+          source,
+        } = canvasUtils.getCanvasDimensions(konvaStageRef, stageContainerRef);
+
+        console.log("🚀 Canvas dimensions:", {
+          canvasWidth,
+          canvasHeight,
+          source,
+        });
+
+        for (const imageData of imageDataArray) {
+          console.log("🚀 Creating photo element for:", imageData.fileName);
+
+          // ✅ Calculate size explicitly here (single source of truth)
+          const displaySize = photoUtils.calculateDisplaySize(
+            imageData.originalWidth,
+            imageData.originalHeight,
+            canvasWidth,
+            canvasHeight
+          );
+
+          console.log("🚀 Smart photo sizing:", {
+            original: {
+              width: imageData.originalWidth,
+              height: imageData.originalHeight,
+            },
+            calculated: {
+              width: displaySize.width,
+              height: displaySize.height,
+            },
+            scale: `${Math.round(displaySize.scale * 100)}%`,
+            reason: displaySize.reason,
+          });
+
+          // Create PhotoElement with smart sizing
+          const photoElement = createElement(ELEMENT_TYPES.PHOTO, {
+            ...imageData,
+            width: displaySize.width,
+            height: displaySize.height,
+          });
+
+          console.log("🚀 Created photo element:", {
+            id: photoElement.id,
+            size: { width: photoElement.width, height: photoElement.height },
+          });
+
+          // Step 4: Position using elementBehaviors (same as text)
+          elementBehaviors.addElementIntoCanvas(photoElement, konvaStageRef);
+          console.log("🚀 Positioned photo in canvas center");
+
+          // Step 6: Set selection and toolbar (same as text) - for last uploaded photo
+          setSelectedElement(photoElement);
+          setToolbarElementId(photoElement.id);
+          console.log("🚀 Selected photo:", photoElement.id);
+        }
+
+        console.log("🚀 ===== PHOTO ELEMENT CREATION COMPLETED =====");
+      } catch (error) {
+        console.error("🚨 Photo element creation failed:", error);
+        toast({
+          title: "Error",
+          description: `Failed to create photo elements: ${error.message}`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    },
+    [
+      createElement, // ✅ Same as addTextElementIntoCanvas
+      elementBehaviors, // ✅ Same as addTextElementIntoCanvas
+      konvaStageRef, // ✅ Same as addTextElementIntoCanvas
+      setSelectedElement, // ✅ Same as addTextElementIntoCanvas
+      setToolbarElementId, // ✅ Same as addTextElementIntoCanvas
+      toast,
+    ]
+  );
 
   // Synchronize selectedElement and editingElement with updated elements
   // DISABLED: This was causing toolbar to disappear due to unnecessary re-renders

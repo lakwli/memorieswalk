@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useToast } from "@chakra-ui/react";
 import memoryService from "../services/memoryService";
-import { PhotoElement } from "../components/canvas/elements";
 import { ELEMENT_STATES } from "../constants";
 
 // Helper function to format bytes
@@ -20,23 +19,15 @@ const formatBytes = (bytes, decimals = 2) => {
  * Encapsulates all file upload functionality including:
  * - Upload progress state management
  * - File compression and upload processing
- * - Canvas integration for uploaded photos
  * - Error handling and user feedback
  *
  * @param {Object} options - Configuration options
- * @param {Function} options.onPhotoAdded - Callback when photos are successfully added
+ * @param {Function} options.onUploadComplete - Callback when upload completes with image data
  * @param {Function} options.onUploadStateChange - Callback when upload state changes
- * @param {Object} options.canvasConfig - Canvas configuration for positioning
- * @param {Object} options.elementStates - Ref to element states
  *
  * @returns {Object} Upload manager interface
  */
-export const useUploadManager = ({
-  onPhotoAdded,
-  onUploadStateChange,
-  canvasConfig,
-  elementStates,
-}) => {
+export const useUploadManager = ({ onUploadComplete, onUploadStateChange }) => {
   const toast = useToast();
   const fileInputRef = useRef(null);
 
@@ -153,14 +144,15 @@ export const useUploadManager = ({
 
           case "upload_complete": {
             updateUploadState({
-              currentPhase: "loading_to_canvas",
-              uploadStatus: "Processing...",
-              currentProgress: 50,
+              currentPhase: "processing",
+              uploadStatus: "Loading images...",
+              currentProgress: 90,
             });
 
             (async () => {
               try {
-                const newPhotoElements = await Promise.all(
+                // Steps 1-3: Pure upload processing
+                const imageDataArray = await Promise.all(
                   progress.responseData.map(async (photo) => {
                     const blob = await memoryService.getPhoto(
                       photo.id,
@@ -168,100 +160,69 @@ export const useUploadManager = ({
                     );
                     const objectURL = URL.createObjectURL(blob);
 
-                    return new Promise((resolve) => {
-                      const img = new window.Image();
-                      img.crossOrigin = "anonymous";
-                      img.src = objectURL;
-                      img.onload = () => {
-                        // Store element state
-                        elementStates.current[photo.id] = ELEMENT_STATES.NEW;
-
-                        // Calculate photo position based on canvas configuration
-                        let photoX = 200;
-                        let photoY = 200;
-
-                        if (canvasConfig?.stageRef?.current) {
-                          const stage = canvasConfig.stageRef.current;
-                          const stageWidth = stage.width();
-                          const stageHeight = stage.height();
-                          const currentScale = canvasConfig.stageScale || 1;
-                          const currentPosition =
-                            canvasConfig.stagePosition || { x: 0, y: 0 };
-
-                          // Calculate center of current viewport in canvas coordinates
-                          photoX =
-                            (-currentPosition.x + stageWidth / 2) /
-                            currentScale;
-                          photoY =
-                            (-currentPosition.y + stageHeight / 2) /
-                            currentScale;
-
-                          // Offset slightly to avoid overlapping photos
-                          photoX -= img.naturalWidth / 4 / 2;
-                          photoY -= img.naturalHeight / 4 / 2;
-                        }
-
-                        // Create PhotoElement with viewport-centered position
-                        const photoElement = new PhotoElement({
-                          ...photo,
-                          image: img,
-                          objectURL,
-                          x: photoX,
-                          y: photoY,
-                          width: img.naturalWidth / 4,
-                          height: img.naturalHeight / 4,
-                          rotation: 0,
-                          originalWidth: img.naturalWidth,
-                          originalHeight: img.naturalHeight,
-                          size: blob.size,
-                        });
-
-                        resolve(photoElement);
-                      };
-                      img.onerror = () => {
+                    const img = await new Promise((resolve, reject) => {
+                      const image = new window.Image();
+                      image.crossOrigin = "anonymous";
+                      image.src = objectURL;
+                      image.onload = () => resolve(image);
+                      image.onerror = () => {
                         URL.revokeObjectURL(objectURL);
-                        resolve(null);
+                        reject(
+                          new Error(`Failed to load image: ${photo.fileName}`)
+                        );
                       };
                     });
+
+                    // ✅ Return clean image data - no canvas positioning
+                    return {
+                      ...photo,
+                      image: img,
+                      objectURL,
+                      originalWidth: img.naturalWidth,
+                      originalHeight: img.naturalHeight,
+                      size: blob.size,
+                    };
                   })
                 );
 
-                // Filter out failed photo elements
-                const validPhotoElements = newPhotoElements.filter(
-                  (p) => p !== null
+                // Filter out failed loads
+                const validImageData = imageDataArray.filter(
+                  (data) => data !== null
                 );
-
-                // Notify parent component with new photo elements
-                onPhotoAdded?.(validPhotoElements);
 
                 updateUploadState({
                   currentPhase: "completed",
-                  uploadStatus: "Photo added!",
+                  uploadStatus: "Upload completed!",
                   currentProgress: 100,
                 });
 
+                // ✅ Pass clean image data to MemoryEditorPage
+                onUploadComplete?.(validImageData);
+
                 toast({
-                  title: "Photo Added",
-                  description: "Successfully added to the canvas.",
+                  title: "Upload Complete",
+                  description: "Photos uploaded successfully",
                   status: "success",
                   duration: 2000,
                   isClosable: true,
                 });
 
                 resetUploadState(2000);
-              } catch (loadErr) {
-                console.error("Error processing uploaded photos:", loadErr);
+              } catch (error) {
+                console.error("Image processing error:", error);
                 updateUploadState({
                   currentPhase: "failed",
-                  uploadStatus: "Error displaying photo.",
+                  uploadStatus: `Processing failed: ${error.message.substring(
+                    0,
+                    30
+                  )}...`,
                   currentProgress: 100,
                 });
                 toast({
-                  title: "Error after upload",
-                  description:
-                    "Photo uploaded, but failed to display it on canvas.",
-                  status: "warning",
-                  duration: 4000,
+                  title: "Processing Error",
+                  description: `Failed to process images: ${error.message}`,
+                  status: "error",
+                  duration: 5000,
                   isClosable: true,
                 });
                 resetUploadState(4000);
@@ -320,14 +281,7 @@ export const useUploadManager = ({
         }
       }
     },
-    [
-      updateUploadState,
-      resetUploadState,
-      toast,
-      onPhotoAdded,
-      elementStates,
-      canvasConfig,
-    ]
+    [updateUploadState, resetUploadState, toast, onUploadComplete]
   );
 
   // Trigger photo upload
