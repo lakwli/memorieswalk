@@ -3,7 +3,7 @@ import { Box } from "@chakra-ui/react";
 import { UniversalControlBar } from "./UniversalControlBar.jsx";
 import { TOOLBAR_CONFIG } from "./toolbarConfig";
 import { CONTROL_REGISTRY } from "./controls/index.js";
-
+import { APP_CONFIG } from "../../../config/appConfig.js";
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
  *
@@ -105,9 +105,11 @@ export const ElementToolbar = ({
         x: estimatedX,
         y: estimatedY,
       });
+      const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
+      const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
 
       return {
-        top: estimatedY - 80,
+        top: estimatedY - toolbarHeight - clearanceAbove,
         left: estimatedX,
       };
     }
@@ -133,10 +135,10 @@ export const ElementToolbar = ({
     });
 
     // Toolbar positioning logic (simplified for debugging)
-    const toolbarWidth = 280;
-    const toolbarHeight = 60;
-    const clearanceAbove = 10;
-    const margin = 10;
+    const toolbarWidth = APP_CONFIG.UI.TOOLBAR.WIDTH;
+    const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
+    const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
+    const margin = APP_CONFIG.UI.TOOLBAR.MARGIN;
 
     let preferredLeft =
       elementScreenX + elementScreenWidth / 2 - toolbarWidth / 2;

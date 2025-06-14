@@ -1,4 +1,13 @@
 export const APP_CONFIG = {
+  UI: {
+    TOOLBAR: {
+      WIDTH: 280, // Toolbar width
+      HEIGHT: 60, // Toolbar height
+      CLEARANCE_ABOVE: 60, // Space above element
+      MARGIN: 10, // Minimum distance from screen edges
+      FALLBACK_OFFSET: 80, // Vertical offset for fallback positioning
+    },
+  },
   // ✅ Canvas & Stage Configuration
   CANVAS: {
     STAGE_OFFSET: {
