@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useMemo } from "react";
 
 export const useElementBehaviors = (
   updateElement,
@@ -151,16 +152,12 @@ export const useElementBehaviors = (
   //handleElementDelete,
   //};
 
-  const result = {
-    addElementIntoCanvas, // ✅ This line is missing!
-    handleElementDoubleClick,
-    handleElementDelete,
-  };
-
-  console.log("🔍 useElementBehaviors returning handlers:", {
-    hasAddElementIntoCanvas: !!result.addElementIntoCanvas, // ✅ Add this check
-    hasHandleElementDoubleClick: !!result.handleElementDoubleClick,
-    hasHandleElementDelete: !!result.handleElementDelete,
-  });
-  return result;
+  return useMemo(
+    () => ({
+      addElementIntoCanvas,
+      handleElementDoubleClick,
+      handleElementDelete,
+    }),
+    [addElementIntoCanvas, handleElementDoubleClick, handleElementDelete]
+  );
 };

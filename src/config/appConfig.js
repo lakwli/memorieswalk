@@ -8,6 +8,12 @@ export const APP_CONFIG = {
       FALLBACK_OFFSET: 80, // Vertical offset for fallback positioning
     },
   },
+
+  PERFORMANCE: {
+    ENABLE_RENDER_LOGGING: true,
+    RENDER_THRESHOLD_WARNING: 5, // Warn if more than 5 renders per action
+    ENABLE_MEMOIZATION: true,
+  },
   // ✅ Canvas & Stage Configuration
   CANVAS: {
     STAGE_OFFSET: {

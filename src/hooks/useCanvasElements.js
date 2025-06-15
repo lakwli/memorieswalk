@@ -14,15 +14,33 @@ export const useCanvasElements = () => {
 
     setElements((prev) => {
       console.log("🔄 setElements prev state:", prev.length, "elements");
-      const newElements = prev.map((el) => {
-        if (el.id === elementId) {
-          console.log("🔄 Updating element:", elementId, "with:", updates);
-          Object.assign(el, updates);
-          return el;
-        }
-        return el;
-      });
+
+      // ✅ Find the element and update it in-place
+      const element = prev.find((el) => el.id === elementId);
+      if (!element) {
+        console.log("🔄 Element not found:", elementId);
+        return prev; // Same array reference - no re-render
+      }
+
+      console.log("🔄 Updating element:", elementId, "with:", updates);
+      console.log("🔄 Element BEFORE Object.assign:", element);
+
+      // ✅ Mutate the element in-place (your approach is correct)
+      Object.assign(element, updates);
+
+      console.log("🔄 Element AFTER Object.assign:", element);
+
+      // ✅ Create new array reference to trigger React's change detection
+      // (Since we mutated an object inside the array, React won't detect it without this)
+      const newElements = [...prev];
+
       console.log("🔄 setElements new state:", newElements.length, "elements");
+      console.log("🔄 Array reference changed:", prev !== newElements);
+      console.log(
+        "🔄 All elements same objects:",
+        prev.every((el, index) => el === newElements[index])
+      );
+
       return newElements;
     });
   }, []);

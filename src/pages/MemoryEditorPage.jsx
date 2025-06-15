@@ -1,7 +1,7 @@
 // ============================================================================
 // REFACTORED MEMORY EDITOR COMPONENT
 // ============================================================================
-
+import { useMemo } from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Stage, Layer, Transformer } from "react-konva";
@@ -66,6 +66,13 @@ import { canvasUtils } from "../utils/canvasUtils";
 import { photoUtils } from "../utils/photoUtils";
 
 const MemoryEditorPage = () => {
+  if (!window.memoryEditorRenderCount) window.memoryEditorRenderCount = 0;
+  window.memoryEditorRenderCount++;
+
+  console.log(`🏠 MemoryEditorPage render #${window.memoryEditorRenderCount}`);
+  console.log(`🏠 MemoryEditorPage timestamp: ${new Date().toISOString()}`);
+  const prevDepsRef = useRef();
+
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -92,6 +99,72 @@ const MemoryEditorPage = () => {
     editingManager,
     removeElement
   );
+
+  // ✅ Log when useMemo dependencies change
+  console.log("🔍 useMemo dependencies check:");
+  console.log("  - elements length:", elements.length);
+  console.log("  - editingManager:", !!editingManager);
+  console.log("  - updateElement:", typeof updateElement);
+  console.log("  - elementBehaviors:", !!elementBehaviors);
+  console.log("  - setSelectedElement:", typeof setSelectedElement);
+
+  const memoizedElements = useMemo(() => {
+    console.log(
+      "🔧 Memoizing elements - only re-compute when elements array changes"
+    );
+
+    return elements.map((element) => {
+      // ✅ Create stable props object
+      const rendererProps = {
+        onUpdate: updateElement,
+        interactionHandlers: elementBehaviors,
+        isBeingEdited: editingManager.isElementEditing(element.id),
+        onEditStart: () => {
+          setSelectedElement(element);
+          editingManager.startEditing(element);
+        },
+        onEditEnd: () => editingManager.endEditing(),
+      };
+
+      return RendererFactory.createRenderer(element, rendererProps);
+    });
+  }, [
+    elements,
+    editingManager,
+    updateElement,
+    elementBehaviors,
+    setSelectedElement,
+  ]);
+
+  useEffect(() => {
+    const currentDeps = {
+      elementsLength: elements.length,
+      elementsIds: elements.map((el) => el.id).join(","),
+      editingManagerType: typeof editingManager,
+      updateElementString: updateElement.toString().slice(0, 100),
+      elementBehaviorsType: typeof elementBehaviors,
+      setSelectedElementString: setSelectedElement.toString().slice(0, 100),
+    };
+
+    if (prevDepsRef.current) {
+      console.log("🔍 Dependency comparison:");
+      Object.keys(currentDeps).forEach((key) => {
+        const prev = prevDepsRef.current[key];
+        const curr = currentDeps[key];
+        if (prev !== curr) {
+          console.log(`  ❌ ${key} CHANGED:`);
+          console.log(`    From: ${prev}`);
+          console.log(`    To:   ${curr}`);
+        } else {
+          console.log(`  ✅ ${key} unchanged`);
+        }
+      });
+    } else {
+      console.log("🔍 First render - establishing baseline");
+    }
+
+    prevDepsRef.current = currentDeps;
+  });
 
   // PERFORMANCE: Disabled expensive logging useEffects that were causing unnecessary re-renders
   // useEffect(() => {
@@ -162,25 +235,6 @@ const MemoryEditorPage = () => {
   };
 
   const { handleTextDrop, getTool } = useCanvasTools(canvasToolsConfig);
-
-  // Upload Manager hook
-  const {
-    isUploading,
-    uploadStatus,
-    currentProgress,
-    currentPhase,
-    handleFileUpload,
-    triggerPhotoUpload,
-    fileInputRef,
-  } = useUploadManager({
-    onUploadComplete: (imageDataArray) => {
-      // ✅ Handle photo creation in MemoryEditorPage
-      addPhotoElementsIntoCanvas(imageDataArray);
-    },
-    onUploadStateChange: (state) => {
-      console.log("Upload state changed:", state);
-    },
-  });
 
   // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
   const addPhotoElementsIntoCanvas = useCallback(
@@ -267,6 +321,37 @@ const MemoryEditorPage = () => {
       toast,
     ]
   );
+
+  // Upload Manager hook
+  console.log("🔍 About to call useUploadManager with config:", {
+    onUploadComplete: typeof addPhotoElementsIntoCanvas,
+    addPhotoElementsIntoCanvasString: addPhotoElementsIntoCanvas
+      .toString()
+      .slice(0, 50),
+  });
+
+  const {
+    isUploading,
+    uploadStatus,
+    currentProgress,
+    currentPhase,
+    handleFileUpload,
+    triggerPhotoUpload,
+    fileInputRef,
+  } = useUploadManager({
+    onUploadComplete: (imageDataArray) => {
+      // ✅ Handle photo creation in MemoryEditorPage
+      addPhotoElementsIntoCanvas(imageDataArray);
+    },
+  });
+
+  // ✅ Add this logging right after Upload Manager hook
+  console.log("🔍 Upload Manager state:", {
+    isUploading,
+    uploadStatus,
+    currentProgress,
+    currentPhase,
+  });
 
   // Synchronize selectedElement and editingElement with updated elements
   // DISABLED: This was causing toolbar to disappear due to unnecessary re-renders
@@ -452,6 +537,13 @@ const MemoryEditorPage = () => {
 
   // Load memory with new element system
   useEffect(() => {
+    console.log("🔵 useEffect #3 - Load memory fired");
+    console.log("  - id:", id);
+    console.log("  - toast:", typeof toast);
+    console.log("  - setElements:", typeof setElements);
+    console.log("  - elementStates:", !!elementStates);
+    console.log("  - getTool:", typeof getTool);
+
     const loadMemory = async () => {
       try {
         setLoading(true);
@@ -813,6 +905,13 @@ const MemoryEditorPage = () => {
 
   // Update canvas position and scale when initialViewState changes
   useEffect(() => {
+    console.log("🔵 useEffect #4 - Canvas position/scale fired");
+    console.log("  - initialViewState:", initialViewState);
+    console.log(
+      "  - viewStateAppliedRef.current:",
+      viewStateAppliedRef.current
+    );
+
     if (
       (initialViewState.scale !== 1 ||
         initialViewState.position.x !== 0 ||
@@ -851,18 +950,27 @@ const MemoryEditorPage = () => {
   ]);
 
   // Handle fullscreen toggle
-  useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullScreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullScreenChange);
-    };
-  }, []);
+  //useEffect(() => {
+  //  console.log("🔵 useEffect #5 - Fullscreen fired");
+  //
+  //  const handleFullScreenChange = () => {
+  //    setIsFullScreen(!!document.fullscreenElement);
+  //// };
+  // document.addEventListener("fullscreenchange", handleFullScreenChange);
+  // return () => {
+  //   document.removeEventListener("fullscreenchange", handleFullScreenChange);
+  // };
+  //}, []);
 
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
+    console.log("🔵 useEffect #6 - Keyboard events fired");
+    console.log(
+      "  - getSelectedElement():",
+      getSelectedElement()?.id || "null"
+    );
+    console.log("  - editingElement:", editingElement?.id || "null");
+
     const handleKeyDown = (e) => {
       // Handle Escape key only
       if (e.key === "Escape") {
@@ -871,6 +979,9 @@ const MemoryEditorPage = () => {
         }
         if (editingElement) {
           editingManager.endEditing(); // ← Use editingManager instead of setEditingElement
+        }
+        if (document.fullscreenElement) {
+          setIsFullScreen(false);
         }
       }
     };
@@ -1342,18 +1453,7 @@ const MemoryEditorPage = () => {
               }}
             >
               <Layer>
-                {elements.map((element) =>
-                  RendererFactory.createRenderer(element, {
-                    onUpdate: updateElement,
-                    interactionHandlers: elementBehaviors,
-                    isBeingEdited: editingManager.isElementEditing(element.id),
-                    onEditStart: () => {
-                      setSelectedElement(element);
-                      editingManager.startEditing(element);
-                    },
-                    onEditEnd: () => editingManager.endEditing(),
-                  })
-                )}
+                {memoizedElements}
                 <Transformer
                   ref={(transformer) => {
                     trRef.current = transformer;
