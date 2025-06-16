@@ -32,16 +32,17 @@ export const useCanvasElements = () => {
 
       // ✅ Create new array reference to trigger React's change detection
       // (Since we mutated an object inside the array, React won't detect it without this)
-      const newElements = [...prev];
+      //const newElements = [...prev];
 
-      console.log("🔄 setElements new state:", newElements.length, "elements");
-      console.log("🔄 Array reference changed:", prev !== newElements);
-      console.log(
-        "🔄 All elements same objects:",
-        prev.every((el, index) => el === newElements[index])
-      );
+      //console.log("🔄 setElements new state:", newElements.length, "elements");
+      //console.log("🔄 Array reference changed:", prev !== newElements);
+      //console.log(
+      //  "🔄 All elements same objects:",
+      //  prev.every((el, index) => el === newElements[index])
+      //);
 
-      return newElements;
+      //return newElements;
+      return prev;
     });
   }, []);
 
