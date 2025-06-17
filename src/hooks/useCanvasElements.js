@@ -4,59 +4,80 @@ import { ELEMENT_STATES } from "../constants";
 
 export const useCanvasElements = () => {
   const [elements, setElements] = useState([]);
+  const [selectedElement, setSelectedElement] = useState(null);
   const [isEditing, setIsEditing] = useState(false); // ← Simple boolean flag
   const elementStates = useRef({}); // For photo states or other element-specific state
-  const selectedElementRef = useRef(null);
-  const editingElement = isEditing ? getSelectedElement() : null;
+  const editingElement = isEditing ? selectedElement : null;
 
-  const updateElement = useCallback((elementId, updates) => {
-    console.log("🔄 updateElement called:", { elementId, updates });
+  const setNewSelectedElement = useCallback((element) => {
+    console.log("🔄 updateSelectedElement called:", element);
 
-    setElements((prev) => {
-      console.log("🔄 setElements prev state:", prev.length, "elements");
-
-      // ✅ Find the element and update it in-place
-      const element = prev.find((el) => el.id === elementId);
-      if (!element) {
-        console.log("🔄 Element not found:", elementId);
-        return prev; // Same array reference - no re-render
+    setSelectedElement((currentSelected) => {
+      // ✅ Compare inside state setter to avoid dependency
+      if (element === currentSelected) {
+        console.log("🔄 Same element - no update");
+        return currentSelected; // Return same value = no state change
       }
 
-      console.log("🔄 Updating element:", elementId, "with:", updates);
-      console.log("🔄 Element BEFORE Object.assign:", element);
-
-      // ✅ Mutate the element in-place (your approach is correct)
-      Object.assign(element, updates);
-
-      console.log("🔄 Element AFTER Object.assign:", element);
-
-      // ✅ Create new array reference to trigger React's change detection
-      // (Since we mutated an object inside the array, React won't detect it without this)
-      //const newElements = [...prev];
-
-      //console.log("🔄 setElements new state:", newElements.length, "elements");
-      //console.log("🔄 Array reference changed:", prev !== newElements);
-      //console.log(
-      //  "🔄 All elements same objects:",
-      //  prev.every((el, index) => el === newElements[index])
-      //);
-
-      //return newElements;
-      return prev;
+      console.log("🔄 Different element - updating");
+      return element;
     });
-  }, []);
+  }, []); // ✅ Empty dependencies
+
+  const updateElement = useCallback(
+    (elementId, updates) => {
+      console.log("🔄 updateElement called:", { elementId, updates });
+
+      setElements((prev) => {
+        console.log("🔄 setElements prev state:", prev.length, "elements");
+
+        const element = prev.find((el) => el.id === elementId);
+        if (!element) {
+          console.log("🔄 Element not found:", elementId);
+          return prev;
+        }
+
+        console.log("🔄 Updating element:", elementId, "with:", updates);
+        console.log("🔄 Element BEFORE Object.assign:", element);
+
+        Object.assign(element, updates);
+
+        console.log("🔄 Element AFTER Object.assign:", element);
+
+        // ✅ Add debugging for the selection check
+        console.log("🔄 Selection check:", {
+          elementId: element.id,
+          selectedElementId: selectedElement?.id,
+          selectedElement: selectedElement,
+          isMatch: element.id === selectedElement?.id,
+        });
+
+        if (element.id === selectedElement?.id) {
+          console.log(
+            "🔄 Updated element is selected - updating selection reference"
+          );
+          setNewSelectedElement({ ...element });
+        } else {
+          console.log("🔄 Updated element is NOT selected - no toolbar update");
+        }
+
+        return prev;
+      });
+    },
+    [selectedElement, setNewSelectedElement]
+  ); // ✅ Add dependencies
 
   const editingManager = useMemo(
     () => ({
       // Check if element is in editing mode
       isElementEditing: (elementId) => {
-        return isEditing && selectedElementRef.current?.id === elementId;
+        return isEditing && selectedElement?.id === elementId;
       },
 
       // Start editing mode for an element
       startEditing: (element) => {
         if (element) {
-          selectedElementRef.current = element;
+          setSelectedElement(element);
           setIsEditing(true);
         }
       },
@@ -77,7 +98,7 @@ export const useCanvasElements = () => {
         updateElement(elementId, updates);
       },
     }),
-    [isEditing, updateElement]
+    [isEditing, updateElement, selectedElement]
   );
 
   // Create element
@@ -110,36 +131,6 @@ export const useCanvasElements = () => {
     return newElement;
   };
 
-  // ✅ Simplified getters - only for selectedElement
-  const getSelectedElement = useCallback(() => {
-    return selectedElementRef.current;
-  }, []);
-
-  const getSelectedElementId = useCallback(() => {
-    return selectedElementRef.current?.id || null;
-  }, []);
-
-  // ✅ Simplified setSelectedElement - no ID synchronization needed
-  const setSelectedElement = useCallback((element) => {
-    console.log("🔧 setSelectedElement called:", {
-      from: selectedElementRef.current?.id || null,
-      to: element?.id || null,
-    });
-
-    if (selectedElementRef.current === element) {
-      console.log("🔧 setSelectedElement: No change, skipping update");
-      return;
-    }
-
-    if (element === null) {
-      console.log("🚨 SELECTION BEING CLEARED!");
-      console.trace("🚨 Call stack that cleared selection:");
-    }
-
-    selectedElementRef.current = element;
-    console.log("🔧 Selection updated to:", element?.id || "null");
-  }, []);
-
   // ✅ Add setSelectedElementById for cases where you only have ID
   const setSelectedElementById = useCallback(
     (elementId) => {
@@ -154,17 +145,17 @@ export const useCanvasElements = () => {
       setElements((currentElements) => {
         const found = currentElements.find((el) => el.id === elementId);
         if (found) {
-          selectedElementRef.current = found;
           console.log("🔧 Found and selected element by ID:", found.id);
+          setSelectedElement(found);
         } else {
           console.log("🔧 Element not found by ID:", elementId);
-          selectedElementRef.current = null;
+          setSelectedElement(null);
         }
         return currentElements; // Return same array
       });
     },
     [setSelectedElement]
-  ); // ✅ Add setSelectedElement to dependencies
+  ); // ✅ Include both dependencies
 
   // Remove element
   // Remove element
@@ -179,7 +170,7 @@ export const useCanvasElements = () => {
       });
 
       // ✅ Clear selection if removing selected element
-      if (selectedElementRef.current?.id === elementId) {
+      if (selectedElement?.id === elementId) {
         setSelectedElement(null);
       }
 
@@ -191,16 +182,15 @@ export const useCanvasElements = () => {
         delete elementStates.current[elementId];
       }
     },
-    [setSelectedElement]
+    [setSelectedElement, selectedElement]
   );
 
   // Editing state management
   const startEditing = useCallback(() => {
-    const currentSelected = getSelectedElement();
-    if (currentSelected) {
+    if (selectedElement) {
       setIsEditing(true);
     }
-  }, [getSelectedElement]);
+  }, [selectedElement]);
 
   const endEditing = useCallback(() => {
     setIsEditing(false);
@@ -209,10 +199,9 @@ export const useCanvasElements = () => {
   // Check if element is currently being edited
   const isElementEditing = useCallback(
     (elementId) => {
-      const currentSelected = getSelectedElement();
-      return isEditing && currentSelected?.id === elementId;
+      return isEditing && selectedElement?.id === elementId;
     },
-    [isEditing, getSelectedElement]
+    [isEditing, selectedElement]
   );
   // Get elements by type
   const getElementsByType = useCallback(
@@ -238,10 +227,11 @@ export const useCanvasElements = () => {
   return {
     elements,
     setElements,
-    getSelectedElementId, // ✅ Make sure this is included
-    getSelectedElement, // ✅ Make sure this is included
-    setSelectedElement,
-    setSelectedElementById, // ✅ Make sure this is included if it exists
+    selectedElement,
+    //getSelectedElementId, // ✅ Make sure this is included
+    //getSelectedElement, // ✅ Make sure this is include
+    setSelectedElementById, // ✅ Add this to use the function
+    setNewSelectedElement, // Export the unused function
     editingElement,
     editingManager,
     isEditing, // ← Add this missing export

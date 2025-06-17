@@ -82,8 +82,8 @@ const MemoryEditorPage = () => {
   const {
     elements,
     setElements,
-    setSelectedElement,
-    getSelectedElement,
+    setNewSelectedElement,
+    selectedElement,
     editingElement,
     editingManager,
     elementStates, // This replaces photoStates.current
@@ -95,7 +95,7 @@ const MemoryEditorPage = () => {
 
   const elementBehaviors = useElementBehaviors(
     updateElement,
-    setSelectedElement,
+    setNewSelectedElement,
     editingManager,
     removeElement
   );
@@ -106,7 +106,7 @@ const MemoryEditorPage = () => {
   console.log("  - editingManager:", !!editingManager);
   console.log("  - updateElement:", typeof updateElement);
   console.log("  - elementBehaviors:", !!elementBehaviors);
-  console.log("  - setSelectedElement:", typeof setSelectedElement);
+  console.log("  - setNewSelectedElement:", typeof setNewSelectedElement);
 
   const memoizedElements = useMemo(() => {
     console.log(
@@ -120,7 +120,7 @@ const MemoryEditorPage = () => {
         interactionHandlers: elementBehaviors,
         isBeingEdited: editingManager.isElementEditing(element.id),
         onEditStart: () => {
-          setSelectedElement(element);
+          setNewSelectedElement(element);
           editingManager.startEditing(element);
         },
         onEditEnd: () => editingManager.endEditing(),
@@ -133,7 +133,7 @@ const MemoryEditorPage = () => {
     editingManager,
     updateElement,
     elementBehaviors,
-    setSelectedElement,
+    setNewSelectedElement,
   ]);
 
   useEffect(() => {
@@ -143,7 +143,9 @@ const MemoryEditorPage = () => {
       editingManagerType: typeof editingManager,
       updateElementString: updateElement.toString().slice(0, 100),
       elementBehaviorsType: typeof elementBehaviors,
-      setSelectedElementString: setSelectedElement.toString().slice(0, 100),
+      setNewSelectedElementString: setNewSelectedElement
+        .toString()
+        .slice(0, 100),
     };
 
     if (prevDepsRef.current) {
@@ -191,7 +193,7 @@ const MemoryEditorPage = () => {
   const [saving, setSaving] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [toolbarElementId, setToolbarElementId] = useState(null);
+  //const [toolbarElementId, setToolbarElementId] = useState(null);
 
   // Refs...
   const konvaStageRef = useRef(null);
@@ -295,8 +297,8 @@ const MemoryEditorPage = () => {
           console.log("🚀 Positioned photo in canvas center");
 
           // Step 6: Set selection and toolbar (same as text) - for last uploaded photo
-          setSelectedElement(photoElement);
-          setToolbarElementId(photoElement.id);
+          setNewSelectedElement(photoElement);
+          //setToolbarElementId(photoElement.id);
           console.log("🚀 Selected photo:", photoElement.id);
         }
 
@@ -316,8 +318,8 @@ const MemoryEditorPage = () => {
       createElement, // ✅ Same as addTextElementIntoCanvas
       elementBehaviors, // ✅ Same as addTextElementIntoCanvas
       konvaStageRef, // ✅ Same as addTextElementIntoCanvas
-      setSelectedElement, // ✅ Same as addTextElementIntoCanvas
-      setToolbarElementId, // ✅ Same as addTextElementIntoCanvas
+      setNewSelectedElement, // ✅ Same as addTextElementIntoCanvas
+      //  setToolbarElementId, // ✅ Same as addTextElementIntoCanvas
       toast,
     ]
   );
@@ -382,86 +384,30 @@ const MemoryEditorPage = () => {
   //   }
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [elements]); // Only depend on elements to avoid circular dependencies
+  useEffect(() => {
+    if (!trRef.current || !konvaStageRef.current) return;
 
-  // Simple function to update transformer - no hooks, no binding
-  // Simple function to update transformer - no hooks, no binding
-  const updateTransformer = useCallback(
-    (selectedElement) => {
-      console.log(
-        "🔧 updateTransformer called with:",
-        selectedElement?.id || "null"
-      );
+    // Clear transformer
+    trRef.current.nodes([]);
 
-      if (!trRef.current || !konvaStageRef.current) {
-        console.log(
-          "🔧 Missing refs - trRef:",
-          !!trRef.current,
-          "konvaStageRef:",
-          !!konvaStageRef.current
-        );
-        return;
+    // Show transformer only if element selected and not editing
+    if (
+      selectedElement &&
+      !editingManager.isElementEditing(selectedElement.id)
+    ) {
+      const konvaNode = konvaStageRef.current.findOne(`#${selectedElement.id}`);
+      if (konvaNode) {
+        trRef.current.nodes([konvaNode]);
       }
+    }
 
-      console.log(
-        "🔧 Updating transformer for:",
-        selectedElement?.id || "null"
-      );
-
-      // Clear transformer first
-      trRef.current.nodes([]);
-
-      // If element is selected and not editing, show transformer
-      if (
-        selectedElement &&
-        !editingManager.isElementEditing(selectedElement.id)
-      ) {
-        console.log("🔧 Looking for Konva node with ID:", selectedElement.id);
-
-        const konvaNode = konvaStageRef.current.findOne(
-          `#${selectedElement.id}`
-        );
-        console.log(
-          "🔧 Found Konva node:",
-          !!konvaNode,
-          konvaNode?.getClassName?.()
-        );
-
-        if (konvaNode) {
-          console.log("🔧 Binding transformer to:", selectedElement.id);
-          trRef.current.nodes([konvaNode]);
-        } else {
-          console.log("🔧 No Konva node found for ID:", selectedElement.id);
-
-          // Debug: List all nodes with IDs to see what's available
-          const stage = konvaStageRef.current;
-          const allNodes = [];
-          stage.find("*").forEach((node) => {
-            if (node.id()) {
-              allNodes.push({ id: node.id(), className: node.getClassName() });
-            }
-          });
-          console.log("🔧 Available nodes with IDs:", allNodes);
-        }
-      } else {
-        console.log(
-          "🔧 Not showing transformer - element:",
-          !!selectedElement,
-          "isEditing:",
-          editingManager.isElementEditing(selectedElement?.id)
-        );
-      }
-
-      // Redraw
-      trRef.current.getLayer()?.batchDraw();
-      console.log("🔧 Transformer update completed");
-    },
-    [editingManager]
-  );
+    trRef.current.getLayer()?.batchDraw();
+  }, [selectedElement, editingManager]);
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
     (newElement) => {
-      const previousElement = getSelectedElement();
+      const previousElement = selectedElement;
       const previousId = previousElement?.id || null;
       const newId = newElement?.id || null;
 
@@ -479,13 +425,18 @@ const MemoryEditorPage = () => {
       }
 
       // Update React state
-      setSelectedElement(newElement);
+      setNewSelectedElement(newElement);
 
       // Update transformer based on new selection
-      updateTransformer(newElement);
-      setToolbarElementId(newId);
+      //updateTransformer(newElement);
+      //setToolbarElementId(newId);
     },
-    [editingManager, setSelectedElement, getSelectedElement, updateTransformer] // ← Add updateTransformer
+    [
+      editingManager,
+      setNewSelectedElement,
+      selectedElement,
+      //updateTransformer,
+    ] // ← Add updateTransformer
   );
 
   const handleStageClick = useCallback(
@@ -753,20 +704,20 @@ const MemoryEditorPage = () => {
     const textElement = createElement(ELEMENT_TYPES.TEXT);
 
     elementBehaviors.addElementIntoCanvas(textElement, konvaStageRef);
-    setSelectedElement(textElement);
+    setNewSelectedElement(textElement);
     //handleElementSelection(textElement);
-  }, [elementBehaviors, konvaStageRef, createElement, setSelectedElement]); // ← Add handleElementSelection
+  }, [elementBehaviors, konvaStageRef, createElement, setNewSelectedElement]);
 
   // Handle editing mode transitions using central editing manager
   const handleElementEdit = useCallback(
     (shouldEdit) => {
-      if (shouldEdit && getSelectedElement()) {
-        editingManager.startEditing(getSelectedElement()); // ← Direct from useCanvasElements
+      if (shouldEdit && selectedElement) {
+        editingManager.startEditing(selectedElement); // ← Direct from useCanvasElements
       } else {
         editingManager.endEditing(); // ← Direct from useCanvasElements
       }
     },
-    [getSelectedElement, editingManager] // ← Use editingManager directly, NOT from elementBehaviors
+    [selectedElement, editingManager] // ← Use editingManager directly, NOT from elementBehaviors
   );
 
   // Handle finishing edit mode (for future use)
@@ -880,28 +831,24 @@ const MemoryEditorPage = () => {
 
   // Universal toolbar handlers for controls
   const handleToolbarCopy = useCallback(() => {
-    if (getSelectedElement()) handleElementDuplicate(getSelectedElement().id);
-  }, [getSelectedElement, handleElementDuplicate]);
+    if (selectedElement) handleElementDuplicate(selectedElement.id);
+  }, [selectedElement, handleElementDuplicate]);
 
   const handleToolbarBringForward = useCallback(() => {
-    if (getSelectedElement())
-      handleElementLayerChange(getSelectedElement().id, "up");
-  }, [getSelectedElement, handleElementLayerChange]);
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "up");
+  }, [selectedElement, handleElementLayerChange]);
 
   const handleToolbarSendBackward = useCallback(() => {
-    if (getSelectedElement)
-      handleElementLayerChange(getSelectedElement().id, "down");
-  }, [getSelectedElement, handleElementLayerChange]);
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "down");
+  }, [selectedElement, handleElementLayerChange]);
 
   const handleToolbarBringToFront = useCallback(() => {
-    if (getSelectedElement())
-      handleElementLayerChange(getSelectedElement().id, "top");
-  }, [getSelectedElement, handleElementLayerChange]);
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "top");
+  }, [selectedElement, handleElementLayerChange]);
 
   const handleToolbarSendToBack = useCallback(() => {
-    if (getSelectedElement())
-      handleElementLayerChange(getSelectedElement().id, "bottom");
-  }, [getSelectedElement, handleElementLayerChange]);
+    if (selectedElement) handleElementLayerChange(selectedElement.id, "bottom");
+  }, [selectedElement, handleElementLayerChange]);
 
   // Update canvas position and scale when initialViewState changes
   useEffect(() => {
@@ -965,17 +912,14 @@ const MemoryEditorPage = () => {
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     console.log("🔵 useEffect #6 - Keyboard events fired");
-    console.log(
-      "  - getSelectedElement():",
-      getSelectedElement()?.id || "null"
-    );
+    console.log("  - selectedElement:", selectedElement?.id || "null");
     console.log("  - editingElement:", editingElement?.id || "null");
 
     const handleKeyDown = (e) => {
       // Handle Escape key only
       if (e.key === "Escape") {
-        if (getSelectedElement()) {
-          setSelectedElement(null);
+        if (selectedElement) {
+          setNewSelectedElement(null);
         }
         if (editingElement) {
           editingManager.endEditing(); // ← Use editingManager instead of setEditingElement
@@ -991,7 +935,7 @@ const MemoryEditorPage = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [getSelectedElement, editingElement, setSelectedElement, editingManager]); // ← Update dependencies
+  }, [selectedElement, editingElement, setNewSelectedElement, editingManager]); // ← Update dependencies
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -1370,7 +1314,11 @@ const MemoryEditorPage = () => {
               e.preventDefault();
               if (e.dataTransfer.types.includes("text/plain")) {
                 const droppedText = e.dataTransfer.getData("text/plain");
-                handleTextDrop(droppedText, createElement, setSelectedElement);
+                handleTextDrop(
+                  droppedText,
+                  createElement,
+                  setNewSelectedElement
+                );
               }
             }}
             onDragOver={(e) => e.preventDefault()}
@@ -1455,18 +1403,7 @@ const MemoryEditorPage = () => {
               <Layer>
                 {memoizedElements}
                 <Transformer
-                  ref={(transformer) => {
-                    trRef.current = transformer;
-                    // ✅ Get the current selected element at the exact moment of Transformer setup
-                    if (transformer) {
-                      const currentSelectedElement = getSelectedElement();
-                      console.log(
-                        "🔧 Transformer ref callback - selected element:",
-                        currentSelectedElement?.id || "null"
-                      );
-                      updateTransformer(currentSelectedElement);
-                    }
-                  }}
+                  ref={trRef}
                   boundBoxFunc={(oldBox, newBox) => {
                     if (newBox.width < 10 || newBox.height < 10) {
                       return oldBox;
@@ -1478,16 +1415,13 @@ const MemoryEditorPage = () => {
             </Stage>
 
             {/* Element Toolbars - New integrated toolbar system */}
-            {getSelectedElement() && (
+            {selectedElement && (
               <ElementToolbar
-                updateElementId={toolbarElementId}
-                element={getSelectedElement()}
+                element={selectedElement}
                 isSelected={true}
-                isEditing={editingManager.isElementEditing(
-                  getSelectedElement().id
-                )} // ← Fix this
+                isEditing={editingManager.isElementEditing(selectedElement.id)} // ← Fix this
                 onEdit={handleElementEdit}
-                onDelete={() => removeElement(getSelectedElement().id)}
+                onDelete={() => removeElement(selectedElement.id)}
                 onUpdate={handleElementToolbarUpdate}
                 onCopy={handleToolbarCopy}
                 onBringForward={handleToolbarBringForward}
