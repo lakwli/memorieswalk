@@ -130,9 +130,9 @@ const MemoryEditorPage = () => {
     });
   }, [
     elements,
-    editingManager,
     updateElement,
     elementBehaviors,
+    editingManager,
     setNewSelectedElement,
   ]);
 
@@ -734,18 +734,12 @@ const MemoryEditorPage = () => {
         timestamp: new Date().toISOString(),
       });
 
-      // Handle both call patterns:
-      // 1. (elementId, updates) - from ElementRenderer
-      // 2. (updatedElement) - from EditingToolbar via ElementToolbar
-
       let elementId, elementUpdates;
 
       if (typeof elementIdOrUpdatedElement === "string") {
-        // Called as (elementId, updates)
         elementId = elementIdOrUpdatedElement;
         elementUpdates = updates;
       } else {
-        // Called as (updatedElement)
         const updatedElement = elementIdOrUpdatedElement;
         elementId = updatedElement.id;
         elementUpdates = updatedElement;
@@ -758,31 +752,12 @@ const MemoryEditorPage = () => {
         elementUpdates
       );
 
-      // CRITICAL CHANGE: Always use the Object.assign approach to preserve editing state
-      // This prevents any re-renders from interfering with editing/selection state
-      setElements((prev) => {
-        console.log("🎯 setElements - updating element:", elementId);
-        return prev.map((el) => {
-          if (el.id === elementId) {
-            // Preserve the class instance by updating properties directly
-            // This prevents creating new object references that could disrupt editing state
-            if (typeof elementIdOrUpdatedElement === "string") {
-              // Pattern 1: apply partial updates
-              Object.assign(el, elementUpdates);
-            } else {
-              // Pattern 2: replace with new element but preserve reference
-              Object.assign(el, elementUpdates);
-            }
-            console.log("🎯 Element updated successfully:", el.id);
-            return el;
-          }
-          return el;
-        });
-      });
+      // ✅ FIXED: Use updateElement instead of setElements
+      updateElement(elementId, elementUpdates);
 
-      console.log("🎯 Update completed - editing state should be preserved");
+      console.log("🎯 Update completed via updateElement");
     },
-    [setElements]
+    [updateElement] // ✅ Now depends on updateElement
   );
 
   // Handle element layer changes
@@ -896,19 +871,6 @@ const MemoryEditorPage = () => {
     stagePosition,
   ]);
 
-  // Handle fullscreen toggle
-  //useEffect(() => {
-  //  console.log("🔵 useEffect #5 - Fullscreen fired");
-  //
-  //  const handleFullScreenChange = () => {
-  //    setIsFullScreen(!!document.fullscreenElement);
-  //// };
-  // document.addEventListener("fullscreenchange", handleFullScreenChange);
-  // return () => {
-  //   document.removeEventListener("fullscreenchange", handleFullScreenChange);
-  // };
-  //}, []);
-
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     console.log("🔵 useEffect #6 - Keyboard events fired");
@@ -937,21 +899,24 @@ const MemoryEditorPage = () => {
     };
   }, [selectedElement, editingElement, setNewSelectedElement, editingManager]); // ← Update dependencies
 
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        toast({
-          title: "Fullscreen Error",
-          description: `Could not enable fullscreen mode: ${err.message}`,
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+  // ✅ BETTER: Self-contained fullscreen toggle
+  const toggleFullScreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullScreen(true); // Direct state management
+      } else {
+        await document.exitFullscreen();
+        setIsFullScreen(false); // Direct state management
       }
+    } catch (err) {
+      toast({
+        title: "Fullscreen Error",
+        description: `Could not toggle fullscreen: ${err.message}`,
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
