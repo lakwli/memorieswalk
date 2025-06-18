@@ -1,8 +1,7 @@
 // ============================================================================
 // REFACTORED MEMORY EDITOR COMPONENT
 // ============================================================================
-import { useMemo } from "react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Stage, Layer, Transformer } from "react-konva";
 import {
@@ -66,8 +65,14 @@ import { canvasUtils } from "../utils/canvasUtils";
 import { photoUtils } from "../utils/photoUtils";
 
 const MemoryEditorPage = () => {
+  const instanceId = useRef(`mem-editor-${Date.now()}`).current;
+
   if (!window.memoryEditorRenderCount) window.memoryEditorRenderCount = 0;
   window.memoryEditorRenderCount++;
+
+  console.log(
+    `🏠 MemoryEditorPage #${window.memoryEditorRenderCount} - Instance: ${instanceId}`
+  );
 
   console.log(`🏠 MemoryEditorPage render #${window.memoryEditorRenderCount}`);
   console.log(`🏠 MemoryEditorPage timestamp: ${new Date().toISOString()}`);
@@ -108,31 +113,28 @@ const MemoryEditorPage = () => {
   console.log("  - elementBehaviors:", !!elementBehaviors);
   console.log("  - setNewSelectedElement:", typeof setNewSelectedElement);
 
-  const memoizedElements = useMemo(() => {
-    console.log(
-      "🔧 Memoizing elements - only re-compute when elements array changes"
-    );
-
-    return elements.map((element) => {
-      // ✅ Create stable props object
-      const rendererProps = {
+  const rendererPropsCache = useMemo(() => {
+    const cache = new Map();
+    elements.forEach((element) => {
+      const isBeingEdited = editingManager.isElementEditing(element.id);
+      const props = {
         onUpdate: updateElement,
         interactionHandlers: elementBehaviors,
-        isBeingEdited: editingManager.isElementEditing(element.id),
+        isBeingEdited,
         onEditStart: () => {
           setNewSelectedElement(element);
           editingManager.startEditing(element);
         },
-        onEditEnd: () => editingManager.endEditing(),
+        onEditEnd: editingManager.endEditing,
       };
-
-      return RendererFactory.createRenderer(element, rendererProps);
+      cache.set(element.id, props);
     });
+    return cache;
   }, [
     elements,
+    editingManager,
     updateElement,
     elementBehaviors,
-    editingManager,
     setNewSelectedElement,
   ]);
 
@@ -1263,187 +1265,198 @@ const MemoryEditorPage = () => {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      <Flex direction="column" height="100vh" bg="gray.50">
-        <EditorTopBar />
-        <Flex flex="1" overflow="hidden">
-          <EditorControls />
-          <Box
-            ref={stageContainerRef}
-            flex="1"
-            position="relative"
-            bg="gray.200"
-            overflow="hidden"
-            onDrop={(e) => {
-              e.preventDefault();
-              if (e.dataTransfer.types.includes("text/plain")) {
-                const droppedText = e.dataTransfer.getData("text/plain");
-                handleTextDrop(
-                  droppedText,
-                  createElement,
-                  setNewSelectedElement
-                );
-              }
-            }}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <Stage
-              ref={konvaStageRef}
-              width={window.innerWidth - 60}
-              height={window.innerHeight - 120}
-              scaleX={stageScale}
-              scaleY={stageScale}
-              x={stagePosition.x}
-              y={stagePosition.y}
-              onWheel={handleWheel}
-              onClick={(e) => {
-                console.log("🟢 ===== onClick EVENT FIRED =====");
-                console.log(
-                  "🟢 onClick - target type:",
-                  e.target.getClassName?.() || "unknown"
-                );
-                console.log(
-                  "🟢 onClick - target ID:",
-                  e.target.id?.() || "no-id"
-                );
-                console.log("🟢 onClick - timestamp:", Date.now());
-                handleStageClick(e);
-              }}
-              draggable={true}
-              onMouseMove={(e) => {
-                if (!e.target.isDragging()) {
-                  const isOverElement = e.target !== e.target.getStage();
-                  e.target.getStage().container().style.cursor = isOverElement
-                    ? "move"
-                    : "grab";
-                }
-              }}
-              onDragStart={(e) => {
-                console.log("🔴 ===== onDragStart EVENT FIRED =====");
-                console.log(
-                  "🔴 onDragStart - target type:",
-                  e.target.getClassName?.() || "unknown"
-                );
-                console.log(
-                  "🔴 onDragStart - target ID:",
-                  e.target.id?.() || "no-id"
-                );
-                console.log("🔴 onDragStart - timestamp:", Date.now());
-                console.log(
-                  "🔴 onDragStart - is Stage?",
-                  e.target === e.target.getStage()
-                );
-
-                const isStageTarget = e.target === e.target.getStage();
-
-                if (isStageTarget) {
-                  console.log(
-                    "🔴 onDragStart - Stage target, starting canvas drag"
+  return (() => {
+    console.log(
+      "🔄 MemoryEditorPage render method called from , Instance: ${instanceId}"
+    );
+    return (
+      <ErrorBoundary>
+        <Flex direction="column" height="100vh" bg="gray.50">
+          <EditorTopBar />
+          <Flex flex="1" overflow="hidden">
+            <EditorControls />
+            <Box
+              ref={stageContainerRef}
+              flex="1"
+              position="relative"
+              bg="gray.200"
+              overflow="hidden"
+              onDrop={(e) => {
+                e.preventDefault();
+                if (e.dataTransfer.types.includes("text/plain")) {
+                  const droppedText = e.dataTransfer.getData("text/plain");
+                  handleTextDrop(
+                    droppedText,
+                    createElement,
+                    setNewSelectedElement
                   );
-                  e.target.getStage().container().style.cursor = "grabbing";
-                  handleStageDragStart(e);
-                } else {
-                  console.log(
-                    "🔴 onDragStart - Element target, preventing element drag"
-                  );
-                  e.evt.preventDefault();
-                  e.target.stopDrag();
                 }
               }}
-              onDragEnd={(e) => {
-                console.log("🟡 ===== onDragEnd EVENT FIRED =====");
-
-                const isStageTarget = e.target === e.target.getStage();
-
-                if (isStageTarget) {
-                  console.log("🟡 Handling stage drag end");
-                  e.target.getStage().container().style.cursor = "grab";
-                  handleStageDragEnd(e);
-                } else {
-                  console.log("🟡 Ignoring non-stage drag event");
-                }
-              }}
+              onDragOver={(e) => e.preventDefault()}
             >
-              <Layer>
-                {memoizedElements}
-                <Transformer
-                  ref={trRef}
-                  boundBoxFunc={(oldBox, newBox) => {
-                    if (newBox.width < 10 || newBox.height < 10) {
-                      return oldBox;
-                    }
-                    return newBox;
-                  }}
+              <Stage
+                ref={konvaStageRef}
+                width={window.innerWidth - 60}
+                height={window.innerHeight - 120}
+                scaleX={stageScale}
+                scaleY={stageScale}
+                x={stagePosition.x}
+                y={stagePosition.y}
+                onWheel={handleWheel}
+                onClick={(e) => {
+                  console.log("🟢 ===== onClick EVENT FIRED =====");
+                  console.log(
+                    "🟢 onClick - target type:",
+                    e.target.getClassName?.() || "unknown"
+                  );
+                  console.log(
+                    "🟢 onClick - target ID:",
+                    e.target.id?.() || "no-id"
+                  );
+                  console.log("🟢 onClick - timestamp:", Date.now());
+                  handleStageClick(e);
+                }}
+                draggable={true}
+                onMouseMove={(e) => {
+                  if (!e.target.isDragging()) {
+                    const isOverElement = e.target !== e.target.getStage();
+                    e.target.getStage().container().style.cursor = isOverElement
+                      ? "move"
+                      : "grab";
+                  }
+                }}
+                onDragStart={(e) => {
+                  console.log("🔴 ===== onDragStart EVENT FIRED =====");
+                  console.log(
+                    "🔴 onDragStart - target type:",
+                    e.target.getClassName?.() || "unknown"
+                  );
+                  console.log(
+                    "🔴 onDragStart - target ID:",
+                    e.target.id?.() || "no-id"
+                  );
+                  console.log("🔴 onDragStart - timestamp:", Date.now());
+                  console.log(
+                    "🔴 onDragStart - is Stage?",
+                    e.target === e.target.getStage()
+                  );
+
+                  const isStageTarget = e.target === e.target.getStage();
+
+                  if (isStageTarget) {
+                    console.log(
+                      "🔴 onDragStart - Stage target, starting canvas drag"
+                    );
+                    e.target.getStage().container().style.cursor = "grabbing";
+                    handleStageDragStart(e);
+                  } else {
+                    console.log(
+                      "🔴 onDragStart - Element target, preventing element drag"
+                    );
+                    e.evt.preventDefault();
+                    e.target.stopDrag();
+                  }
+                }}
+                onDragEnd={(e) => {
+                  console.log("🟡 ===== onDragEnd EVENT FIRED =====");
+
+                  const isStageTarget = e.target === e.target.getStage();
+
+                  if (isStageTarget) {
+                    console.log("🟡 Handling stage drag end");
+                    e.target.getStage().container().style.cursor = "grab";
+                    handleStageDragEnd(e);
+                  } else {
+                    console.log("🟡 Ignoring non-stage drag event");
+                  }
+                }}
+              >
+                <Layer>
+                  {elements.map((element) => {
+                    const props = rendererPropsCache.get(element.id);
+                    return RendererFactory.createRenderer(element, props);
+                  })}
+
+                  <Transformer
+                    ref={trRef}
+                    boundBoxFunc={(oldBox, newBox) => {
+                      if (newBox.width < 10 || newBox.height < 10) {
+                        return oldBox;
+                      }
+                      return newBox;
+                    }}
+                  />
+                </Layer>
+              </Stage>
+
+              {/* Element Toolbars - New integrated toolbar system */}
+              {selectedElement && (
+                <ElementToolbar
+                  element={selectedElement}
+                  isSelected={true}
+                  isEditing={editingManager.isElementEditing(
+                    selectedElement.id
+                  )} // ← Fix this
+                  onEdit={handleElementEdit}
+                  onDelete={() => removeElement(selectedElement.id)}
+                  onUpdate={handleElementToolbarUpdate}
+                  onCopy={handleToolbarCopy}
+                  onBringForward={handleToolbarBringForward}
+                  onSendBackward={handleToolbarSendBackward}
+                  onBringToFront={handleToolbarBringToFront}
+                  onSendToBack={handleToolbarSendToBack}
+                  stageRef={konvaStageRef}
                 />
-              </Layer>
-            </Stage>
-
-            {/* Element Toolbars - New integrated toolbar system */}
-            {selectedElement && (
-              <ElementToolbar
-                element={selectedElement}
-                isSelected={true}
-                isEditing={editingManager.isElementEditing(selectedElement.id)} // ← Fix this
-                onEdit={handleElementEdit}
-                onDelete={() => removeElement(selectedElement.id)}
-                onUpdate={handleElementToolbarUpdate}
-                onCopy={handleToolbarCopy}
-                onBringForward={handleToolbarBringForward}
-                onSendBackward={handleToolbarSendBackward}
-                onBringToFront={handleToolbarBringToFront}
-                onSendToBack={handleToolbarSendToBack}
-                stageRef={konvaStageRef}
-              />
-            )}
-          </Box>
+              )}
+            </Box>
+          </Flex>
         </Flex>
-      </Flex>
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        accept="image/*"
-        multiple
-        onChange={handleFileUpload}
-      />
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          accept="image/*"
+          multiple
+          onChange={handleFileUpload}
+        />
 
-      {/* Delete confirmation dialog */}
-      <ConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={async () => {
-          try {
-            await memoryService.deleteMemory(id);
-            toast({
-              title: "Deleted",
-              description: "Memory deleted successfully",
-              status: "success",
-              duration: 3000,
-              isClosable: true,
-            });
-            navigate("/dashboard");
-          } catch (err) {
-            toast({
-              title: "Error",
-              description: `Failed to delete memory: ${err.message}`,
-              status: "error",
-              duration: 5000,
-              isClosable: true,
-            });
-          }
-          setIsDeleteDialogOpen(false);
-        }}
-        title="Delete Memory"
-        message="Are you sure you want to delete this memory? This cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        confirmColorScheme="red"
-        leastDestructiveRef={cancelRef}
-      />
-    </ErrorBoundary>
-  );
+        {/* Delete confirmation dialog */}
+        <ConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={async () => {
+            try {
+              await memoryService.deleteMemory(id);
+              toast({
+                title: "Deleted",
+                description: "Memory deleted successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
+              navigate("/dashboard");
+            } catch (err) {
+              toast({
+                title: "Error",
+                description: `Failed to delete memory: ${err.message}`,
+                status: "error",
+                duration: 5000,
+                isClosable: true,
+              });
+            }
+            setIsDeleteDialogOpen(false);
+          }}
+          title="Delete Memory"
+          message="Are you sure you want to delete this memory? This cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmColorScheme="red"
+          leastDestructiveRef={cancelRef}
+        />
+      </ErrorBoundary>
+    );
+  })();
 };
 
 export default MemoryEditorPage;

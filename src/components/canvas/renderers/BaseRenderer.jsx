@@ -137,6 +137,7 @@ export class BaseRenderer {
 
   // Common render method
   render() {
+    console.log(`🎯 BaseRenderer rendering: ${this.element.id}`);
     return (
       <React.Fragment key={this.element.id}>
         <Group {...this.elementProps}>{this.renderContent()}</Group>
