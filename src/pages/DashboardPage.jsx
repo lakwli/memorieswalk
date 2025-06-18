@@ -270,56 +270,59 @@ const DashboardPage = () => {
     </Button>
   );
 
-  return (
-    <PageLayout title="My Memories" actions={createMemoryAction}>
-      <SearchBar />
+  return (() => {
+    console.log("🔄 Dasboard Page render method called");
+    return (
+      <PageLayout title="My Memories" actions={createMemoryAction}>
+        <SearchBar />
 
-      <Box mb={6}>
-        <Button
-          variant="solid"
-          leftIcon={<AddIcon />}
-          width="full"
-          onClick={handleCreateMemory}
-          bg="#4186E0"
-          color="white"
-          _hover={{ bg: "#3674C7" }}
-          borderRadius="md"
-          size="lg"
-          height="48px"
-        >
-          Create Memory
-        </Button>
-      </Box>
+        <Box mb={6}>
+          <Button
+            variant="solid"
+            leftIcon={<AddIcon />}
+            width="full"
+            onClick={handleCreateMemory}
+            bg="#4186E0"
+            color="white"
+            _hover={{ bg: "#3674C7" }}
+            borderRadius="md"
+            size="lg"
+            height="48px"
+          >
+            Create Memory
+          </Button>
+        </Box>
 
-      {isLoading && <LoadingSpinner />}
-      {error && (
-        <Text color="red.500" textAlign="center" p={4}>
-          Error: {error}
-        </Text>
-      )}
-      {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
+        {isLoading && <LoadingSpinner />}
+        {error && (
+          <Text color="red.500" textAlign="center" p={4}>
+            Error: {error}
+          </Text>
+        )}
+        {!isLoading && !error && <MemoryGrid items={filteredMemories} />}
 
-      {memoryToDelete && (
-        <ConfirmationDialog
-          isOpen={isDeleteModalOpen}
-          onClose={onDeleteModalClose}
-          onConfirm={handleDeleteMemory}
-          title="Confirm Deletion"
-          message={
-            <>
-              Are you sure you want to delete the memory titled{" "}
-              <strong>{memoryToDelete.title}</strong>? This action cannot be
-              undone.
-            </>
-          }
-          confirmText="Delete"
-          cancelText="Cancel"
-          confirmColorScheme="red"
-          leastDestructiveRef={cancelRef}
-        />
-      )}
-    </PageLayout>
-  );
+        {memoryToDelete && (
+          <ConfirmationDialog
+            isOpen={isDeleteModalOpen}
+            onClose={onDeleteModalClose}
+            onConfirm={handleDeleteMemory}
+            title="Confirm Deletion"
+            message={
+              <>
+                Are you sure you want to delete the memory titled{" "}
+                <strong>{memoryToDelete.title}</strong>? This action cannot be
+                undone.
+              </>
+            }
+            confirmText="Delete"
+            cancelText="Cancel"
+            confirmColorScheme="red"
+            leastDestructiveRef={cancelRef}
+          />
+        )}
+      </PageLayout>
+    );
+  })();
 };
 
 export default function WrappedDashboard() {
