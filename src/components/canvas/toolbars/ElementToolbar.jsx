@@ -4,6 +4,9 @@ import { UniversalControlBar } from "./UniversalControlBar.jsx";
 import { TOOLBAR_CONFIG } from "./toolbarConfig";
 import { CONTROL_REGISTRY } from "./controls/index.js";
 import { APP_CONFIG } from "../../../config/appConfig.js";
+// Debug flag - set to true when debugging toolbar positioning
+const DEBUG_TOOLBAR = false;
+
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
  *
@@ -28,14 +31,6 @@ export const ElementToolbar = ({
   onBringToFront,
   onSendToBack,
 }) => {
-  /**
-  console.log("🎯 ===== ElementToolbar RENDER START =====");
-  console.log("🎯 updateElementId:", updateElementId);
-  console.log("🎯 Element ID:", element?.id);
-  console.log("🎯 Element position:", { x: element?.x, y: element?.y });
-  console.log("🎯 StageRef exists:", !!stageRef?.current);
-  console.log("🎯 Render timestamp:", new Date().toISOString());
- */
   const elementId = updateElementId || element?.id;
   // No-op handlers for controls if not provided
   const noop = () => {};
@@ -46,7 +41,6 @@ export const ElementToolbar = ({
   onSendToBack = typeof onSendToBack === "function" ? onSendToBack : noop;
 
   if (!elementId) {
-    //console.log("🎯 No element ID available");
     return null;
   }
 
@@ -56,34 +50,29 @@ export const ElementToolbar = ({
 
   // Calculate toolbar position - zoom-independent, viewport-constrained
   const getToolbarPosition = () => {
-    //console.log("🎯 getToolbarPosition called");
+    if (DEBUG_TOOLBAR) {
+      console.log("🎯 getToolbarPosition called - element dimensions:", {
+        width: element?.width,
+        height: element?.height,
+        x: element?.x,
+        y: element?.y,
+      });
+    }
 
     if (!stageRef?.current || !element) {
-      /**
-      console.log(
-        "🎯 Missing refs - stageRef:",
-        !!stageRef?.current,
-        "element:",
-        !!element
-      ); */
       return { top: 100, left: 100 };
     }
 
     const stage = stageRef.current;
-    //console.log("🎯 Stage found, looking for node with ID:", elementId);
-
     const node = stage.findOne("#" + elementId);
-    //console.log("🎯 Node found:", !!node, node?.getClassName?.());
 
     if (!node) {
-      //console.log("🎯 Node not found! Available nodes with IDs:");
       const allNodes = [];
       stage.find("*").forEach((n) => {
         if (n.id()) {
           allNodes.push({ id: n.id(), className: n.getClassName() });
         }
       });
-      //console.log("🎯 Available nodes:", allNodes);
 
       // Fallback calculation using stage transform
       const stageContainer = stage.container().getBoundingClientRect();
@@ -94,19 +83,21 @@ export const ElementToolbar = ({
         element.x * stageScale + stagePos.x + stageContainer.left;
       const estimatedY =
         element.y * stageScale + stagePos.y + stageContainer.top;
-      /**
-      console.log("🎯 Using fallback position calculation:");
-      console.log("🎯 Stage container rect:", stageContainer);
-      console.log("🎯 Stage scale:", stageScale);
-      console.log("🎯 Stage position:", stagePos);
-      console.log("🎯 Element logical position:", {
-        x: element.x,
-        y: element.y,
-      });
-      console.log("🎯 Calculated screen position:", {
-        x: estimatedX,
-        y: estimatedY,
-      }); */
+
+      if (DEBUG_TOOLBAR) {
+        console.log("🎯 Using fallback position calculation:");
+        console.log("🎯 Stage container rect:", stageContainer);
+        console.log("🎯 Stage scale:", stageScale);
+        console.log("🎯 Stage position:", stagePos);
+        console.log("🎯 Element logical position:", {
+          x: element.x,
+          y: element.y,
+        });
+        console.log("🎯 Calculated screen position:", {
+          x: estimatedX,
+          y: estimatedY,
+        });
+      }
       const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
       const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
 
@@ -120,22 +111,26 @@ export const ElementToolbar = ({
     const stageContainer = stage.container().getBoundingClientRect();
     const nodeClientRect = node.getClientRect();
 
-    //console.log("🎯 Node found! Using getClientRect():");
-    //console.log("🎯 Stage container rect:", stageContainer);
-    //console.log("🎯 Node client rect:", nodeClientRect);
+    if (DEBUG_TOOLBAR) {
+      console.log("🎯 Node found! Using getClientRect():");
+      console.log("🎯 Stage container rect:", stageContainer);
+      console.log("🎯 Node client rect:", nodeClientRect);
+    }
 
     const elementScreenX = nodeClientRect.x + stageContainer.left;
     const elementScreenY = nodeClientRect.y + stageContainer.top;
-    const elementScreenWidth = nodeClientRect.width;
-    const elementScreenHeight = nodeClientRect.height;
-    /**
-    console.log("🎯 Final screen coordinates:", {
-      x: elementScreenX,
-      y: elementScreenY,
-      width: elementScreenWidth,
-      height: elementScreenHeight,
-    });
- */
+    const elementScreenWidth = element.width;
+    const elementScreenHeight = element.height;
+
+    if (DEBUG_TOOLBAR) {
+      console.log("🎯 Final screen coordinates:", {
+        x: elementScreenX,
+        y: elementScreenY,
+        width: elementScreenWidth,
+        height: elementScreenHeight,
+      });
+    }
+
     // Toolbar positioning logic (simplified for debugging)
     const toolbarWidth = APP_CONFIG.UI.TOOLBAR.WIDTH;
     const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
@@ -166,14 +161,14 @@ export const ElementToolbar = ({
       top: constrainedTop,
       left: constrainedLeft,
     };
-
-    //console.log("🎯 Final toolbar position:", finalPosition);
     return finalPosition;
   };
 
   const toolbarPosition = getToolbarPosition();
-  //console.log("🎯 Toolbar will render at position:", toolbarPosition);
-  //console.log("🎯 ===== ElementToolbar RENDER END =====");
+  if (DEBUG_TOOLBAR) {
+    console.log("🎯 Toolbar will render at position:", toolbarPosition);
+    console.log("🎯 ===== ElementToolbar RENDER END =====");
+  }
 
   // Determine mode and controls
   const mode = isEditing ? "edit" : "select";
@@ -191,39 +186,45 @@ export const ElementToolbar = ({
     onBringToFront,
     onSendToBack,
   };
-
-  return (
-    <Box
-      position="fixed" // Fixed to viewport, not affected by canvas zoom
-      top={`${toolbarPosition.top}px`}
-      left={`${toolbarPosition.left}px`}
-      zIndex={1000}
-      bg="white"
-      boxShadow="lg"
-      borderRadius="md"
-      border="1px solid"
-      borderColor="gray.200"
-      p={2}
-      opacity={0.95}
-      backdropFilter="blur(4px)"
-      minWidth="280px"
-      maxWidth="320px"
-      onClick={(e) => {
-        // Prevent clicks on toolbar from bubbling up to stage or document
-        e.stopPropagation();
-      }}
-      onMouseDown={(e) => {
-        // Prevent mousedown events from bubbling up
-        e.stopPropagation();
-      }}
-    >
-      <UniversalControlBar
-        controls={controls}
-        controlProps={controlProps}
-        controlRegistry={CONTROL_REGISTRY}
-      />
-    </Box>
-  );
+  return (() => {
+    if (DEBUG_TOOLBAR) {
+      console.log(
+        `🔄 ElementToolar render: Element W=${element?.width} H=${element?.height}, Position: (${element?.x}, ${element?.y}), Mode: ${mode}, Controls: ${controls.length}`
+      );
+    }
+    return (
+      <Box
+        position="fixed" // Fixed to viewport, not affected by canvas zoom
+        top={`${toolbarPosition.top}px`}
+        left={`${toolbarPosition.left}px`}
+        zIndex={1000}
+        bg="white"
+        boxShadow="lg"
+        borderRadius="md"
+        border="1px solid"
+        borderColor="gray.200"
+        p={2}
+        opacity={0.95}
+        backdropFilter="blur(4px)"
+        minWidth="280px"
+        maxWidth="320px"
+        onClick={(e) => {
+          // Prevent clicks on toolbar from bubbling up to stage or document
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          // Prevent mousedown events from bubbling up
+          e.stopPropagation();
+        }}
+      >
+        <UniversalControlBar
+          controls={controls}
+          controlProps={controlProps}
+          controlRegistry={CONTROL_REGISTRY}
+        />
+      </Box>
+    );
+  })();
 };
 
 ElementToolbar.propTypes = {
