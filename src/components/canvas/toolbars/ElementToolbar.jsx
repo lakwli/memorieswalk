@@ -28,13 +28,14 @@ export const ElementToolbar = ({
   onBringToFront,
   onSendToBack,
 }) => {
+  /**
   console.log("🎯 ===== ElementToolbar RENDER START =====");
   console.log("🎯 updateElementId:", updateElementId);
   console.log("🎯 Element ID:", element?.id);
   console.log("🎯 Element position:", { x: element?.x, y: element?.y });
   console.log("🎯 StageRef exists:", !!stageRef?.current);
   console.log("🎯 Render timestamp:", new Date().toISOString());
-
+ */
   const elementId = updateElementId || element?.id;
   // No-op handlers for controls if not provided
   const noop = () => {};
@@ -45,7 +46,7 @@ export const ElementToolbar = ({
   onSendToBack = typeof onSendToBack === "function" ? onSendToBack : noop;
 
   if (!elementId) {
-    console.log("🎯 No element ID available");
+    //console.log("🎯 No element ID available");
     return null;
   }
 
@@ -55,33 +56,34 @@ export const ElementToolbar = ({
 
   // Calculate toolbar position - zoom-independent, viewport-constrained
   const getToolbarPosition = () => {
-    console.log("🎯 getToolbarPosition called");
+    //console.log("🎯 getToolbarPosition called");
 
     if (!stageRef?.current || !element) {
+      /**
       console.log(
         "🎯 Missing refs - stageRef:",
         !!stageRef?.current,
         "element:",
         !!element
-      );
+      ); */
       return { top: 100, left: 100 };
     }
 
     const stage = stageRef.current;
-    console.log("🎯 Stage found, looking for node with ID:", elementId);
+    //console.log("🎯 Stage found, looking for node with ID:", elementId);
 
     const node = stage.findOne("#" + elementId);
-    console.log("🎯 Node found:", !!node, node?.getClassName?.());
+    //console.log("🎯 Node found:", !!node, node?.getClassName?.());
 
     if (!node) {
-      console.log("🎯 Node not found! Available nodes with IDs:");
+      //console.log("🎯 Node not found! Available nodes with IDs:");
       const allNodes = [];
       stage.find("*").forEach((n) => {
         if (n.id()) {
           allNodes.push({ id: n.id(), className: n.getClassName() });
         }
       });
-      console.log("🎯 Available nodes:", allNodes);
+      //console.log("🎯 Available nodes:", allNodes);
 
       // Fallback calculation using stage transform
       const stageContainer = stage.container().getBoundingClientRect();
@@ -92,7 +94,7 @@ export const ElementToolbar = ({
         element.x * stageScale + stagePos.x + stageContainer.left;
       const estimatedY =
         element.y * stageScale + stagePos.y + stageContainer.top;
-
+      /**
       console.log("🎯 Using fallback position calculation:");
       console.log("🎯 Stage container rect:", stageContainer);
       console.log("🎯 Stage scale:", stageScale);
@@ -104,7 +106,7 @@ export const ElementToolbar = ({
       console.log("🎯 Calculated screen position:", {
         x: estimatedX,
         y: estimatedY,
-      });
+      }); */
       const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
       const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
 
@@ -118,22 +120,22 @@ export const ElementToolbar = ({
     const stageContainer = stage.container().getBoundingClientRect();
     const nodeClientRect = node.getClientRect();
 
-    console.log("🎯 Node found! Using getClientRect():");
-    console.log("🎯 Stage container rect:", stageContainer);
-    console.log("🎯 Node client rect:", nodeClientRect);
+    //console.log("🎯 Node found! Using getClientRect():");
+    //console.log("🎯 Stage container rect:", stageContainer);
+    //console.log("🎯 Node client rect:", nodeClientRect);
 
     const elementScreenX = nodeClientRect.x + stageContainer.left;
     const elementScreenY = nodeClientRect.y + stageContainer.top;
     const elementScreenWidth = nodeClientRect.width;
     const elementScreenHeight = nodeClientRect.height;
-
+    /**
     console.log("🎯 Final screen coordinates:", {
       x: elementScreenX,
       y: elementScreenY,
       width: elementScreenWidth,
       height: elementScreenHeight,
     });
-
+ */
     // Toolbar positioning logic (simplified for debugging)
     const toolbarWidth = APP_CONFIG.UI.TOOLBAR.WIDTH;
     const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
@@ -165,13 +167,13 @@ export const ElementToolbar = ({
       left: constrainedLeft,
     };
 
-    console.log("🎯 Final toolbar position:", finalPosition);
+    //console.log("🎯 Final toolbar position:", finalPosition);
     return finalPosition;
   };
 
   const toolbarPosition = getToolbarPosition();
-  console.log("🎯 Toolbar will render at position:", toolbarPosition);
-  console.log("🎯 ===== ElementToolbar RENDER END =====");
+  //console.log("🎯 Toolbar will render at position:", toolbarPosition);
+  //console.log("🎯 ===== ElementToolbar RENDER END =====");
 
   // Determine mode and controls
   const mode = isEditing ? "edit" : "select";
