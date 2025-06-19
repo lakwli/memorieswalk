@@ -1,7 +1,7 @@
 // ============================================================================
 // REFACTORED MEMORY EDITOR COMPONENT
 // ============================================================================
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Stage, Layer, Transformer } from "react-konva";
 import {
@@ -74,14 +74,15 @@ const MemoryEditorPage = () => {
     `🏠 MemoryEditorPage #${window.memoryEditorRenderCount} - Instance: ${instanceId}`
   );
 
-  console.log(`🏠 MemoryEditorPage render #${window.memoryEditorRenderCount}`);
-  console.log(`🏠 MemoryEditorPage timestamp: ${new Date().toISOString()}`);
-  const prevDepsRef = useRef();
+  //console.log(`🏠 MemoryEditorPage render #${window.memoryEditorRenderCount}`);
+  //console.log(`🏠 MemoryEditorPage timestamp: ${new Date().toISOString()}`);
+  //const prevDepsRef = useRef();
 
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const { user, logout } = useAuth();
+  const rendererCacheRef = useRef(new Map());
 
   // Replace separate photo/text states with unified element management
   const {
@@ -104,40 +105,7 @@ const MemoryEditorPage = () => {
     editingManager,
     removeElement
   );
-
-  // ✅ Log when useMemo dependencies change
-  console.log("🔍 useMemo dependencies check:");
-  console.log("  - elements length:", elements.length);
-  console.log("  - editingManager:", !!editingManager);
-  console.log("  - updateElement:", typeof updateElement);
-  console.log("  - elementBehaviors:", !!elementBehaviors);
-  console.log("  - setNewSelectedElement:", typeof setNewSelectedElement);
-
-  const rendererPropsCache = useMemo(() => {
-    const cache = new Map();
-    elements.forEach((element) => {
-      const isBeingEdited = editingManager.isElementEditing(element.id);
-      const props = {
-        onUpdate: updateElement,
-        interactionHandlers: elementBehaviors,
-        isBeingEdited,
-        onEditStart: () => {
-          setNewSelectedElement(element);
-          editingManager.startEditing(element);
-        },
-        onEditEnd: editingManager.endEditing,
-      };
-      cache.set(element.id, props);
-    });
-    return cache;
-  }, [
-    elements,
-    editingManager,
-    updateElement,
-    elementBehaviors,
-    setNewSelectedElement,
-  ]);
-
+  /**
   useEffect(() => {
     const currentDeps = {
       elementsLength: elements.length,
@@ -168,7 +136,7 @@ const MemoryEditorPage = () => {
     }
 
     prevDepsRef.current = currentDeps;
-  });
+  }); */
 
   // PERFORMANCE: Disabled expensive logging useEffects that were causing unnecessary re-renders
   // useEffect(() => {
@@ -249,17 +217,17 @@ const MemoryEditorPage = () => {
         const {
           width: canvasWidth,
           height: canvasHeight,
-          source,
+          //source,
         } = canvasUtils.getCanvasDimensions(konvaStageRef, stageContainerRef);
-
+        /**
         console.log("🚀 Canvas dimensions:", {
           canvasWidth,
           canvasHeight,
           source,
         });
-
+ */
         for (const imageData of imageDataArray) {
-          console.log("🚀 Creating photo element for:", imageData.fileName);
+          // console.log("🚀 Creating photo element for:", imageData.fileName);
 
           // ✅ Calculate size explicitly here (single source of truth)
           const displaySize = photoUtils.calculateDisplaySize(
@@ -268,7 +236,7 @@ const MemoryEditorPage = () => {
             canvasWidth,
             canvasHeight
           );
-
+          /**
           console.log("🚀 Smart photo sizing:", {
             original: {
               width: imageData.originalWidth,
@@ -281,7 +249,7 @@ const MemoryEditorPage = () => {
             scale: `${Math.round(displaySize.scale * 100)}%`,
             reason: displaySize.reason,
           });
-
+ */
           // Create PhotoElement with smart sizing
           const photoElement = createElement(ELEMENT_TYPES.PHOTO, {
             ...imageData,
@@ -289,22 +257,22 @@ const MemoryEditorPage = () => {
             height: displaySize.height,
           });
 
-          console.log("🚀 Created photo element:", {
+          /**    console.log("🚀 Created photo element:", {
             id: photoElement.id,
             size: { width: photoElement.width, height: photoElement.height },
           });
-
+ */
           // Step 4: Position using elementBehaviors (same as text)
           elementBehaviors.addElementIntoCanvas(photoElement, konvaStageRef);
-          console.log("🚀 Positioned photo in canvas center");
+          //console.log("🚀 Positioned photo in canvas center");
 
           // Step 6: Set selection and toolbar (same as text) - for last uploaded photo
           setNewSelectedElement(photoElement);
           //setToolbarElementId(photoElement.id);
-          console.log("🚀 Selected photo:", photoElement.id);
+          //console.log("🚀 Selected photo:", photoElement.id);
         }
 
-        console.log("🚀 ===== PHOTO ELEMENT CREATION COMPLETED =====");
+        // console.log("🚀 ===== PHOTO ELEMENT CREATION COMPLETED =====");
       } catch (error) {
         console.error("🚨 Photo element creation failed:", error);
         toast({
@@ -327,12 +295,13 @@ const MemoryEditorPage = () => {
   );
 
   // Upload Manager hook
+  /**
   console.log("🔍 About to call useUploadManager with config:", {
     onUploadComplete: typeof addPhotoElementsIntoCanvas,
     addPhotoElementsIntoCanvasString: addPhotoElementsIntoCanvas
       .toString()
       .slice(0, 50),
-  });
+  }); */
 
   const {
     isUploading,
@@ -405,6 +374,35 @@ const MemoryEditorPage = () => {
 
     trRef.current.getLayer()?.batchDraw();
   }, [selectedElement, editingManager]);
+
+  // Update the element deletion handler
+  // In MemoryEditorPage.jsx
+  const handleElementDelete = useCallback(
+    (elementId) => {
+      console.log(`🗑️ Deleting element: ${elementId}`);
+
+      // 1. Clean up renderer cache first
+      if (rendererCacheRef.current) {
+        const keysToRemove = [];
+        for (const key of rendererCacheRef.current.keys()) {
+          if (key.startsWith(elementId + "-")) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => {
+          console.log(`🧹 Removing cached renderer: ${key}`);
+          rendererCacheRef.current.delete(key);
+        });
+        console.log(`🧹 Cache cleanup completed for: ${elementId}`);
+      }
+
+      // 2. Remove element from state
+      removeElement(elementId);
+
+      console.log(`✅ Element deletion completed: ${elementId}`);
+    },
+    [removeElement]
+  );
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
@@ -491,12 +489,13 @@ const MemoryEditorPage = () => {
   // Load memory with new element system
   useEffect(() => {
     console.log("🔵 useEffect #3 - Load memory fired");
+    /**
     console.log("  - id:", id);
     console.log("  - toast:", typeof toast);
     console.log("  - setElements:", typeof setElements);
     console.log("  - elementStates:", !!elementStates);
     console.log("  - getTool:", typeof getTool);
-
+ */
     const loadMemory = async () => {
       try {
         setLoading(true);
@@ -829,12 +828,13 @@ const MemoryEditorPage = () => {
 
   // Update canvas position and scale when initialViewState changes
   useEffect(() => {
+    /**
     console.log("🔵 useEffect #4 - Canvas position/scale fired");
     console.log("  - initialViewState:", initialViewState);
     console.log(
       "  - viewStateAppliedRef.current:",
       viewStateAppliedRef.current
-    );
+    ); */
 
     if (
       (initialViewState.scale !== 1 ||
@@ -842,18 +842,19 @@ const MemoryEditorPage = () => {
         initialViewState.position.y !== 0) &&
       !viewStateAppliedRef.current
     ) {
-      console.log("Applying saved view state:", initialViewState);
+      //console.log("Applying saved view state:", initialViewState);
       setStageScale(initialViewState.scale);
       setStagePosition(initialViewState.position);
       viewStateAppliedRef.current = true;
 
       // Debug log to confirm state was updated
+      /**
       console.log(
         "After applying view state - scale:",
         stageScale,
         "position:",
         stagePosition
-      );
+      );*/
 
       // Force refresh if needed by scheduling a microtask
       setTimeout(() => {
@@ -876,8 +877,8 @@ const MemoryEditorPage = () => {
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     console.log("🔵 useEffect #6 - Keyboard events fired");
-    console.log("  - selectedElement:", selectedElement?.id || "null");
-    console.log("  - editingElement:", editingElement?.id || "null");
+    //console.log("  - selectedElement:", selectedElement?.id || "null");
+    // console.log("  - editingElement:", editingElement?.id || "null");
 
     const handleKeyDown = (e) => {
       // Handle Escape key only
@@ -1304,6 +1305,7 @@ const MemoryEditorPage = () => {
                 y={stagePosition.y}
                 onWheel={handleWheel}
                 onClick={(e) => {
+                  /**
                   console.log("🟢 ===== onClick EVENT FIRED =====");
                   console.log(
                     "🟢 onClick - target type:",
@@ -1313,7 +1315,7 @@ const MemoryEditorPage = () => {
                     "🟢 onClick - target ID:",
                     e.target.id?.() || "no-id"
                   );
-                  console.log("🟢 onClick - timestamp:", Date.now());
+                  console.log("🟢 onClick - timestamp:", Date.now()); */
                   handleStageClick(e);
                 }}
                 draggable={true}
@@ -1326,6 +1328,7 @@ const MemoryEditorPage = () => {
                   }
                 }}
                 onDragStart={(e) => {
+                  /**
                   console.log("🔴 ===== onDragStart EVENT FIRED =====");
                   console.log(
                     "🔴 onDragStart - target type:",
@@ -1340,7 +1343,7 @@ const MemoryEditorPage = () => {
                     "🔴 onDragStart - is Stage?",
                     e.target === e.target.getStage()
                   );
-
+ */
                   const isStageTarget = e.target === e.target.getStage();
 
                   if (isStageTarget) {
@@ -1358,7 +1361,7 @@ const MemoryEditorPage = () => {
                   }
                 }}
                 onDragEnd={(e) => {
-                  console.log("🟡 ===== onDragEnd EVENT FIRED =====");
+                  // console.log("🟡 ===== onDragEnd EVENT FIRED =====");
 
                   const isStageTarget = e.target === e.target.getStage();
 
@@ -1373,8 +1376,60 @@ const MemoryEditorPage = () => {
               >
                 <Layer>
                   {elements.map((element) => {
-                    const props = rendererPropsCache.get(element.id);
-                    return RendererFactory.createRenderer(element, props);
+                    // Inline renderer props (fixed per renderer)
+                    const rendererProps = {
+                      onUpdate: updateElement,
+                      interactionHandlers: elementBehaviors,
+                      isBeingEdited: editingManager.isElementEditing(
+                        element.id
+                      ),
+                      onEditStart: () => {
+                        setNewSelectedElement(element);
+                        editingManager.startEditing(element);
+                      },
+                      onEditEnd: editingManager.endEditing,
+                    };
+
+                    const currentKey = `${element.id}-${element.version}`;
+                    let renderer = rendererCacheRef.current.get(currentKey);
+
+                    if (!renderer) {
+                      console.log(
+                        `🟡 Rendering not found: ${element.id}-${element.version}`
+                      );
+                      // Key not found - create new one
+                      renderer = RendererFactory.createRenderer(
+                        element,
+                        rendererProps
+                      );
+                      rendererCacheRef.current.set(currentKey, renderer);
+                      console.log(`🟡 Set to Cache: ${currentKey}`);
+                    } else {
+                      console.log(
+                        `🟡 Rendering found: ${element.id}-${element.version}`
+                      );
+                    }
+                    // Key found - check if there are multiple versions for this element
+                    const elementKeys = [];
+                    for (const key of rendererCacheRef.current.keys()) {
+                      if (key.startsWith(element.id + "-")) {
+                        elementKeys.push(key);
+                      }
+                    }
+
+                    console.log(`🟡 Total cache: ${elementKeys}`);
+                    if (elementKeys.length > 1) {
+                      // Multiple versions found - keep current, delete others
+                      elementKeys.forEach((key) => {
+                        if (key !== currentKey) {
+                          console.log(`🧹 Cleaning up old renderer: ${key}`);
+                          rendererCacheRef.current.delete(key);
+                        }
+                      });
+                    }
+                    // If only one version, just return the existing renderer (no cleanup needed)
+
+                    return renderer;
                   })}
 
                   <Transformer
@@ -1398,7 +1453,7 @@ const MemoryEditorPage = () => {
                     selectedElement.id
                   )} // ← Fix this
                   onEdit={handleElementEdit}
-                  onDelete={() => removeElement(selectedElement.id)}
+                  onDelete={() => handleElementDelete(selectedElement.id)}
                   onUpdate={handleElementToolbarUpdate}
                   onCopy={handleToolbarCopy}
                   onBringForward={handleToolbarBringForward}

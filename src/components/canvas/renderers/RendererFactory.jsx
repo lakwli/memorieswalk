@@ -6,9 +6,9 @@ import { PenRenderer } from "./PenRenderer.jsx";
 
 export class RendererFactory {
   static renderers = {
-    [ELEMENT_TYPES.PHOTO]: React.memo(PhotoRenderer),
-    [ELEMENT_TYPES.TEXT]: React.memo(TextRenderer),
-    [ELEMENT_TYPES.PEN]: React.memo(PenRenderer),
+    [ELEMENT_TYPES.PHOTO]: PhotoRenderer,
+    [ELEMENT_TYPES.TEXT]: TextRenderer,
+    [ELEMENT_TYPES.PEN]: PenRenderer,
   };
 
   static createRenderer(element, props) {
@@ -18,8 +18,8 @@ export class RendererFactory {
     const key = `${element.type}-${element.id}`;
     renderCount[key] = (renderCount[key] || 0) + 1;
 
-    console.log("🔍 RendererFactory createRenderer");
-    console.log("🔍 RendererFactory element.type", element.type);
+    // console.log("🔍 RendererFactory createRenderer element.type", element.type);
+    /**
     console.log(
       "🔍 RendererFactory render count for",
       key,
@@ -36,7 +36,7 @@ export class RendererFactory {
     const propsKeys = Object.keys(props);
     console.log("🔍 RendererFactory elementProps keys:", propsKeys);
     console.log("🔍 RendererFactory isBeingEdited:", props.isBeingEdited);
-
+ */
     const RendererComponent = this.renderers[element.type];
     if (!RendererComponent) {
       console.warn(`No renderer found for element type: ${element.type}`);

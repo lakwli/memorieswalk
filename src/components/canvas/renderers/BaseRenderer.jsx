@@ -115,7 +115,9 @@ export class BaseRenderer {
     console.log("🔶 Transform updates:", updates);
 
     // Update through the onUpdate prop
-    this.onUpdate(this.element.id, updates);
+    if (this.onUpdate) {
+      this.onUpdate(this.element.id, updates);
+    }
   }
 
   // Default resize behavior - can be overridden by subclasses

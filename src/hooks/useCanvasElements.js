@@ -40,7 +40,7 @@ export const useCanvasElements = () => {
         console.log("🔄 Updating element:", elementId, "with:", updates);
         console.log("🔄 Element BEFORE Object.assign:", element);
 
-        Object.assign(element, updates);
+        element.newUpdate(updates);
 
         console.log("🔄 Element AFTER Object.assign:", element);
 
@@ -52,14 +52,7 @@ export const useCanvasElements = () => {
           isMatch: element.id === selectedElement?.id,
         });
 
-        if (element.id === selectedElement?.id) {
-          console.log(
-            "🔄 Updated element is selected - updating selection reference"
-          );
-          setNewSelectedElement({ ...element });
-        } else {
-          console.log("🔄 Updated element is NOT selected - no toolbar update");
-        }
+        setNewSelectedElement({ ...element });
 
         return prev;
       });

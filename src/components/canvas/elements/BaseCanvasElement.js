@@ -12,10 +12,22 @@ export class BaseCanvasElement {
     this.selectable = props.selectable !== undefined ? props.selectable : true;
     this.deletable = props.deletable !== undefined ? props.deletable : true;
 
+    this.version = props.version || 0;
     // Common behavior flags
     this.isSelected = false;
     this.isHovered = false;
     this._isDirty = false;
+  }
+
+  incrementVersion() {
+    this.version++;
+    return this;
+  }
+
+  newUpdate(updates) {
+    Object.assign(this, updates);
+    this.incrementVersion();
+    return this;
   }
 
   // Common methods that all elements should have
