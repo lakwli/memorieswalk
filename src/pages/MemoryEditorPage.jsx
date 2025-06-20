@@ -199,14 +199,8 @@ const MemoryEditorPage = () => {
     initialPosition: initialViewState.position,
   });
 
-  // Canvas Tools hook - Initialize BEFORE Upload Manager to provide canvas config
-  const canvasToolsConfig = {
-    stageRef: konvaStageRef,
-    // Remove stageScale and stagePosition to prevent unnecessary re-renders
-    // Tools will get current scale/position dynamically when needed
-  };
-
-  const { handleTextDrop, getTool } = useCanvasTools(canvasToolsConfig);
+  // PhotoTool is used only for loading saved photos during memory initialization
+  const { getTool } = useCanvasTools({ stageRef: konvaStageRef });
 
   // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
   const addPhotoElementsIntoCanvas = useCallback(
@@ -1282,18 +1276,6 @@ const MemoryEditorPage = () => {
               position="relative"
               bg="gray.200"
               overflow="hidden"
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.types.includes("text/plain")) {
-                  const droppedText = e.dataTransfer.getData("text/plain");
-                  handleTextDrop(
-                    droppedText,
-                    createElement,
-                    setNewSelectedElement
-                  );
-                }
-              }}
-              onDragOver={(e) => e.preventDefault()}
             >
               <Stage
                 ref={konvaStageRef}

@@ -10,21 +10,6 @@ export class ToolManager {
       [ELEMENT_TYPES.TEXT]: new TextTool(canvasConfig),
       [ELEMENT_TYPES.PHOTO]: new PhotoTool(canvasConfig),
     };
-    this.activeTool = null;
-  }
-
-  /**
-   * Set the active tool
-   */
-  setActiveTool(toolType) {
-    this.activeTool = toolType;
-  }
-
-  /**
-   * Get the active tool
-   */
-  getActiveTool() {
-    return this.activeTool;
   }
 
   /**
@@ -32,88 +17,5 @@ export class ToolManager {
    */
   getTool(toolType) {
     return this.tools[toolType];
-  }
-
-  /**
-   * Handle stage click based on active tool
-   */
-  handleStageClick(e, createElement, setSelectedElement) {
-    if (!this.activeTool) return null;
-
-    const tool = this.tools[this.activeTool];
-    if (!tool) return null;
-
-    if (this.activeTool === ELEMENT_TYPES.TEXT) {
-      const stage = this.canvasConfig.stageRef.current;
-      const pointer = stage.getPointerPosition();
-      if (!pointer) return null;
-
-      const elementData = tool.createTextFromStageClick(
-        pointer,
-        this.canvasConfig.stageRef
-      );
-
-      const newElement = createElement(elementData.type, elementData);
-      setSelectedElement(newElement);
-      this.setActiveTool(null);
-      return newElement;
-    }
-
-    return null;
-  }
-
-  /**
-   * Handle file upload based on tool type
-   */
-  async handleFileUpload(files, elementStates, addElements) {
-    const photoTool = this.tools[ELEMENT_TYPES.PHOTO];
-    const photoElements = await photoTool.createPhotoElementsFromFiles(
-      files,
-      elementStates
-    );
-
-    if (photoElements.length > 0) {
-      addElements(photoElements);
-    }
-
-    return photoElements;
-  }
-
-  /**
-   * Handle text drop operation
-   */
-  handleTextDrop(droppedText, createElement, setSelectedElement) {
-    const textTool = this.tools[ELEMENT_TYPES.TEXT];
-    const elementData = textTool.createTextFromDrop(
-      this.canvasConfig.stageRef,
-      droppedText
-    );
-
-    const newElement = createElement(elementData.type, elementData);
-    setSelectedElement(newElement);
-    this.setActiveTool(null);
-    return newElement;
-  }
-
-  /**
-   * Get cursor style for active tool
-   */
-  getCursorStyle() {
-    if (!this.activeTool) return "grab";
-
-    const tool = this.tools[this.activeTool];
-    return tool?.getCursorStyle?.() || "default";
-  }
-
-  /**
-   * Update canvas configuration for all tools
-   */
-  updateCanvasConfig(newConfig) {
-    this.canvasConfig = { ...this.canvasConfig, ...newConfig };
-    Object.values(this.tools).forEach((tool) => {
-      if (tool.updateCanvasConfig) {
-        tool.updateCanvasConfig(this.canvasConfig);
-      }
-    });
   }
 }

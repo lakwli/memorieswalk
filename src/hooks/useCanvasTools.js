@@ -12,90 +12,12 @@ export const useCanvasTools = (canvasConfig) => {
     }
   }, [canvasConfig]);
 
-  // Update canvas config when it changes
-  useEffect(() => {
-    if (toolManagerRef.current) {
-      toolManagerRef.current.updateCanvasConfig(canvasConfig);
-    }
-  }, [canvasConfig]);
-
-  // Set active tool
-  const setActiveTool = useCallback((toolType) => {
-    if (toolManagerRef.current) {
-      toolManagerRef.current.setActiveTool(toolType);
-    }
-  }, []);
-
-  // Get active tool
-  const getActiveTool = useCallback(() => {
-    return toolManagerRef.current?.getActiveTool() || null;
-  }, []);
-
-  // Handle stage click
-  const handleToolStageClick = useCallback(
-    (e, createElement, setSelectedElement) => {
-      if (toolManagerRef.current) {
-        return toolManagerRef.current.handleStageClick(
-          e,
-          createElement,
-          setSelectedElement
-        );
-      }
-      return null;
-    },
-    []
-  );
-
-  // Handle file upload
-  const handleToolFileUpload = useCallback(
-    async (files, elementStates, addElements) => {
-      if (toolManagerRef.current) {
-        return await toolManagerRef.current.handleFileUpload(
-          files,
-          elementStates,
-          addElements
-        );
-      }
-      return [];
-    },
-    []
-  );
-
-  // Handle text drop
-  const handleTextDrop = useCallback(
-    (droppedText, createElement, setSelectedElement) => {
-      if (toolManagerRef.current) {
-        return toolManagerRef.current.handleTextDrop(
-          droppedText,
-          createElement,
-          setSelectedElement
-        );
-      }
-      return null;
-    },
-    []
-  );
-
-  // Get cursor style
-  const getToolCursorStyle = useCallback(() => {
-    if (toolManagerRef.current) {
-      return toolManagerRef.current.getCursorStyle();
-    }
-    return "grab";
-  }, []);
-
   // Get specific tool
   const getTool = useCallback((toolType) => {
     return toolManagerRef.current?.getTool(toolType) || null;
   }, []);
 
   return {
-    setActiveTool,
-    getActiveTool,
-    handleToolStageClick,
-    handleToolFileUpload,
-    handleTextDrop,
-    getToolCursorStyle,
     getTool,
     toolManager: toolManagerRef.current,
   };
