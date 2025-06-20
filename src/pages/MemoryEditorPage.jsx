@@ -45,12 +45,10 @@ import {
 // Import our new element system
 import {
   useCanvasElements,
-  useElementBehaviors,
   useCanvasNavigation,
   useUploadManager,
 } from "../hooks";
-//import { PhotoTool } from "../components/canvas/tools/PhotoTool";
-
+import elementBehaviors from "../hooks/useElementBehaviors";
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
 import { TextElement } from "../components/canvas/elements";
@@ -99,12 +97,8 @@ const MemoryEditorPage = () => {
     getElementsByType,
   } = useCanvasElements();
 
-  const elementBehaviors = useElementBehaviors(
-    updateElement,
-    setNewSelectedElement,
-    editingManager,
-    removeElement
-  );
+  // Instantiate the ElementBehaviors class using useMemo to avoid recreating on every render
+  //const elementBehaviors = new ElementBehaviors();
   /**
   useEffect(() => {
     const currentDeps = {
@@ -610,7 +604,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, [id, toast, setElements, elementStates]);
+  }, [id, toast, setElements, elementStates]); //ignore the elementbeahvors. if add it it will refresh the whole screen
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
