@@ -1,5 +1,8 @@
 import { useCallback } from "react";
 import { useMemo } from "react";
+// Import PhotoElement from its module (update the path as needed)
+import { createCanvasElement } from "../components/canvas/elements/elementFactory.js";
+import { ELEMENT_TYPES } from "../constants/elementTypes.js";
 
 export const useElementBehaviors = (
   updateElement,
@@ -27,6 +30,27 @@ export const useElementBehaviors = (
       };
     },
     [editingManager, setSelectedElement]
+  );
+
+  const createPhotoElementFromData = useCallback(
+    (photoData, photoConfig, img, objectURL) => {
+      const fallbackPosition = { x: 100, y: 100 };
+      const props = {
+        ...photoData,
+        image: img,
+        objectURL,
+        x: photoConfig.x !== undefined ? photoConfig.x : fallbackPosition.x,
+        y: photoConfig.y !== undefined ? photoConfig.y : fallbackPosition.y,
+        width: photoConfig.width || img.naturalWidth / 4,
+        height: photoConfig.height || img.naturalHeight / 4,
+        rotation: photoConfig.rotation || 0,
+        originalWidth: photoData.originalWidth || img.naturalWidth,
+        originalHeight: photoData.originalHeight || img.naturalHeight,
+        size: photoData.size || 0,
+      };
+      return createCanvasElement(ELEMENT_TYPES.PHOTO, props);
+    },
+    []
   );
 
   // Delete handler - now properly calls removeElement
@@ -160,7 +184,14 @@ export const useElementBehaviors = (
       addElementIntoCanvas,
       handleElementDoubleClick,
       handleElementDelete,
+
+      createPhotoElementFromData, // Expose the photo element creation function
     }),
-    [addElementIntoCanvas, handleElementDoubleClick, handleElementDelete]
+    [
+      addElementIntoCanvas,
+      handleElementDoubleClick,
+      handleElementDelete,
+      createPhotoElementFromData,
+    ]
   );
 };

@@ -49,7 +49,7 @@ import {
   useCanvasNavigation,
   useUploadManager,
 } from "../hooks";
-import { PhotoTool } from "../components/canvas/tools/PhotoTool";
+//import { PhotoTool } from "../components/canvas/tools/PhotoTool";
 
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
@@ -200,7 +200,6 @@ const MemoryEditorPage = () => {
   });
 
   // Initialize PhotoTool for loading saved photos
-  const photoToolRef = useRef(new PhotoTool({ stageRef: konvaStageRef }));
 
   // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
   const addPhotoElementsIntoCanvas = useCallback(
@@ -547,7 +546,7 @@ const MemoryEditorPage = () => {
 
                     // Use PhotoTool to create the photo element
                     const photoElement =
-                      photoToolRef.current.createPhotoElementFromData(
+                      elementBehaviors.createPhotoElementFromData(
                         photo,
                         photoConfig,
                         img,
@@ -611,7 +610,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, [id, toast, setElements, elementStates, photoToolRef]);
+  }, [id, toast, setElements, elementStates]);
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
