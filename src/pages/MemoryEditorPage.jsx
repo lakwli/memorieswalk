@@ -48,8 +48,8 @@ import {
   useElementBehaviors,
   useCanvasNavigation,
   useUploadManager,
-  useCanvasTools,
 } from "../hooks";
+import { PhotoTool } from "../components/canvas/tools/PhotoTool";
 
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
@@ -199,8 +199,8 @@ const MemoryEditorPage = () => {
     initialPosition: initialViewState.position,
   });
 
-  // PhotoTool is used only for loading saved photos during memory initialization
-  const { getTool } = useCanvasTools({ stageRef: konvaStageRef });
+  // Initialize PhotoTool for loading saved photos
+  const photoToolRef = useRef(new PhotoTool({ stageRef: konvaStageRef }));
 
   // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
   const addPhotoElementsIntoCanvas = useCallback(
@@ -546,13 +546,13 @@ const MemoryEditorPage = () => {
                     const photoConfig = photoConfigMap[photo.id] || {};
 
                     // Use PhotoTool to create the photo element
-                    const photoTool = getTool(ELEMENT_TYPES.PHOTO);
-                    const photoElement = photoTool.createPhotoElementFromData(
-                      photo,
-                      photoConfig,
-                      img,
-                      objectURL
-                    );
+                    const photoElement =
+                      photoToolRef.current.createPhotoElementFromData(
+                        photo,
+                        photoConfig,
+                        img,
+                        objectURL
+                      );
                     resolve(photoElement);
                   };
                   img.onerror = () => {
@@ -611,7 +611,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, [id, toast, setElements, elementStates, getTool]);
+  }, [id, toast, setElements, elementStates, photoToolRef]);
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
