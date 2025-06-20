@@ -271,14 +271,7 @@ const MemoryEditorPage = () => {
         });
       }
     },
-    [
-      createElement, // ✅ Same as addTextElementIntoCanvas
-      elementBehaviors, // ✅ Same as addTextElementIntoCanvas
-      konvaStageRef, // ✅ Same as addTextElementIntoCanvas
-      setNewSelectedElement, // ✅ Same as addTextElementIntoCanvas
-      //  setToolbarElementId, // ✅ Same as addTextElementIntoCanvas
-      toast,
-    ]
+    [createElement, konvaStageRef, setNewSelectedElement, toast]
   );
 
   // Upload Manager hook
@@ -575,6 +568,7 @@ const MemoryEditorPage = () => {
 
             // ALL elements MUST have state - assign PERSISTED to loaded text elements
             elementStates.current[textElement.id] = ELEMENT_STATES.PERSISTED;
+            return textElement;
           });
           loadedElements.push(...textElements);
         }
