@@ -10,16 +10,6 @@ export const useElementBehaviors = (
   editingManager,
   removeElement
 ) => {
-  /**
-  console.log("🔍 useElementBehaviors called with:", {
-    updateElement: !!updateElement,
-    setSelectedElement: !!setSelectedElement,
-    editingManager: !!editingManager,
-    removeElement: !!removeElement,
-  });
- */
-  // Common double-click handler
-
   const handleElementDoubleClick = useCallback(
     (element) => {
       return () => {
@@ -68,22 +58,6 @@ export const useElementBehaviors = (
   );
 
   const addElementIntoCanvas = useCallback((element, stageRef) => {
-    /**
-    console.log(
-      "🎯 addElementIntoCanvas called for:",
-      element.id,
-      element.type
-    );
-   
-    console.log("🎯 Element size BEFORE positioning:", {
-      elementId: element.id,
-      elementType: element.type,
-      elementWidth: element.width,
-      elementHeight: element.height,
-      originalWidth: element.originalWidth,
-      originalHeight: element.originalHeight,
-    });
- */
     const stage = stageRef.current;
     if (stage) {
       const stageWidth = stage.width();
@@ -95,67 +69,16 @@ export const useElementBehaviors = (
       const viewportCenterY = (-stagePosition.y + stageHeight / 2) / stageScale;
 
       const bounds = element.getBounds();
-      /**
-      console.log("🎯 Detailed positioning debug:", {
-        elementType: element.type,
-        stage: { width: stageWidth, height: stageHeight, scale: stageScale },
-        stagePosition: stagePosition,
-        viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-        elementBounds: bounds,
-        elementSize: { width: element.width, height: element.height },
-      });
- */
       // ✅ Calculate final position
       const finalX = viewportCenterX - bounds.width / 2;
       const finalY = viewportCenterY - bounds.height / 2;
-      /**
-      console.log("🔍 POSITIONING STEP BY STEP:", {
-        elementType: element.type,
-        elementId: element.id,
-        step1_viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-        step2_elementSize: { width: bounds.width, height: bounds.height },
-        step3_calculation: {
-          finalX: `${viewportCenterX} - ${bounds.width}/2 = ${finalX}`,
-          finalY: `${viewportCenterY} - ${bounds.height}/2 = ${finalY}`,
-        },
-        step4_beforeUpdate: { x: element.x, y: element.y },
-      });
- */
       // ✅ Set position
       element.x = finalX;
       element.y = finalY;
-      /**
-      console.log("🎯 Element positioned:", {
-        elementId: element.id,
-        elementType: element.type,
-        calculatedPosition: { x: finalX, y: finalY },
-        actualPosition: { x: element.x, y: element.y },
-        positionMatch: element.x === finalX && element.y === finalY,
-      });
- */
-      // ✅ ADD POSITION MONITORING
-      //console.log("🔍 SETTING UP POSITION MONITOR for:", element.id);
-
       // Monitor position changes over time
       let positionCheckCount = 0;
       const monitorPosition = () => {
         positionCheckCount++;
-        /**
-        const currentPos = { x: element.x, y: element.y };
-      
-        console.log(
-          `🔍 POSITION CHECK #${positionCheckCount} for ${element.type} ${element.id}:`,
-          {
-            timestamp: new Date().toISOString(),
-            currentPosition: currentPos,
-            expectedPosition: { x: finalX, y: finalY },
-            positionChanged: currentPos.x !== finalX || currentPos.y !== finalY,
-            drift: {
-              x: currentPos.x - finalX,
-              y: currentPos.y - finalY,
-            },
-          }
-        ); */
 
         if (positionCheckCount < 10) {
           setTimeout(monitorPosition, 100); // Check every 100ms for 1 second
@@ -170,14 +93,6 @@ export const useElementBehaviors = (
 
     return element;
   }, []);
-
-  //return {
-  //addElementIntoCanvas,
-  //handleElementClick,
-  //handleElementDoubleClick,
-  //handleElementTransform,
-  //handleElementDelete,
-  //};
 
   return useMemo(
     () => ({
