@@ -50,105 +50,96 @@ export const ElementToolbar = ({
 
   // Calculate toolbar position - zoom-independent, viewport-constrained
   const getToolbarPosition = () => {
-    if (DEBUG_TOOLBAR) {
-      console.log("🎯 getToolbarPosition called - element dimensions:", {
-        width: element?.width,
-        height: element?.height,
-        x: element?.x,
-        y: element?.y,
-      });
-    }
-
-    if (!stageRef?.current || !element) {
-      return { top: 100, left: 100 };
-    }
-
-    const stage = stageRef.current;
-    const node = stage.findOne("#" + elementId);
-
-    if (!node) {
-      const allNodes = [];
-      stage.find("*").forEach((n) => {
-        if (n.id()) {
-          allNodes.push({ id: n.id(), className: n.getClassName() });
-        }
-      });
-
-      // Fallback calculation using stage transform
-      const stageContainer = stage.container().getBoundingClientRect();
-      const stageScale = stage.scaleX();
-      const stagePos = { x: stage.x(), y: stage.y() };
-
-      const estimatedX =
-        element.x * stageScale + stagePos.x + stageContainer.left;
-      const estimatedY =
-        element.y * stageScale + stagePos.y + stageContainer.top;
-
-      if (DEBUG_TOOLBAR) {
-        console.log("🎯 Using fallback position calculation:");
-        console.log("🎯 Stage container rect:", stageContainer);
-        console.log("🎯 Stage scale:", stageScale);
-        console.log("🎯 Stage position:", stagePos);
-        console.log("🎯 Element logical position:", {
-          x: element.x,
-          y: element.y,
-        });
-        console.log("🎯 Calculated screen position:", {
-          x: estimatedX,
-          y: estimatedY,
-        });
-      }
-      const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
-      const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
-
-      return {
-        top: estimatedY - toolbarHeight - clearanceAbove,
-        left: estimatedX + element.width / 2 - APP_CONFIG.UI.TOOLBAR.WIDTH / 2,
-      };
-    }
-
-    // Node found - use getClientRect()
-    const stageContainer = stage.container().getBoundingClientRect();
-    const nodeClientRect = node.getClientRect();
-
-    if (DEBUG_TOOLBAR) {
-      console.log("🎯 Node found! Using getClientRect():");
-      console.log("🎯 Stage container rect:", stageContainer);
-      console.log("🎯 Node client rect:", nodeClientRect);
-    }
-
-    const elementScreenX = nodeClientRect.x + stageContainer.left;
-    const elementScreenY = nodeClientRect.y + stageContainer.top;
-    const elementScreenWidth = element.width;
-    const elementScreenHeight = element.height;
-
-    if (DEBUG_TOOLBAR) {
-      console.log("🎯 Final screen coordinates:", {
-        x: elementScreenX,
-        y: elementScreenY,
-        width: elementScreenWidth,
-        height: elementScreenHeight,
-      });
-    }
-
-    // Toolbar positioning logic (simplified for debugging)
     const toolbarWidth = APP_CONFIG.UI.TOOLBAR.WIDTH;
     const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
     const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
     const margin = APP_CONFIG.UI.TOOLBAR.MARGIN;
-
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    if (!stageRef?.current || !element) {
+      return { top: 100, left: 100 };
+    }
+    const stage = stageRef.current;
+    const node = stage.findOne("#" + elementId);
+    // Fallback calculation if node is not found or not ready
+    if (!node) {
+      const stageContainer = stage.container().getBoundingClientRect();
+      const stageScale = stage.scaleX();
+      const stagePos = { x: stage.x(), y: stage.y() };
+      let estimatedX =
+        element.x * stageScale + stagePos.x + stageContainer.left;
+      let estimatedY = element.y * stageScale + stagePos.y + stageContainer.top;
+      if (DEBUG_TOOLBAR) {
+        console.log("[TOOLBAR FALLBACK] stageScale:", stageScale);
+        console.log(
+          "[TOOLBAR FALLBACK] element.x:",
+          element.x,
+          "element.width:",
+          element.width
+        );
+        console.log(
+          "[TOOLBAR FALLBACK] estimatedX:",
+          estimatedX,
+          "estimatedY:",
+          estimatedY
+        );
+      }
+      if (!isFinite(estimatedX) || !isFinite(estimatedY)) {
+        estimatedX = margin;
+        estimatedY = margin;
+      }
+      let left =
+        estimatedX + (element.width * stageScale) / 2 - toolbarWidth / 2;
+      let top = estimatedY - toolbarHeight - clearanceAbove;
+      if (DEBUG_TOOLBAR) {
+        console.log("[TOOLBAR FALLBACK] left:", left, "top:", top);
+      }
+      left = Math.max(
+        margin,
+        Math.min(left, viewportWidth - toolbarWidth - margin)
+      );
+      if (top < margin) {
+        top = estimatedY + element.height * stageScale + margin;
+        if (top + toolbarHeight > viewportHeight - margin) {
+          top = margin;
+        }
+      }
+      if (!isFinite(left) || !isFinite(top)) {
+        left = margin;
+        top = margin;
+      }
+      return { top, left };
+    }
+    // Node found - use getClientRect()
+    const stageContainer = stage.container().getBoundingClientRect();
+    const nodeClientRect = node.getClientRect();
+    const stageScale = stage.scaleX();
+    const elementScreenX = nodeClientRect.x + stageContainer.left;
+    const elementScreenY = nodeClientRect.y + stageContainer.top;
+    const elementScreenWidth = element.width * stageScale;
+    const elementScreenHeight = element.height * stageScale;
     let preferredLeft =
       elementScreenX + elementScreenWidth / 2 - toolbarWidth / 2;
     let preferredTop = elementScreenY - toolbarHeight - clearanceAbove;
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
+    if (DEBUG_TOOLBAR) {
+      console.log("[TOOLBAR NODE] stageScale:", stageScale);
+      console.log(
+        "[TOOLBAR NODE] elementScreenX:",
+        elementScreenX,
+        "elementScreenWidth:",
+        elementScreenWidth
+      );
+      console.log(
+        "[TOOLBAR NODE] preferredLeft:",
+        preferredLeft,
+        "preferredTop:",
+        preferredTop
+      );
+    }
     const constrainedLeft = Math.max(
       margin,
       Math.min(preferredLeft, viewportWidth - toolbarWidth - margin)
     );
-
     let constrainedTop = preferredTop;
     if (preferredTop < margin) {
       constrainedTop = elementScreenY + elementScreenHeight + margin;
@@ -156,7 +147,6 @@ export const ElementToolbar = ({
         constrainedTop = margin;
       }
     }
-
     const finalPosition = {
       top: constrainedTop,
       left: constrainedLeft,
