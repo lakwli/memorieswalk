@@ -195,85 +195,6 @@ const MemoryEditorPage = () => {
 
   // Initialize PhotoTool for loading saved photos
 
-  // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
-  const addPhotoElementsIntoCanvas = useCallback(
-    async (imageDataArray) => {
-      console.log("🚀 ===== STARTING PHOTO ELEMENT CREATION =====");
-
-      try {
-        const {
-          width: canvasWidth,
-          height: canvasHeight,
-          //source,
-        } = canvasUtils.getCanvasDimensions(konvaStageRef, stageContainerRef);
-        /**
-        console.log("🚀 Canvas dimensions:", {
-          canvasWidth,
-          canvasHeight,
-          source,
-        });
- */
-        for (const imageData of imageDataArray) {
-          // console.log("🚀 Creating photo element for:", imageData.fileName);
-
-          // ✅ Calculate size explicitly here (single source of truth)
-          const displaySize = photoUtils.calculateDisplaySize(
-            imageData.originalWidth,
-            imageData.originalHeight,
-            canvasWidth,
-            canvasHeight
-          );
-          /**
-          console.log("🚀 Smart photo sizing:", {
-            original: {
-              width: imageData.originalWidth,
-              height: imageData.originalHeight,
-            },
-            calculated: {
-              width: displaySize.width,
-              height: displaySize.height,
-            },
-            scale: `${Math.round(displaySize.scale * 100)}%`,
-            reason: displaySize.reason,
-          });
- */
-          // Create PhotoElement with smart sizing
-          const photoElement = createElement(ELEMENT_TYPES.PHOTO, {
-            ...imageData,
-            width: displaySize.width,
-            height: displaySize.height,
-          });
-
-          /**    console.log("🚀 Created photo element:", {
-            id: photoElement.id,
-            size: { width: photoElement.width, height: photoElement.height },
-          });
- */
-          // Step 4: Position using elementBehaviors (same as text)
-          elementBehaviors.addElementIntoCanvas(photoElement, konvaStageRef);
-          //console.log("🚀 Positioned photo in canvas center");
-
-          // Step 6: Set selection and toolbar (same as text) - for last uploaded photo
-          setNewSelectedElement(photoElement);
-          //setToolbarElementId(photoElement.id);
-          //console.log("🚀 Selected photo:", photoElement.id);
-        }
-
-        // console.log("🚀 ===== PHOTO ELEMENT CREATION COMPLETED =====");
-      } catch (error) {
-        console.error("🚨 Photo element creation failed:", error);
-        toast({
-          title: "Error",
-          description: `Failed to create photo elements: ${error.message}`,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    },
-    [createElement, konvaStageRef, setNewSelectedElement, toast]
-  );
-
   // Upload Manager hook
   /**
   console.log("🔍 About to call useUploadManager with config:", {
@@ -682,13 +603,92 @@ const MemoryEditorPage = () => {
     elementStates,
   ]);
 
+  // ✅ Photo creation handler (follows addTextElementIntoCanvas pattern)
+  const addPhotoElementsIntoCanvas = useCallback(
+    async (imageDataArray) => {
+      console.log("🚀 ===== STARTING PHOTO ELEMENT CREATION =====");
+
+      try {
+        const {
+          width: canvasWidth,
+          height: canvasHeight,
+          //source,
+        } = canvasUtils.getCanvasDimensions(konvaStageRef, stageContainerRef);
+        /**
+        console.log("🚀 Canvas dimensions:", {
+          canvasWidth,
+          canvasHeight,
+          source,
+        });
+ */
+        for (const imageData of imageDataArray) {
+          // console.log("🚀 Creating photo element for:", imageData.fileName);
+
+          // ✅ Calculate size explicitly here (single source of truth)
+          const displaySize = photoUtils.calculateDisplaySize(
+            imageData.originalWidth,
+            imageData.originalHeight,
+            canvasWidth,
+            canvasHeight
+          );
+          /**
+          console.log("🚀 Smart photo sizing:", {
+            original: {
+              width: imageData.originalWidth,
+              height: imageData.originalHeight,
+            },
+            calculated: {
+              width: displaySize.width,
+              height: displaySize.height,
+            },
+            scale: `${Math.round(displaySize.scale * 100)}%`,
+            reason: displaySize.reason,
+          });
+ */
+          // Create PhotoElement with smart sizing
+          const photoElement = createElement(ELEMENT_TYPES.PHOTO, {
+            ...imageData,
+            width: displaySize.width,
+            height: displaySize.height,
+          });
+
+          /**    console.log("🚀 Created photo element:", {
+            id: photoElement.id,
+            size: { width: photoElement.width, height: photoElement.height },
+          });
+ */
+          // Step 4: Position using elementBehaviors (same as text)
+          elementBehaviors.addElementIntoCanvas(photoElement, konvaStageRef);
+          //console.log("🚀 Positioned photo in canvas center");
+
+          // Step 6: Set selection and toolbar (same as text) - for last uploaded photo
+          setNewSelectedElement(photoElement);
+          //setToolbarElementId(photoElement.id);
+          //console.log("🚀 Selected photo:", photoElement.id);
+        }
+
+        // console.log("🚀 ===== PHOTO ELEMENT CREATION COMPLETED =====");
+      } catch (error) {
+        console.error("🚨 Photo element creation failed:", error);
+        toast({
+          title: "Error",
+          description: `Failed to create photo elements: ${error.message}`,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    },
+    [createElement, konvaStageRef, setNewSelectedElement, toast]
+  );
+
   const addTextElementIntoCanvas = useCallback(() => {
     const textElement = createElement(ELEMENT_TYPES.TEXT);
 
     elementBehaviors.addElementIntoCanvas(textElement, konvaStageRef);
     setNewSelectedElement(textElement);
     //handleElementSelection(textElement);
-  }, [elementBehaviors, konvaStageRef, createElement, setNewSelectedElement]);
+  }, [konvaStageRef, createElement, setNewSelectedElement]);
 
   // Handle editing mode transitions using central editing manager
   const handleElementEdit = useCallback(

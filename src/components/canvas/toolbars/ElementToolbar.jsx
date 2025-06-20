@@ -5,7 +5,7 @@ import { TOOLBAR_CONFIG } from "./toolbarConfig";
 import { CONTROL_REGISTRY } from "./controls/index.js";
 import { APP_CONFIG } from "../../../config/appConfig.js";
 // Debug flag - set to true when debugging toolbar positioning
-const DEBUG_TOOLBAR = false;
+const DEBUG_TOOLBAR = true;
 
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
@@ -103,7 +103,7 @@ export const ElementToolbar = ({
 
       return {
         top: estimatedY - toolbarHeight - clearanceAbove,
-        left: estimatedX,
+        left: estimatedX + element.width / 2 - APP_CONFIG.UI.TOOLBAR.WIDTH / 2,
       };
     }
 
