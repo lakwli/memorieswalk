@@ -87,6 +87,7 @@ const useCanvasNavigation = ({
    * Handle zoom in button click
    */
   const handleZoomIn = useCallback(() => {
+    console.log("🖱️ [USER] Zoom In");
     handleZoom("in");
   }, [handleZoom]);
 
@@ -94,6 +95,7 @@ const useCanvasNavigation = ({
    * Handle zoom out button click
    */
   const handleZoomOut = useCallback(() => {
+    console.log("🖱️ [USER] Zoom out");
     handleZoom("out");
   }, [handleZoom]);
 
@@ -103,6 +105,7 @@ const useCanvasNavigation = ({
    */
   const handleZoomToFit = useCallback(
     (elements) => {
+      console.log("🖱️ [USER] Zoom To Fit");
       if (!stageRef.current || !elements || elements.length === 0) return;
 
       // Calculate bounding box of all elements

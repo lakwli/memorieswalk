@@ -166,7 +166,7 @@ const MemoryEditorPage = () => {
   // In MemoryEditorPage.jsx
   const handleElementDelete = useCallback(
     (elementId) => {
-      console.log(`🗑️ Deleting element: ${elementId}`);
+      console.log(`🗑️ [USER] Deleting element: ${elementId}`);
 
       // 1. Clean up renderer cache first
       if (rendererCacheRef.current) {
@@ -177,16 +177,16 @@ const MemoryEditorPage = () => {
           }
         }
         keysToRemove.forEach((key) => {
-          console.log(`🧹 Removing cached renderer: ${key}`);
+          //console.log(`🧹 Removing cached renderer: ${key}`);
           rendererCacheRef.current.delete(key);
         });
-        console.log(`🧹 Cache cleanup completed for: ${elementId}`);
+        //console.log(`🧹 Cache cleanup completed for: ${elementId}`);
       }
 
       // 2. Remove element from state
       removeElement(elementId);
 
-      console.log(`✅ Element deletion completed: ${elementId}`);
+      // console.log(`✅ Element deletion completed: ${elementId}`);
     },
     [removeElement]
   );
@@ -726,8 +726,6 @@ const MemoryEditorPage = () => {
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     console.log("🔵 useEffect #6 - Keyboard events fired");
-    //console.log("  - selectedElement:", selectedElement?.id || "null");
-    // console.log("  - editingElement:", editingElement?.id || "null");
 
     const handleKeyDown = (e) => {
       // Handle Escape key only
@@ -1211,19 +1209,21 @@ const MemoryEditorPage = () => {
                     let renderer = rendererCacheRef.current.get(currentKey);
 
                     if (!renderer) {
-                      console.log(
-                        `🟡 Rendering not found: ${element.id}-${element.version}`
-                      );
+                      //console.log(
+                      //  `🟡 [RENDER] Rendering not found: ${element.id}-${element.version}`
+                      //);
                       // Key not found - create new one
                       renderer = RendererFactory.createRenderer(
                         element,
                         rendererProps
                       );
                       rendererCacheRef.current.set(currentKey, renderer);
-                      console.log(`🟡 Set to Cache: ${currentKey}`);
+                      //console.log(
+                      //  `🟡 [RENDER, CACHE] Re-Render and Set to Cache: ${currentKey}`
+                      //);
                     } else {
                       console.log(
-                        `🟡 Rendering found: ${element.id}-${element.version}`
+                        `🟡 [RENDER] Re-use Renderer: ${element.id}-${element.version}`
                       );
                     }
                     // Key found - check if there are multiple versions for this element
@@ -1234,12 +1234,14 @@ const MemoryEditorPage = () => {
                       }
                     }
 
-                    console.log(`🟡 Total cache: ${elementKeys}`);
+                    //console.log(`🟡 Total cache: ${elementKeys}`);
                     if (elementKeys.length > 1) {
                       // Multiple versions found - keep current, delete others
                       elementKeys.forEach((key) => {
                         if (key !== currentKey) {
-                          console.log(`🧹 Cleaning up old renderer: ${key}`);
+                          //console.log(
+                          // `🧹 [CACHE] Cleaning up old renderer: ${key}`
+                          //);
                           rendererCacheRef.current.delete(key);
                         }
                       });

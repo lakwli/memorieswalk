@@ -101,7 +101,7 @@ export class BaseRenderer {
   }
 
   handleElementTransform(e) {
-    console.log("🔶 BaseRenderer handleElementTransform");
+    //console.log("🔶 BaseRenderer handleElementTransform");
     e.cancelBubble = true;
 
     const node = e.target;
@@ -122,7 +122,7 @@ export class BaseRenderer {
     const sizeUpdates = this.resize(scaleX, scaleY, node);
     Object.assign(updates, sizeUpdates);
 
-    console.log("🔶 Transform updates:", updates);
+    console.log("🔶 [USER] Transform updates:", updates);
 
     // Update through the onUpdate prop
     if (this.onUpdate) {
@@ -148,8 +148,9 @@ export class BaseRenderer {
   }
 
   // Common render method
+  //TODO: check if to use id + version + type as key. It seems that element does change even with same key
   render() {
-    console.log(`🎯 BaseRenderer rendering: ${this.element.id}`);
+    console.log(`🎯 [RENDER] BaseRenderer rendering: ${this.element.id}`);
     return (
       <React.Fragment key={this.element.id}>
         <Group {...this.elementProps}>{this.renderContent()}</Group>

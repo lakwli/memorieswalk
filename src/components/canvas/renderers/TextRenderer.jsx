@@ -274,9 +274,9 @@ class TextRendererClass extends BaseRenderer {
     const height = this.element.height || 60;
 
     // Debug what elementProps contains
-    console.log("🔍 TextRenderer elementProps:", this.elementProps);
-    console.log("🔍 Element ID:", this.element.id);
-    console.log("🔍 Element getProps():", this.element.getProps?.());
+    //console.log("🔍 TextRenderer elementProps:", this.elementProps);
+    //console.log("🔍 Element ID:", this.element.id);
+    //console.log("🔍 Element getProps():", this.element.getProps?.());
 
     return (
       <React.Fragment>

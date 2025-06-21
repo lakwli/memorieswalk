@@ -103,7 +103,10 @@ export const useCanvasElements = () => {
       return newElements;
     });
 
-    console.log("🏗️ createElement completed, returning:", newElement.id);
+    console.log(
+      "🏗️ [CREATE] createElement completed, returning:",
+      newElement.id
+    );
     return newElement;
   };
 
@@ -134,7 +137,6 @@ export const useCanvasElements = () => {
   ); // ✅ Include both dependencies
 
   // Remove element
-  // Remove element
   const removeElement = useCallback(
     (elementId) => {
       setElements((prev) => {
@@ -157,6 +159,8 @@ export const useCanvasElements = () => {
       } else {
         delete elementStates.current[elementId];
       }
+
+      console.log(`🗑️ [REMOVE] Removed element: ${elementId}`);
     },
     [setNewSelectedElement, selectedElement]
   );

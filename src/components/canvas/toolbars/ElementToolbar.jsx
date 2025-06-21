@@ -5,7 +5,7 @@ import { TOOLBAR_CONFIG } from "./toolbarConfig";
 import { CONTROL_REGISTRY } from "./controls/index.js";
 import { APP_CONFIG } from "../../../config/appConfig.js";
 // Debug flag - set to true when debugging toolbar positioning
-const DEBUG_TOOLBAR = true;
+const DEBUG_TOOLBAR = false;
 
 /**
  * ElementToolbar - Master toolbar container that manages the two-tier architecture
@@ -177,11 +177,9 @@ export const ElementToolbar = ({
     onSendToBack,
   };
   return (() => {
-    if (DEBUG_TOOLBAR) {
-      console.log(
-        `🔄 ElementToolar render: Element W=${element?.width} H=${element?.height}, Position: (${element?.x}, ${element?.y}), Mode: ${mode}, Controls: ${controls.length}`
-      );
-    }
+    console.log(
+      `🔄 [RENDER] Toolbar: id=${element?.id} W=${element?.width} H=${element?.height}, Position: (${element?.x}, ${element?.y}), `
+    );
     return (
       <Box
         position="fixed" // Fixed to viewport, not affected by canvas zoom
