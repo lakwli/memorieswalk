@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { createCanvasElement } from "../components/canvas/elements/elementFactory.js";
 import { ELEMENT_STATES } from "../constants";
 
@@ -8,56 +8,39 @@ export const useCanvasElements = () => {
   const [isEditing, setIsEditing] = useState(false); // ← Simple boolean flag
   const elementStates = useRef({}); // For photo states or other element-specific state
   const editingElement = isEditing ? selectedElement : null;
+  const selectedElementRef = useRef(selectedElement);
+  useEffect(() => {
+    selectedElementRef.current = selectedElement;
+  }, [selectedElement]);
 
   const setNewSelectedElement = useCallback((element) => {
-    console.log("🔄 updateSelectedElement called:", element);
+    console.log("🔄 [SELECT]:", element?.id);
 
     setSelectedElement((currentSelected) => {
-      // ✅ Compare inside state setter to avoid dependency
-      if (element === currentSelected) {
-        console.log("🔄 Same element - no update");
-        return currentSelected; // Return same value = no state change
-      }
-
-      console.log("🔄 Different element - updating");
-      return element;
+      return element === currentSelected ? currentSelected : element;
     });
   }, []); // ✅ Empty dependencies
 
   const updateElement = useCallback(
     (elementId, updates) => {
-      console.log("🔄 updateElement called:", { elementId, updates });
-
       setElements((prev) => {
-        console.log("🔄 setElements prev state:", prev.length, "elements");
-
         const element = prev.find((el) => el.id === elementId);
         if (!element) {
           console.log("🔄 Element not found:", elementId);
           return prev;
         }
 
-        console.log("🔄 Updating element:", elementId, "with:", updates);
-        console.log("🔄 Element BEFORE Object.assign:", element);
+        console.log("🔄 [UPDATE]:", elementId, "with:", updates);
 
         element.newUpdate(updates);
-
-        console.log("🔄 Element AFTER Object.assign:", element);
-
-        // ✅ Add debugging for the selection check
-        console.log("🔄 Selection check:", {
-          elementId: element.id,
-          selectedElementId: selectedElement?.id,
-          selectedElement: selectedElement,
-          isMatch: element.id === selectedElement?.id,
-        });
-
-        setNewSelectedElement({ ...element });
+        if (element.id === selectedElementRef.current?.id) {
+          setNewSelectedElement({ ...element });
+        }
 
         return prev;
       });
     },
-    [selectedElement, setNewSelectedElement]
+    [setNewSelectedElement]
   ); // ✅ Add dependencies
 
   const editingManager = useMemo(
@@ -70,7 +53,7 @@ export const useCanvasElements = () => {
       // Start editing mode for an element
       startEditing: (element) => {
         if (element) {
-          setSelectedElement(element);
+          setNewSelectedElement(element);
           setIsEditing(true);
         }
       },
@@ -91,32 +74,32 @@ export const useCanvasElements = () => {
         updateElement(elementId, updates);
       },
     }),
-    [isEditing, updateElement, selectedElement]
+    [isEditing, selectedElement?.id, setNewSelectedElement, updateElement]
   );
 
   // Create element
   const createElement = (type, props = {}) => {
-    console.log("🏗️ createElement called:");
-    console.log("🏗️ Type:", type);
-    console.log("🏗️ Props:", props);
+    //console.log(`🏗️ createElement called: Type [${type}]`);
+    //console.log("🏗️ Type:", type);
+    //console.log("🏗️ Props:", props);
 
     const newElement = createCanvasElement(type, props);
-    console.log("🏗️ Created element:", newElement.id);
+    //console.log("🏗️ Created element:", newElement.id);
 
     // ALL elements MUST have state - assign NEW state to every new element
     elementStates.current[newElement.id] = ELEMENT_STATES.NEW;
 
     setElements((prev) => {
       const newElements = [...prev, newElement];
-      console.log("🏗️ setElements updating:");
-      console.log(
-        "🏗️ Previous elements:",
-        prev.map((el) => el.id)
-      );
-      console.log(
-        "🏗️ New elements:",
-        newElements.map((el) => el.id)
-      );
+      //console.log("🏗️ setElements updating:");
+      //console.log(
+      //  "🏗️ Previous elements:",
+      //  prev.map((el) => el.id)
+      //);
+      //console.log(
+      //  "🏗️ New elements:",
+      //  newElements.map((el) => el.id)
+      //);
       return newElements;
     });
 
@@ -130,7 +113,7 @@ export const useCanvasElements = () => {
       console.log("🔧 setSelectedElementById called:", elementId);
 
       if (!elementId) {
-        setSelectedElement(null);
+        setNewSelectedElement(null);
         return;
       }
 
@@ -138,16 +121,16 @@ export const useCanvasElements = () => {
       setElements((currentElements) => {
         const found = currentElements.find((el) => el.id === elementId);
         if (found) {
-          console.log("🔧 Found and selected element by ID:", found.id);
-          setSelectedElement(found);
+          //console.log("🔧 Found and selected element by ID:", found.id);
+          setNewSelectedElement(found);
         } else {
-          console.log("🔧 Element not found by ID:", elementId);
-          setSelectedElement(null);
+          //console.log("🔧 Element not found by ID:", elementId);
+          setNewSelectedElement(null);
         }
         return currentElements; // Return same array
       });
     },
-    [setSelectedElement]
+    [setNewSelectedElement]
   ); // ✅ Include both dependencies
 
   // Remove element
@@ -164,7 +147,7 @@ export const useCanvasElements = () => {
 
       // ✅ Clear selection if removing selected element
       if (selectedElement?.id === elementId) {
-        setSelectedElement(null);
+        setNewSelectedElement(null);
       }
 
       // Handle element state for photo deletion
@@ -175,7 +158,7 @@ export const useCanvasElements = () => {
         delete elementStates.current[elementId];
       }
     },
-    [setSelectedElement, selectedElement]
+    [setNewSelectedElement, selectedElement]
   );
 
   // Editing state management

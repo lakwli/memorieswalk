@@ -28,8 +28,10 @@ export class BaseRenderer {
   }
 
   handleElementDragStart(e) {
-    console.log("🔶 ===== BaseRenderer handleElementDragStart =====");
-    console.log("🔶 Element ID:", this.element.id);
+    console.log(
+      `🔶 [DRAG START]  handleElementDragStart =====ID=${this.element.id}, ELM:x=${this.element.x}, y=${this.element.y}`
+    );
+    //console.log("🔶 Element ID:", this.element.id);
 
     e.cancelBubble = true;
 
@@ -39,29 +41,34 @@ export class BaseRenderer {
       stage.container().style.cursor = "grabbing";
     }
 
-    console.log("🔶 handleElementDragStart completed");
+    //console.log("🔶 handleElementDragStart completed");
   }
 
   handleElementDragEnd(e) {
-    console.log("🔶 ===== BaseRenderer handleElementDragEnd =====");
-    console.log("🔶 Element ID:", this.element.id);
+    const node = e.target;
+    console.log(
+      `🔶 [DRAG END] handleElementDragEnd =====ID=${
+        this.element.id
+      }, NODE:x=${node.x()}, y=${node.y()}`
+    );
+    //console.log(
+    //  `🔶 ===== BaseRenderer handleElementDragEnd =====ID=${this.element.id}`
+    //);
+    //console.log("🔶 Element ID:", this.element.id);
 
     e.cancelBubble = true;
 
     // Element updates its own position first
-    const node = e.target;
-    const oldX = this.element.x;
-    const oldY = this.element.y;
+    //const node = e.target;
+    //onst oldX = this.element.x;
+    //const oldY = this.element.y;
     const newX = node.x();
     const newY = node.y();
 
-    console.log("🔶 Position change:", {
-      from: { x: oldX, y: oldY },
-      to: { x: newX, y: newY },
-    });
+    //console.log(`🔶 Position change: x=${oldX}->${newX}, y=${oldY}->${newY}`);
 
-    this.element.x = newX;
-    this.element.y = newY;
+    //this.element.x = newX;
+    //this.element.y = newY;
 
     // Reset cursor based on current mouse position
     const stage = node.getStage();
@@ -71,18 +78,21 @@ export class BaseRenderer {
       stage.container().style.cursor = isStillOverElement ? "move" : "grab";
     }
 
-    console.log("🔶 About to call onUpdate...");
+    //console.log("🔶 About to call onUpdate...");
 
     // Directly call updateElement to sync with React state
     if (this.onUpdate) {
       this.onUpdate(this.element.id, {
-        x: this.element.x,
-        y: this.element.y,
+        x: newX,
+        y: newY,
       });
     }
 
-    console.log("🔶 onUpdate called");
-    console.log("🔶 handleElementDragEnd completed");
+    //console.log("🔶 onUpdate called");
+    //console.log(
+    //  `🔶 ===== BaseRenderer handleElementDragEnd completed =====ID=${this.element.id}, x=${oldX}->${newX}, y=${oldY}->${newY}`
+    //);
+    //console.log("🔶 handleElementDragEnd completed");
   }
 
   handleElementDoubleClick(e) {

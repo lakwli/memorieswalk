@@ -97,57 +97,6 @@ const MemoryEditorPage = () => {
     getElementsByType,
   } = useCanvasElements();
 
-  // Instantiate the ElementBehaviors class using useMemo to avoid recreating on every render
-  //const elementBehaviors = new ElementBehaviors();
-  /**
-  useEffect(() => {
-    const currentDeps = {
-      elementsLength: elements.length,
-      elementsIds: elements.map((el) => el.id).join(","),
-      editingManagerType: typeof editingManager,
-      updateElementString: updateElement.toString().slice(0, 100),
-      elementBehaviorsType: typeof elementBehaviors,
-      setNewSelectedElementString: setNewSelectedElement
-        .toString()
-        .slice(0, 100),
-    };
-
-    if (prevDepsRef.current) {
-      console.log("🔍 Dependency comparison:");
-      Object.keys(currentDeps).forEach((key) => {
-        const prev = prevDepsRef.current[key];
-        const curr = currentDeps[key];
-        if (prev !== curr) {
-          console.log(`  ❌ ${key} CHANGED:`);
-          console.log(`    From: ${prev}`);
-          console.log(`    To:   ${curr}`);
-        } else {
-          console.log(`  ✅ ${key} unchanged`);
-        }
-      });
-    } else {
-      console.log("🔍 First render - establishing baseline");
-    }
-
-    prevDepsRef.current = currentDeps;
-  }); */
-
-  // PERFORMANCE: Disabled expensive logging useEffects that were causing unnecessary re-renders
-  // useEffect(() => {
-  //   console.log("🔵 selectedElement changed:", selectedElement?.id || "null");
-  // }, [selectedElement]);
-
-  // useEffect(() => {
-  //   console.log("📦 elements array changed:", {
-  //     count: elements.length,
-  //     elements: elements.map((el) => ({ id: el.id, type: el.type })),
-  //     timestamp: new Date().toISOString(),
-  //   });
-  // }, [elements]);
-
-  // Get element behaviors with editing state management (no more activeTool)
-  // Get element behaviors with editing state management (no more activeTool)
-
   // Other existing state...
   const [memory, setMemory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +106,6 @@ const MemoryEditorPage = () => {
   const [saving, setSaving] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  //const [toolbarElementId, setToolbarElementId] = useState(null);
 
   // Refs...
   const konvaStageRef = useRef(null);
@@ -193,17 +141,6 @@ const MemoryEditorPage = () => {
     initialPosition: initialViewState.position,
   });
 
-  // Initialize PhotoTool for loading saved photos
-
-  // Upload Manager hook
-  /**
-  console.log("🔍 About to call useUploadManager with config:", {
-    onUploadComplete: typeof addPhotoElementsIntoCanvas,
-    addPhotoElementsIntoCanvasString: addPhotoElementsIntoCanvas
-      .toString()
-      .slice(0, 50),
-  }); */
-
   const {
     isUploading,
     uploadStatus,
@@ -214,7 +151,6 @@ const MemoryEditorPage = () => {
     fileInputRef,
   } = useUploadManager({
     onUploadComplete: (imageDataArray) => {
-      // ✅ Handle photo creation in MemoryEditorPage
       addPhotoElementsIntoCanvas(imageDataArray);
     },
   });
@@ -227,35 +163,6 @@ const MemoryEditorPage = () => {
     currentPhase,
   });
 
-  // Synchronize selectedElement and editingElement with updated elements
-  // DISABLED: This was causing toolbar to disappear due to unnecessary re-renders
-  // useEffect(() => {
-  //   // Update selectedElement reference if it exists in updated elements
-  //   if (selectedElement) {
-  //     const updatedSelectedElement = elements.find(
-  //       (el) => el.id === selectedElement.id
-  //     );
-  //     if (
-  //       updatedSelectedElement &&
-  //       updatedSelectedElement !== selectedElement
-  //     ) {
-  //       console.log("Updating selectedElement reference:", selectedElement.id);
-  //       setSelectedElement(updatedSelectedElement);
-  //     }
-  //   }
-
-  //   // Update editingElement reference if it exists in updated elements
-  //   if (editingElement) {
-  //     const updatedEditingElement = elements.find(
-  //       (el) => el.id === editingElement.id
-  //     );
-  //     if (updatedEditingElement && updatedEditingElement !== editingElement) {
-  //       console.log("Updating editingElement reference:", editingElement.id);
-  //       setEditingElement(updatedEditingElement);
-  //     }
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [elements]); // Only depend on elements to avoid circular dependencies
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
 
