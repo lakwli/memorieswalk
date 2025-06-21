@@ -1,57 +1,338 @@
-🔍 handleStageClick called - determining what was clicked MemoryEditorPage.jsx:213:15
-🔍 Selection changing:
-Object { from: null, to: "text-mz0lle90b" }
-MemoryEditorPage.jsx:197:15
-🔄 [SELECT]: text-mz0lle90b useCanvasElements.js:17:13
-🏠 MemoryEditorPage #585 - Instance: mem-editor-1750480328168 MemoryEditorPage.jsx:80:11
-🔍 Upload Manager state:
-Object { isUploading: false, uploadStatus: "", currentProgress: 0, currentPhase: "" }
-MemoryEditorPage.jsx:150:11
-🔄 MemoryEditorPage render method called from , Instance: ${instanceId} MemoryEditorPage.jsx:1321:13
-🟡 Rendering found: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-0 MemoryEditorPage.jsx:1420:35
-🟡 Total cache: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-0 MemoryEditorPage.jsx:1430:33
-🟡 Rendering found: text-lnnlkrc3l-0 MemoryEditorPage.jsx:1420:35
-🟡 Total cache: text-lnnlkrc3l-0 MemoryEditorPage.jsx:1430:33
-🟡 Rendering found: text-mz0lle90b-0 MemoryEditorPage.jsx:1420:35
-🟡 Total cache: text-mz0lle90b-0 MemoryEditorPage.jsx:1430:33
-[TOOLBAR NODE] stageScale: 0.6944444444444445 ElementToolbar.jsx:122:15
-[TOOLBAR NODE] elementScreenX: 385.4490740740737 elementScreenWidth: 390.9722222222223 ElementToolbar.jsx:123:15
-[TOOLBAR NODE] preferredLeft: 440.93518518518476 preferredTop: 290.9537037037037 ElementToolbar.jsx:129:15
-🎯 Toolbar will render at position:
-Object { top: 290.9537037037037, left: 440.93518518518476 }
-ElementToolbar.jsx:155:13
-🎯 ===== ElementToolbar RENDER END ===== ElementToolbar.jsx:156:13
-🔄 ElementToolar render: Element W=563 H=169, Position: (59.44666666666615, 376.01333333333326), Mode: select, Controls: 6 ElementToolbar.jsx:173:15
-🔵 useEffect #6 - Keyboard events fired MemoryEditorPage.jsx:576:13
-🔶 [DRAG START] handleElementDragStart =====ID=7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7, ELM:x=1017.4862448795842, y=198.2777777777777 BaseRenderer.jsx:33:13
-🔶 [DRAG END] handleElementDragEnd =====ID=7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7, NODE:x=1538.7662448795845, y=235.71777777777768 BaseRenderer.jsx:44:13
-🔄 [UPDATE]: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7 with:
-Object { x: 1538.7662448795845, y: 235.71777777777768 }
-useCanvasElements.js:37:17
-🔄 Selection check:
-Object { elementSel: "text-mz0lle90b", elementId: "7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7", selectedElementId: undefined, selectedElement: null, isMatch: false }
-useCanvasElements.js:53:17
-🔄 [SELECT]: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7 useCanvasElements.js:17:13
-🏠 MemoryEditorPage #586 - Instance: mem-editor-1750480328168 MemoryEditorPage.jsx:80:11
-🔍 Upload Manager state:
-Object { isUploading: false, uploadStatus: "", currentProgress: 0, currentPhase: "" }
-MemoryEditorPage.jsx:150:11
-🔄 MemoryEditorPage render method called from , Instance: ${instanceId} MemoryEditorPage.jsx:1321:13
-🟡 Rendering not found: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-1 MemoryEditorPage.jsx:1410:35
-🟡 Set to Cache: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-1 MemoryEditorPage.jsx:1418:35
-🟡 Total cache: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-0,7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-1 MemoryEditorPage.jsx:1430:33
-🧹 Cleaning up old renderer: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7-0 MemoryEditorPage.jsx:1434:39
-🟡 Rendering found: text-lnnlkrc3l-0 MemoryEditorPage.jsx:1420:35
-🟡 Total cache: text-lnnlkrc3l-0 MemoryEditorPage.jsx:1430:33
-🟡 Rendering found: text-mz0lle90b-0 MemoryEditorPage.jsx:1420:35
-🟡 Total cache: text-mz0lle90b-0 MemoryEditorPage.jsx:1430:33
-[TOOLBAR NODE] stageScale: 0.6944444444444445 ElementToolbar.jsx:122:15
-[TOOLBAR NODE] elementScreenX: 1412.7543367219337 elementScreenWidth: 295.83333333333337 ElementToolbar.jsx:123:15
-[TOOLBAR NODE] preferredLeft: 1420.6710033886004 preferredTop: 193.52623456790116 ElementToolbar.jsx:129:15
-🎯 Toolbar will render at position:
-Object { top: 193.52623456790116, left: 1420.6710033886004 }
-ElementToolbar.jsx:155:13
-🎯 ===== ElementToolbar RENDER END ===== ElementToolbar.jsx:156:13
-🔄 ElementToolar render: Element W=426 H=215, Position: (1538.7662448795845, 235.71777777777768), Mode: select, Controls: 6 ElementToolbar.jsx:173:15
-🎯 BaseRenderer rendering: 7bd5a960-c6f1-45c6-a03a-1b4585b6b6a7 BaseRenderer.jsx:103:13
-🔵 useEffect #6 - Keyboard events fired MemoryEditorPage.jsx:576:13
+🔄 Dasboard Page render method called DashboardPage.jsx:380:13
+🔵 [DB] Retrive Memory. Triggered with useEffect #3 MemoryEditorPage.jsx:216:13
+🔵 useEffect #6 - Keyboard events fired MemoryEditorPage.jsx:542:13
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-kekih49cm-0-React RendererFactory.jsx:23:15
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-kekih49cm-0-React RendererFactory.jsx:23:15
+Delayed check - scale: 1 position:
+Object { x: 0, y: 0 }
+MemoryEditorPage.jsx:524:19
+🔍 [Click] Detect Click On Element text-kekih49cm MemoryEditorPage.jsx:198:21
+🔍 [SELECT]:
+Object { from: null, to: "text-kekih49cm" }
+MemoryEditorPage.jsx:168:15
+🔄 [SELECT]: text-kekih49cm useCanvasElements.js:17:13
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-kekih49cm-0-React RendererFactory.jsx:23:15
+🔄 [RENDER] Toolbar: id=text-kekih49cm W=524 H=157, Position: (203.9999999999999, 207.99999999999991), ElementToolbar.jsx:172:13
+🔵 useEffect #6 - Keyboard events fired MemoryEditorPage.jsx:542:13
+🗑️ [USER] Deleting element: text-kekih49cm MemoryEditorPage.jsx:155:15
+🔄 [SELECT]: undefined useCanvasElements.js:17:13
+🗑️ [REMOVE] Removed element: text-kekih49cm useCanvasElements.js:163:15
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+🔵 useEffect #6 - Keyboard events fired MemoryEditorPage.jsx:542:13
+memoryService.updateMemory called:
+Object { id: 416, data: '{\n "title": "Untitled Memory",\n "canvas": {\n "photos": [\n {\n "id": "78eac599-9c35-4cb2-8454-c67df99b0494",\n "type": "photo",\n "x": 1433.3650767304875,\n "y": 195.73091192795067,\n "width": 382,\n "height": 193,\n "rotation": 42.33011023799231,\n "originalWidth": 1860,\n "originalHeight": 943,\n "size": "75042"\n }\n ],\n "texts": [\n {\n "id": "text-71i1r0nmu",\n "type": "text",\n "x": 343.1888795439055,\n "y": 265.5048790766631,\n "width": 430,\n "height": 30,\n "rotation": 46.41442321140214,\n "text": "New Text",\n "fontSize": 24,\n "fontFamily": "Arial",\n "fill": "#000000",\n "fontStyle": "normal",\n "textDecoration": "",\n "align": "center",\n "verticalAlign": "middle",\n "wrap": "word",\n "padding": 10,\n "backgroundColor": "",\n "backgroundShape": "none",\n "borderColor": "",\n "borderWidth": 0\n }\n ],\n "viewState": {\n "scale": 1,\n "position": {\n "x": 14,\n "y": -1\n }\n }\n },\n "photoStates": {\n "78eac599-9c35-4cb2-8454-c67df99b0494": "P",\n "text-71i1r0nmu": "P",\n "text-kekih49cm": "R"\n }\n}' }
+memoryService.js:22:13
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+XHRPUT
+http://localhost:3000/api/memories/416
+[HTTP/1.1 500 Internal Server Error 48ms]
+
+updateMemory error:
+Object { message: "Request failed with status code 500", response: {…} }
+<anonymous code>:1:145535
+🔄 [RENDER] MemoryEditorPage is re-render MemoryEditorPage.jsx:1288:13
+🔄 [RENDER]: 78eac599-9c35-4cb2-8454-c67df99b0494-0-React RendererFactory.jsx:23:15
+🔄 [RENDER]: text-71i1r0nmu-0-React RendererFactory.jsx:23:15
+Source map error: Error: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+Stack in the worker:parseSourceMapInput@resource://devtools/client/shared/vendor/source-map/lib/util.js:163:15
+\_factory@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:1066:22
+SourceMapConsumer@resource://devtools/client/shared/vendor/source-map/lib/source-map-consumer.js:26:12
+\_fetch@resource://devtools/client/shared/source-map-loader/utils/fetchSourceMap.js:83:19
+
+Resource URL: http://localhost:3001/%3Canonymous%20code%3E
+Source Map URL: installHook.js.map
+
+Memory update request received: {
+memoryId: '416',
+userId: 1,
+body: '{\n' +
+' "title": "Untitled Memory",\n' +
+' "canvas": {\n' +
+' "photos": [\n' +
+' {\n' +
+' "id": "78eac599-9c35-4cb2-8454-c67df99b0494",\n' +
+' "type": "photo",\n' +
+' "x": 1433.3650767304875,\n' +
+' "y": 195.73091192795067,\n' +
+' "width": 382,\n' +
+' "height": 193,\n' +
+' "rotation": 42.33011023799231,\n' +
+' "originalWidth": 1860,\n' +
+' "originalHeight": 943,\n' +
+' "size": "75042"\n' +
+' }\n' +
+' ],\n' +
+' "texts": [\n' +
+' {\n' +
+' "id": "text-71i1r0nmu",\n' +
+' "type": "text",\n' +
+' "x": 343.1888795439055,\n' +
+' "y": 265.5048790766631,\n' +
+' "width": 430,\n' +
+' "height": 30,\n' +
+' "rotation": 46.41442321140214,\n' +
+' "text": "New Text",\n' +
+' "fontSize": 24,\n' +
+' "fontFamily": "Arial",\n' +
+' "fill": "#000000",\n' +
+' "fontStyle": "normal",\n' +
+' "textDecoration": "",\n' +
+' "align": "center",\n' +
+' "verticalAlign": "middle",\n' +
+' "wrap": "word",\n' +
+' "padding": 10,\n' +
+' "backgroundColor": "",\n' +
+' "backgroundShape": "none",\n' +
+' "borderColor": "",\n' +
+' "borderWidth": 0\n' +
+' }\n' +
+' ],\n' +
+' "viewState": {\n' +
+' "scale": 1,\n' +
+' "position": {\n' +
+' "x": 14,\n' +
+' "y": -1\n' +
+' }\n' +
+' }\n' +
+' },\n' +
+' "photoStates": {\n' +
+' "78eac599-9c35-4cb2-8454-c67df99b0494": "P",\n' +
+' "text-71i1r0nmu": "P",\n' +
+' "text-kekih49cm": "R"\n' +
+' }\n' +
+'}'
+}
+Received canvas data: {
+photos: [
+{
+id: '78eac599-9c35-4cb2-8454-c67df99b0494',
+type: 'photo',
+x: 1433.3650767304875,
+y: 195.73091192795067,
+width: 382,
+height: 193,
+rotation: 42.33011023799231,
+originalWidth: 1860,
+originalHeight: 943,
+size: '75042'
+}
+],
+texts: [
+{
+id: 'text-71i1r0nmu',
+type: 'text',
+x: 343.1888795439055,
+y: 265.5048790766631,
+width: 430,
+height: 30,
+rotation: 46.41442321140214,
+text: 'New Text',
+fontSize: 24,
+fontFamily: 'Arial',
+fill: '#000000',
+fontStyle: 'normal',
+textDecoration: '',
+align: 'center',
+verticalAlign: 'middle',
+wrap: 'word',
+padding: 10,
+backgroundColor: '',
+backgroundShape: 'none',
+borderColor: '',
+borderWidth: 0
+}
+],
+viewState: { scale: 1, position: { x: 14, y: -1 } }
+}
+Extracted photos: [
+{
+id: '78eac599-9c35-4cb2-8454-c67df99b0494',
+type: 'photo',
+x: 1433.3650767304875,
+y: 195.73091192795067,
+width: 382,
+height: 193,
+rotation: 42.33011023799231,
+originalWidth: 1860,
+originalHeight: 943,
+size: '75042'
+}
+]
+Stripping photo 78eac599-9c35-4cb2-8454-c67df99b0494 metadata: {
+original: {
+id: '78eac599-9c35-4cb2-8454-c67df99b0494',
+type: 'photo',
+x: 1433.3650767304875,
+y: 195.73091192795067,
+width: 382,
+height: 193,
+rotation: 42.33011023799231,
+originalWidth: 1860,
+originalHeight: 943,
+size: '75042'
+},
+stripped: {
+id: '78eac599-9c35-4cb2-8454-c67df99b0494',
+x: 1433.3650767304875,
+y: 195.73091192795067,
+width: 382,
+height: 193,
+rotation: 42.33011023799231
+}
+}
+Updating existing view configuration
+Processing photos: {
+totalPhotos: 1,
+photoStates: [
+{ id: '78eac599-9c35-4cb2-8454-c67df99b0494', state: 'P' },
+{ id: 'text-71i1r0nmu', state: 'P' },
+{ id: 'text-kekih49cm', state: 'R' }
+]
+}
+New photos to process: { count: 0, ids: [] }
+Removed photos to process: { count: 1, ids: [ 'text-kekih49cm' ] }
+Processing removal of photo text-kekih49cm
+Error processing removal for photo text-kekih49cm: error: invalid input syntax for type uuid: "text-kekih49cm"
+at /workspace/server/node_modules/pg/lib/client.js:545:17
+at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+at async file:///workspace/server/routes/memory.js:315:37 {
+length: 146,
+severity: 'ERROR',
+code: '22P02',
+detail: undefined,
+hint: undefined,
+position: undefined,
+internalPosition: undefined,
+internalQuery: undefined,
+where: "unnamed portal parameter $1 = '...'",
+schema: undefined,
+table: undefined,
+column: undefined,
+dataType: undefined,
+constraint: undefined,
+file: 'uuid.c',
+line: '138',
+routine: 'string_to_uuid'
+}
+Error in memory update: {
+error: 'current transaction is aborted, commands ignored until end of transaction block',
+stack: 'error: current transaction is aborted, commands ignored until end of transaction block\n' +
+' at /workspace/server/node_modules/pg/lib/client.js:545:17\n' +
+' at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n' +
+' at async file:///workspace/server/routes/memory.js:361:26'
+}
+Error: error: current transaction is aborted, commands ignored until end of transaction block
+at /workspace/server/node_modules/pg/lib/client.js:545:17
+at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+at async file:///workspace/server/routes/memory.js:361:26 {
+length: 145,
+severity: 'ERROR',
+code: '25P02',
+detail: undefined,
+hint: undefined,
+position: undefined,
+internalPosition: undefined,
+internalQuery: undefined,
+where: undefined,
+schema: undefined,
+table: undefined,
+column: undefined,
+dataType: undefined,
+constraint: undefined,
+file: 'postgres.c',
+line: '1498',
+routine: 'exec_parse_message'
+}
+Error Name: error
+Error Code: 25P02
+Error Message: current transaction is aborted, commands ignored until end of transaction block
+
+DB:
+
+configuration_data from viewconfig.sql
+
+{
+"texts": [
+{
+"x": 343.1888795439055,
+"y": 265.5048790766631,
+"id": "text-71i1r0nmu",
+"fill": "#000000",
+"text": "New Text",
+"type": "text",
+"wrap": "word",
+"align": "center",
+"width": 430,
+"height": 30,
+"padding": 10,
+"fontSize": 24,
+"rotation": 46.41442321140214,
+"fontStyle": "normal",
+"fontFamily": "Arial",
+"borderColor": "",
+"borderWidth": 0,
+"verticalAlign": "middle",
+"textDecoration": "",
+"backgroundColor": "",
+"backgroundShape": "none"
+},
+{
+"x": 203.9999999999999,
+"y": 207.99999999999991,
+"id": "text-kekih49cm",
+"fill": "#000000",
+"text": "New Text",
+"type": "text",
+"wrap": "word",
+"align": "center",
+"width": 524,
+"height": 157,
+"padding": 10,
+"fontSize": 24,
+"rotation": 0,
+"fontStyle": "normal",
+"fontFamily": "Arial",
+"borderColor": "",
+"borderWidth": 0,
+"verticalAlign": "middle",
+"textDecoration": "",
+"backgroundColor": "",
+"backgroundShape": "none"
+}
+],
+"photos": [
+{
+"x": 1433.3650767304875,
+"y": 195.73091192795067,
+"id": "78eac599-9c35-4cb2-8454-c67df99b0494",
+"width": 382,
+"height": 193,
+"rotation": 42.33011023799231
+}
+],
+"viewState": {
+"scale": 1,
+"position": {
+"x": 14,
+"y": -1
+}
+}
+}
+
+select \* from photos
+"id","user_id","file_path","file_hash","mime_type","size_bytes","width","height","location_lat","location_lng","captured_place","captured_at","metadata","created_at","updated_at"
+"78eac599-9c35-4cb2-8454-c67df99b0494",1,"78eac599/78eac599-9c35-4cb2-8454-c67df99b0494.webp","","image/webp","75042",1860,943,"","","","","{""displayWidth"":548,""displayHeight"":277,""uploadTimestamp"":""2025-06-21T13:16:33.598Z""}","2025-06-21 13:16:33.583246+00","2025-06-21 13:16:33.583246+00"
+"ba9bdc73-0d4e-4d19-9930-2805ee119f1b",1,"ba9bdc73/ba9bdc73-0d4e-4d19-9930-2805ee119f1b.webp","","image/webp","75042",1860,943,"","","","","{""displayWidth"":348,""displayHeight"":176,""uploadTimestamp"":""2025-06-21T06:03:51.791Z""}","2025-06-21 06:03:51.773817+00","2025-06-21 06:03:51.773817+00"

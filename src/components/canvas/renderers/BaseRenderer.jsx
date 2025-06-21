@@ -11,6 +11,7 @@ export class BaseRenderer {
     this.onEditEnd = props.onEditEnd;
     this.isBeingEdited = props.isBeingEdited;
     this.groupRef = React.createRef();
+    //this.version = this.element?.version || 0;
   }
 
   // Base properties - automatically available to all child classes
@@ -150,9 +151,9 @@ export class BaseRenderer {
   // Common render method
   //TODO: check if to use id + version + type as key. It seems that element does change even with same key
   render() {
-    console.log(`🎯 [RENDER] BaseRenderer rendering: ${this.element.id}`);
+    //console.log(`🎯 [RENDER] Rendering: ${this.element.id}`);
     return (
-      <React.Fragment key={this.element.id}>
+      <React.Fragment key={`${this.element.id}-${this.element.version}`}>
         <Group {...this.elementProps}>{this.renderContent()}</Group>
       </React.Fragment>
     );

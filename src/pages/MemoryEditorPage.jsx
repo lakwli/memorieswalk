@@ -67,7 +67,6 @@ const MemoryEditorPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { user, logout } = useAuth();
-  const rendererCacheRef = useRef(new Map());
 
   // Replace separate photo/text states with unified element management
   const {
@@ -167,21 +166,6 @@ const MemoryEditorPage = () => {
   const handleElementDelete = useCallback(
     (elementId) => {
       console.log(`🗑️ [USER] Deleting element: ${elementId}`);
-
-      // 1. Clean up renderer cache first
-      if (rendererCacheRef.current) {
-        const keysToRemove = [];
-        for (const key of rendererCacheRef.current.keys()) {
-          if (key.startsWith(elementId + "-")) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach((key) => {
-          //console.log(`🧹 Removing cached renderer: ${key}`);
-          rendererCacheRef.current.delete(key);
-        });
-        //console.log(`🧹 Cache cleanup completed for: ${elementId}`);
-      }
 
       // 2. Remove element from state
       removeElement(elementId);
@@ -387,7 +371,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, []); //ignore the elementbeahvors. if add it it will refresh the whole screen
+  }, [elementStates, id, setElements, toast]); //ignore the elementbeahvors. if add it it will refresh the whole screen
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
@@ -1206,50 +1190,10 @@ const MemoryEditorPage = () => {
                       onEditEnd: editingManager.endEditing,
                     };
 
-                    const currentKey = `${element.id}-${element.version}`;
-                    let renderer = rendererCacheRef.current.get(currentKey);
-
-                    if (!renderer) {
-                      //console.log(
-                      //  `🟡 [RENDER] Rendering not found: ${element.id}-${element.version}`
-                      //);
-                      // Key not found - create new one
-                      renderer = RendererFactory.createRenderer(
-                        element,
-                        rendererProps
-                      );
-                      rendererCacheRef.current.set(currentKey, renderer);
-                      //console.log(
-                      //  `🟡 [RENDER, CACHE] Re-Render and Set to Cache: ${currentKey}`
-                      //);
-                    } else {
-                      console.log(
-                        `🟡 [RENDER] Re-use Renderer: ${element.id}-${element.version}`
-                      );
-                    }
-                    // Key found - check if there are multiple versions for this element
-                    const elementKeys = [];
-                    for (const key of rendererCacheRef.current.keys()) {
-                      if (key.startsWith(element.id + "-")) {
-                        elementKeys.push(key);
-                      }
-                    }
-
-                    //console.log(`🟡 Total cache: ${elementKeys}`);
-                    if (elementKeys.length > 1) {
-                      // Multiple versions found - keep current, delete others
-                      elementKeys.forEach((key) => {
-                        if (key !== currentKey) {
-                          //console.log(
-                          // `🧹 [CACHE] Cleaning up old renderer: ${key}`
-                          //);
-                          rendererCacheRef.current.delete(key);
-                        }
-                      });
-                    }
-                    // If only one version, just return the existing renderer (no cleanup needed)
-
-                    return renderer;
+                    return RendererFactory.createRenderer(
+                      element,
+                      rendererProps
+                    );
                   })}
 
                   <Transformer
