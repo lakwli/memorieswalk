@@ -75,6 +75,7 @@ const useCanvasNavigation = ({
    */
   const handleWheel = useCallback(
     (e) => {
+      console.log("🖱️ [USER] Wheel");
       e.evt.preventDefault();
       const direction = e.evt.deltaY > 0 ? "out" : "in";
       const pointer = stageRef.current?.getPointerPosition();

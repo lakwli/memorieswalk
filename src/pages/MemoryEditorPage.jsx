@@ -751,6 +751,7 @@ const MemoryEditorPage = () => {
 
   // ✅ BETTER: Self-contained fullscreen toggle
   const toggleFullScreen = async () => {
+    console.log("🖱️ [USER] Full Screen");
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
