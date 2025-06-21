@@ -27,7 +27,41 @@ class ElementBehaviors {
     };
     return createCanvasElement(ELEMENT_TYPES.PHOTO, props);
   };
+  createTextElementFromData = (textData, textConfig = {}) => {
+    const fallbackPosition = { x: 100, y: 100 };
+    const fallbackSize = { width: 200, height: 50 };
 
+    const props = {
+      ...textData,
+      ...textConfig,
+      id: String(
+        textData.id || `text-${Math.random().toString(36).substr(2, 9)}`
+      ),
+      x:
+        textData.x !== undefined
+          ? textData.x
+          : textConfig.x !== undefined
+          ? textConfig.x
+          : fallbackPosition.x,
+      y:
+        textData.y !== undefined
+          ? textData.y
+          : textConfig.y !== undefined
+          ? textConfig.y
+          : fallbackPosition.y,
+      width: textData.width || textConfig.width || fallbackSize.width,
+      height: textData.height || textConfig.height || fallbackSize.height,
+      rotation: textData.rotation || textConfig.rotation || 0,
+      fontSize: textData.fontSize || textConfig.fontSize || 24,
+      fontFamily: textData.fontFamily || textConfig.fontFamily || "Arial",
+      color: textData.color || textConfig.color || "#222",
+      text: textData.text || "",
+      align: textData.align || textConfig.align || "left",
+      // Add any other properties your TextElement expects
+    };
+
+    return createCanvasElement(ELEMENT_TYPES.TEXT, props);
+  };
   handleElementDelete = (element) => {
     if (element.cleanup) {
       element.cleanup();

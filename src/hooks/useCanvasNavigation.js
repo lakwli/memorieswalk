@@ -161,9 +161,7 @@ const useCanvasNavigation = ({
    */
   const handleStageDragEnd = useCallback((e) => {
     const stage = e.target;
-    console.log(
-      "🖱️ handleStageDragEnd called - panning completed via draggable"
-    );
+    console.log("🖱️ [DRAG] Panning completed");
 
     // Update our position state to match the stage's new position
     setStagePosition({
@@ -173,37 +171,12 @@ const useCanvasNavigation = ({
   }, []);
 
   /**
-   * Check if the target is the Stage itself (empty space) for conditional dragging
-   * This helps determine when canvas panning should be enabled
-   */
-  const isStageTarget = useCallback((e) => {
-    const isStage = e.target === e.target.getStage();
-    console.log("🎯 isStageTarget check:", {
-      isStage,
-      targetName: e.target.getClassName(),
-      stageName: e.target.getStage().getClassName(),
-    });
-    return isStage;
-  }, []);
-
-  /**
    * Handle stage drag start - only allow dragging when clicking on empty space
    * This prevents canvas panning when clicking on elements
    */
-  const handleStageDragStart = useCallback(
-    (e) => {
-      console.log("🖱️ Stage drag start event triggered");
-      // Only allow dragging if clicking on the Stage itself (empty space), not on elements
-      if (!isStageTarget(e)) {
-        // Prevent dragging by canceling the event
-        console.log("🚫 Stage drag blocked - not clicking on Stage");
-        e.target.stopDrag();
-        return;
-      }
-      console.log("🖱️ Stage drag started on empty space - panning should work");
-    },
-    [isStageTarget]
-  );
+  const handleStageDragStart = useCallback(() => {
+    console.log("🖱️ [DRAG] Panning Start");
+  }, []);
 
   return {
     // State
@@ -223,7 +196,6 @@ const useCanvasNavigation = ({
     handleWheel,
     handleStageDragEnd,
     handleStageDragStart,
-    isStageTarget,
 
     // Constants for external use
     MIN_SCALE,

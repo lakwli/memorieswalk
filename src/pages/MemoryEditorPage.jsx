@@ -51,7 +51,7 @@ import {
 import elementBehaviors from "../hooks/useElementBehaviors";
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
-import { TextElement } from "../components/canvas/elements";
+//import { TextElement } from "../components/canvas/elements";
 import { RendererFactory } from "../components/canvas/renderers/RendererFactory";
 import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
 import { useAuth } from "../context/AuthContext";
@@ -63,19 +63,6 @@ import { canvasUtils } from "../utils/canvasUtils";
 import { photoUtils } from "../utils/photoUtils";
 
 const MemoryEditorPage = () => {
-  const instanceId = useRef(`mem-editor-${Date.now()}`).current;
-
-  if (!window.memoryEditorRenderCount) window.memoryEditorRenderCount = 0;
-  window.memoryEditorRenderCount++;
-
-  console.log(
-    `🏠 MemoryEditorPage #${window.memoryEditorRenderCount} - Instance: ${instanceId}`
-  );
-
-  //console.log(`🏠 MemoryEditorPage render #${window.memoryEditorRenderCount}`);
-  //console.log(`🏠 MemoryEditorPage timestamp: ${new Date().toISOString()}`);
-  //const prevDepsRef = useRef();
-
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -155,14 +142,6 @@ const MemoryEditorPage = () => {
     },
   });
 
-  // ✅ Add this logging right after Upload Manager hook
-  console.log("🔍 Upload Manager state:", {
-    isUploading,
-    uploadStatus,
-    currentProgress,
-    currentPhase,
-  });
-
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
 
@@ -221,11 +200,11 @@ const MemoryEditorPage = () => {
 
       // Do nothing if selection hasn't changed
       if (previousId === newId) {
-        console.log("🔍 Selection unchanged, skipping:", newId);
+        //console.log("🔍 Selection unchanged, skipping:", newId);
         return;
       }
 
-      console.log("🔍 Selection changing:", { from: previousId, to: newId });
+      console.log("🔍 [SELECT]:", { from: previousId, to: newId });
 
       // End any current editing session
       if (editingManager.editingElement) {
@@ -234,28 +213,17 @@ const MemoryEditorPage = () => {
 
       // Update React state
       setNewSelectedElement(newElement);
-
-      // Update transformer based on new selection
-      //updateTransformer(newElement);
-      //setToolbarElementId(newId);
     },
-    [
-      editingManager,
-      setNewSelectedElement,
-      selectedElement,
-      //updateTransformer,
-    ] // ← Add updateTransformer
+    [editingManager, setNewSelectedElement, selectedElement] // ← Add updateTransformer
   );
 
   const handleStageClick = useCallback(
     (e) => {
-      console.log("🔍 handleStageClick called - determining what was clicked");
-
       const clickedNode = e.target;
       const stage = e.target.getStage();
 
       if (clickedNode === stage) {
-        // Clicked on empty stage - clear selection
+        console.log("🔍 [Click] Detect Click On Stage");
         handleElementSelection(null);
       } else {
         // Walk up to find element ID
@@ -274,6 +242,9 @@ const MemoryEditorPage = () => {
         if (elementId) {
           const foundElement = elements.find((el) => el.id === elementId);
           if (foundElement) {
+            console.log(
+              `🔍 [Click] Detect Click On Element ${foundElement.id}`
+            );
             // Use centralized selection handler
             handleElementSelection(foundElement);
           }
@@ -296,14 +267,7 @@ const MemoryEditorPage = () => {
 
   // Load memory with new element system
   useEffect(() => {
-    console.log("🔵 useEffect #3 - Load memory fired");
-    /**
-    console.log("  - id:", id);
-    console.log("  - toast:", typeof toast);
-    console.log("  - setElements:", typeof setElements);
-    console.log("  - elementStates:", !!elementStates);
-    console.log("  - getTool:", typeof getTool);
- */
+    console.log("🔵 [DB] Retrive Memory. Triggered with useEffect #3");
     const loadMemory = async () => {
       try {
         setLoading(true);
@@ -387,11 +351,8 @@ const MemoryEditorPage = () => {
         // Load texts as TextElements
         if (data.canvas_config?.texts) {
           const textElements = data.canvas_config.texts.map((text) => {
-            const textElement = new TextElement({
+            const textElement = elementBehaviors.createTextElementFromData({
               ...text,
-              id: String(
-                text.id || `text-${Math.random().toString(36).substr(2, 9)}`
-              ),
             });
 
             // ALL elements MUST have state - assign PERSISTED to loaded text elements
@@ -426,7 +387,7 @@ const MemoryEditorPage = () => {
     };
 
     loadMemory();
-  }, [id, toast, setElements, elementStates]); //ignore the elementbeahvors. if add it it will refresh the whole screen
+  }, []); //ignore the elementbeahvors. if add it it will refresh the whole screen
 
   // Refactored save function
   const saveMemoryLayout = useCallback(async () => {
@@ -1155,9 +1116,7 @@ const MemoryEditorPage = () => {
   }
 
   return (() => {
-    console.log(
-      "🔄 MemoryEditorPage render method called from , Instance: ${instanceId}"
-    );
+    console.log("🔄 [RENDER] MemoryEditorPage is re-render");
     return (
       <ErrorBoundary>
         <Flex direction="column" height="100vh" bg="gray.50">
@@ -1204,28 +1163,10 @@ const MemoryEditorPage = () => {
                   }
                 }}
                 onDragStart={(e) => {
-                  /**
-                  console.log("🔴 ===== onDragStart EVENT FIRED =====");
-                  console.log(
-                    "🔴 onDragStart - target type:",
-                    e.target.getClassName?.() || "unknown"
-                  );
-                  console.log(
-                    "🔴 onDragStart - target ID:",
-                    e.target.id?.() || "no-id"
-                  );
-                  console.log("🔴 onDragStart - timestamp:", Date.now());
-                  console.log(
-                    "🔴 onDragStart - is Stage?",
-                    e.target === e.target.getStage()
-                  );
- */
                   const isStageTarget = e.target === e.target.getStage();
 
                   if (isStageTarget) {
-                    console.log(
-                      "🔴 onDragStart - Stage target, starting canvas drag"
-                    );
+                    console.log("🔴 [DRAG] - Drag on Canvas");
                     e.target.getStage().container().style.cursor = "grabbing";
                     handleStageDragStart(e);
                   } else {
@@ -1242,11 +1183,11 @@ const MemoryEditorPage = () => {
                   const isStageTarget = e.target === e.target.getStage();
 
                   if (isStageTarget) {
-                    console.log("🟡 Handling stage drag end");
+                    //console.log("🟡 Handling stage drag end");
                     e.target.getStage().container().style.cursor = "grab";
                     handleStageDragEnd(e);
                   } else {
-                    console.log("🟡 Ignoring non-stage drag event");
+                    //console.log("🟡 Ignoring non-stage drag event");
                   }
                 }}
               >
