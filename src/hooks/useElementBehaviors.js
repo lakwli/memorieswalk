@@ -2,14 +2,6 @@ import { createCanvasElement } from "../components/canvas/elements/elementFactor
 import { ELEMENT_TYPES } from "../constants/elementTypes.js";
 
 class ElementBehaviors {
-  handleElementDoubleClick = (element) => {
-    return () => {
-      this.editingManager.startEditing(element);
-      this.setSelectedElement(element);
-      return true;
-    };
-  };
-
   createPhotoElementFromData = (photoData, photoConfig, img, objectURL) => {
     const fallbackPosition = { x: 100, y: 100 };
     const props = {
@@ -62,13 +54,6 @@ class ElementBehaviors {
 
     return createCanvasElement(ELEMENT_TYPES.TEXT, props);
   };
-  handleElementDelete = (element) => {
-    if (element.cleanup) {
-      element.cleanup();
-    }
-    this.removeElement(element.id);
-  };
-
   addElementIntoCanvas = (element, stageRef) => {
     const stage = stageRef.current;
     if (stage) {

@@ -48,6 +48,7 @@ import {
   useCanvasNavigation,
   useUploadManager,
 } from "../hooks";
+import useElementEditing from "../hooks/useElementEditing";
 import elementBehaviors from "../hooks/useElementBehaviors";
 // Import new toolbar system
 import { ElementToolbar } from "../components/canvas/toolbars";
@@ -78,7 +79,6 @@ const MemoryEditorPage = () => {
     editingManager,
     elementStates, // This replaces photoStates.current
     createElement,
-    removeElement, // Add removeElement to handle proper deletion
     updateElement,
     getElementsByType,
   } = useCanvasElements();
@@ -141,6 +141,9 @@ const MemoryEditorPage = () => {
     },
   });
 
+  // Destructure handleElementDoubleClick and handleElementDelete from useElementEditing
+  const { handleElementDoubleClick, handleElementDelete } = useElementEditing();
+
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
 
@@ -160,20 +163,6 @@ const MemoryEditorPage = () => {
 
     trRef.current.getLayer()?.batchDraw();
   }, [selectedElement, editingManager]);
-
-  // Update the element deletion handler
-  // In MemoryEditorPage.jsx
-  const handleElementDelete = useCallback(
-    (elementId) => {
-      console.log(`🗑️ [USER] Deleting element: ${elementId}`);
-
-      // 2. Remove element from state
-      removeElement(elementId);
-
-      // console.log(`✅ Element deletion completed: ${elementId}`);
-    },
-    [removeElement]
-  );
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
@@ -1179,7 +1168,10 @@ const MemoryEditorPage = () => {
                     // Inline renderer props (fixed per renderer)
                     const rendererProps = {
                       onUpdate: updateElement,
-                      interactionHandlers: elementBehaviors,
+                      interactionHandlers: {
+                        handleElementDoubleClick,
+                        handleElementDelete,
+                      },
                       isBeingEdited: editingManager.isElementEditing(
                         element.id
                       ),
