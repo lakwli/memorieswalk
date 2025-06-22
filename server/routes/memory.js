@@ -223,22 +223,6 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
     if (Array.isArray(photos)) {
       // Extract elementStates (was photoStates) from request body if present
       const elementStates = req.body.photoStates || {};
-
-      // Build a mapping of elementId -> type from canvas config
-      const elementTypeMap = {};
-      if (canvas?.photos) {
-        for (const photo of canvas.photos) {
-          if (photo.id) elementTypeMap[photo.id] = "photo";
-        }
-      }
-      if (canvas?.texts) {
-        for (const text of canvas.texts) {
-          if (text.id) elementTypeMap[text.id] = "text";
-        }
-      }
-      // Add more element types here as needed
-
-      // Prepare state entries by type
       const stateEntries = Object.entries(elementStates);
 
       // --- PHOTO LOGIC ---
@@ -305,10 +289,12 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
 
       // Handle removed photos (R)
       const removedPhotoIds = stateEntries
-        .filter(
-          ([id, state]) =>
-            elementTypeMap[id] === "photo" && state === ELEMENT_STATES.REMOVED
-        )
+        .filter(([id, state]) => {
+          // Only process if id exists, does NOT start with 'text', and is REMOVED
+          return (
+            id && !id.startsWith("text") && state === ELEMENT_STATES.REMOVED
+          );
+        })
         .map(([id]) => id);
       for (const photoId of removedPhotoIds) {
         console.log(`Processing removal of photo ${photoId}`);
