@@ -219,27 +219,33 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       );
     }
 
-    // 3. Process photos based on their states
+    // 3. Process elements based on their states and type
     if (Array.isArray(photos)) {
-      // Extract photoStates from request body if present
-      const photoStates = req.body.photoStates || {};
+      // Extract elementStates (was photoStates) from request body if present
+      const elementStates = req.body.photoStates || {};
 
-      console.log("Processing photos:", {
-        totalPhotos: photos.length,
-        photoStates: Object.entries(photoStates).map(([id, state]) => ({
-          id,
-          state,
-        })),
-      });
+      // Build a mapping of elementId -> type from canvas config
+      const elementTypeMap = {};
+      if (canvas?.photos) {
+        for (const photo of canvas.photos) {
+          if (photo.id) elementTypeMap[photo.id] = "photo";
+        }
+      }
+      if (canvas?.texts) {
+        for (const text of canvas.texts) {
+          if (text.id) elementTypeMap[text.id] = "text";
+        }
+      }
+      // Add more element types here as needed
 
-      // Handle new photos (N) - look up state in photoStates object by photo ID
+      // Prepare state entries by type
+      const stateEntries = Object.entries(elementStates);
+
+      // --- PHOTO LOGIC ---
+      // Handle new photos (N)
       const newPhotos = photos.filter(
-        (p) => photoStates[p.id] === ELEMENT_STATES.NEW
+        (p) => elementStates[p.id] === ELEMENT_STATES.NEW
       );
-      console.log("New photos to process:", {
-        count: newPhotos.length,
-        ids: newPhotos.map((p) => p.id),
-      });
       for (const photo of newPhotos) {
         const filePath = `${photo.id.split("-")[0]}/${photo.id}.webp`;
         console.log(
@@ -297,16 +303,13 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
         console.log(`Photo ${photo.id} - step 4: Processing complete`);
       }
 
-      // Handle removed photos (R) - look up state in photoStates object by photo ID
-      const removedPhotoIds = Object.entries(photoStates)
-        .filter(([, state]) => state === ELEMENT_STATES.REMOVED)
+      // Handle removed photos (R)
+      const removedPhotoIds = stateEntries
+        .filter(
+          ([id, state]) =>
+            elementTypeMap[id] === "photo" && state === ELEMENT_STATES.REMOVED
+        )
         .map(([id]) => id);
-
-      console.log("Removed photos to process:", {
-        count: removedPhotoIds.length,
-        ids: removedPhotoIds,
-      });
-
       for (const photoId of removedPhotoIds) {
         console.log(`Processing removal of photo ${photoId}`);
 
