@@ -6,17 +6,17 @@ export const useCanvasElements = () => {
   const [elements, setElements] = useState([]);
   const [selectedElement, setSelectedElement] = useState(null);
   const [isEditing, setIsEditing] = useState(false); // ← Simple boolean flag
-  const elementStates = useRef({}); // For photo states or other element-specific state
-  const editingElement = isEditing ? selectedElement : null;
+  const elementStates = useRef({}); // For photo states or other element-specific state. Use for retrieve and save
+
   const selectedElementRef = useRef(selectedElement);
+
   useEffect(() => {
     selectedElementRef.current = selectedElement;
   }, [selectedElement]);
 
   const setNewSelectedElement = useCallback((element) => {
-    console.log("🔄 [SELECT]:", element?.id);
-
     setSelectedElement((currentSelected) => {
+      console.log("🔄 [SELECT]:", element?.id, " Prev:", currentSelected?.id);
       return element === currentSelected ? currentSelected : element;
     });
   }, []); // ✅ Empty dependencies
@@ -29,7 +29,6 @@ export const useCanvasElements = () => {
           console.log("🔄 Element not found:", elementId);
           return prev;
         }
-
         console.log("🔄 [UPDATE]:", elementId, "with:", updates);
 
         element.newUpdate(updates);
@@ -45,11 +44,6 @@ export const useCanvasElements = () => {
 
   const editingManager = useMemo(
     () => ({
-      // Check if element is in editing mode
-      isElementEditing: (elementId) => {
-        return isEditing && selectedElement?.id === elementId;
-      },
-
       // Start editing mode for an element
       startEditing: (element) => {
         if (element) {
@@ -62,19 +56,11 @@ export const useCanvasElements = () => {
       endEditing: () => {
         setIsEditing(false);
       },
-
-      // Update element while preserving editing state
-      updateElementInEditMode: (elementId, updates) => {
-        console.log("📝 updateElementInEditMode called:", {
-          elementId,
-          updates,
-          timestamp: new Date().toISOString(),
-        });
-
-        updateElement(elementId, updates);
+      isEditing: () => {
+        return isEditing;
       },
     }),
-    [isEditing, selectedElement?.id, setNewSelectedElement, updateElement]
+    [isEditing, setNewSelectedElement]
   );
 
   // Create element
@@ -176,13 +162,6 @@ export const useCanvasElements = () => {
     setIsEditing(false);
   }, []);
 
-  // Check if element is currently being edited
-  const isElementEditing = useCallback(
-    (elementId) => {
-      return isEditing && selectedElement?.id === elementId;
-    },
-    [isEditing, selectedElement]
-  );
   // Get elements by type
   const getElementsByType = useCallback(
     (type) => {
@@ -212,12 +191,10 @@ export const useCanvasElements = () => {
     //getSelectedElement, // ✅ Make sure this is include
     setSelectedElementById, // ✅ Add this to use the function
     setNewSelectedElement, // Export the unused function
-    editingElement,
     editingManager,
     isEditing, // ← Add this missing export
     startEditing, // ← Add this missing export
     endEditing, // ← Add this missing export
-    isElementEditing, // ← Add this missing export
 
     elementStates,
     createElement,

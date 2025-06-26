@@ -85,7 +85,7 @@ const generateSpeechBubblePath = (width, height, padding = 10) => {
 class TextRendererClass extends BaseRenderer {
   constructor(props) {
     super(props);
-    this.textRef = React.createRef();
+    //this.textRef = React.createRef();
     this.textareaRef = React.createRef();
   }
 
@@ -115,15 +115,6 @@ class TextRendererClass extends BaseRenderer {
     textarea.style.padding = `${padding * scale}px`;
   }
 
-  // Handle double-click to edit text
-  handleElementDoubleClick(e) {
-    // First call parent implementation for common behavior
-    super.handleElementDoubleClick(e);
-
-    // Then add text-specific behavior
-    this.handleTextSpecificDoubleClick(e);
-  }
-
   // Override resize behavior for text elements
   resize(scaleX, scaleY) {
     console.log("📝 TextRenderer handleElementResize");
@@ -138,13 +129,10 @@ class TextRendererClass extends BaseRenderer {
     };
   }
 
-  handleTextSpecificDoubleClick(e) {
-    if (this.isBeingEdited) return;
-
-    // Notify parent that editing has started (this will trigger toolbar editing mode)
-    if (this.onEditStart) {
-      this.onEditStart();
-    }
+  onUITurnToEditMode(e) {
+    console.log(
+      "📝 [RENDER-TEXT-EDITMODE] Convert into text editing structure"
+    );
 
     const stage = e.target.getStage();
     const textPosition = this.textRef.current.absolutePosition();
@@ -183,48 +171,45 @@ class TextRendererClass extends BaseRenderer {
     textarea.focus();
     textarea.select();
 
-    // Handle text changes
-    const handleTextChange = () => {
-      if (this.onUpdate) {
-        this.onUpdate({
-          ...this.element,
-          text: textarea.value,
-        });
-      }
-    };
-
-    // Finish editing
-    const finishEditing = () => {
-      this.textareaRef.current = null; // Clear reference
-      document.body.removeChild(textarea);
-      this.textRef.current.visible(true);
-      stage.batchDraw();
-
-      // Notify parent that editing has ended
-      if (this.onEditEnd) {
-        this.onEditEnd();
-      }
-    };
-
     // Set event handlers
     textarea.addEventListener("keydown", (e) => {
-      // Enter + shift adds newline, but Enter alone completes editing
-      if (e.keyCode === 13 && !e.shiftKey) {
-        handleTextChange();
-        finishEditing();
-      }
-      // Escape cancels editing without changes
-      if (e.keyCode === 27) {
-        finishEditing();
-      }
+      super.handleKeyboardTrigger(e);
     });
 
     textarea.addEventListener("blur", () => {
-      handleTextChange();
-      finishEditing();
+      super.handleBlurTrigger(e);
     });
   }
 
+  // In TextRendererClass
+  captureInputChange(e) {
+    return {
+      id: this.element.id,
+      update: {
+        text: e.target.value,
+        // ...any other fields you want to update
+      },
+    };
+  }
+
+  // Finish editing
+  onUITurnToEditCompleteMode() {
+    console.log("📝 [RENDER-TEXT-EDITMODE]  Leaving text editing structure");
+    // Try to get textarea and stage from the event or from refs
+    const textarea = this.textareaRef.current;
+    const stage =
+      this.textRef && this.textRef.current
+        ? this.textRef.current.getStage()
+        : null;
+
+    // Defensive: only remove if textarea is a real DOM node and has a parent
+    if (textarea && textarea instanceof Node && textarea.parentNode) {
+      textarea.parentNode.removeChild(textarea);
+    }
+    this.textareaRef.current = null;
+    if (this.textRef.current) this.textRef.current.visible(true);
+    if (stage) stage.batchDraw();
+  }
   renderBackground() {
     const width = this.element.width || 200;
     const height = this.element.height || 60;

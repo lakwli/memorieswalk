@@ -10,10 +10,6 @@ class PhotoRendererClass extends BaseRenderer {
   renderContent() {
     return (
       <KonvaImage
-        // ✅ Remove {...this.elementProps} - pass specific props only
-        onDblClick={this.interactionHandlers.handleElementDoubleClick(
-          this.element
-        )}
         image={this.element.image}
         width={this.element.width}
         height={this.element.height}

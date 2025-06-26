@@ -7,10 +7,9 @@ export class BaseRenderer {
     this.element = props.element;
     this.interactionHandlers = props.interactionHandlers;
     this.onUpdate = props.onUpdate;
-    this.onEditStart = props.onEditStart;
-    this.onEditEnd = props.onEditEnd;
     this.isBeingEdited = props.isBeingEdited;
     this.groupRef = React.createRef();
+    this.textRef = props.textRef || React.createRef();
     //this.version = this.element?.version || 0;
   }
 
@@ -95,12 +94,61 @@ export class BaseRenderer {
     //);
     //console.log("🔶 handleElementDragEnd completed");
   }
-
-  handleElementDoubleClick(e) {
-    e.cancelBubble = true;
-    return this.interactionHandlers.handleElementDoubleClick(this.element)(e);
+  handleBlurTrigger(e) {
+    console.log(`🔶 [USER] On Blur on textbox  ID=${this.element.id}`);
+    this.interactionHandlers.onEditCancel();
+    this.onUITurnToEditCompleteMode(e);
+    this.isBeingEdited = false;
+  }
+  handleKeyboardTrigger(e) {
+    // Enter + shift adds newline, but Enter alone completes editing
+    if (e.key === "Enter" && !e.shiftKey) {
+      console.log(`🔶 [USER] Press ENTER on textbox  ID=${this.element.id}`);
+      const result = this.captureInputChange(e);
+      if (result) {
+        this.interactionHandlers.onEditEnd(result)(e);
+      }
+      this.onUITurnToEditCompleteMode(e);
+      this.isBeingEdited = false;
+    }
+    // Escape cancels editing without changes
+    if (e.key === "Escape") {
+      console.log(
+        `🔶 [USER] Press Escape on textbox  ID=${this.element.id} ${this.textRef.current}`
+      );
+      this.onUITurnToEditCompleteMode(e);
+      this.interactionHandlers.onEditEnd(null)(e);
+      this.isBeingEdited = false;
+    }
   }
 
+  handleElementDoubleClick(e) {
+    console.log(
+      `🔶 [USER] Double Click ID=${this.element.id} EDIT?:${this.isBeingEdited}`
+    );
+    if (this.isBeingEdited) return;
+    e.cancelBubble = true;
+
+    this.interactionHandlers.onEditStart(this.element)(e);
+    this.onUITurnToEditMode(e);
+
+    this.isBeingEdited = true;
+  }
+  onUITurnToEditMode(e) {
+    // Default: do nothing or throw to force subclass to implement
+    throw new Error("onUITurnToEditMode must be implemented by subclass", e);
+  }
+  captureInputChange(e) {
+    // Default: do nothing or throw to force subclass to implement
+    throw new Error("captureInputChange must be implemented by subclass", e);
+  }
+  onUITurnToEditCompleteMode(e) {
+    // Default: do nothing or throw to force subclass to implement
+    throw new Error(
+      "onUITurnToEditCompleteMode must be implemented by subclass",
+      e
+    );
+  }
   handleElementTransform(e) {
     //console.log("🔶 BaseRenderer handleElementTransform");
     e.cancelBubble = true;
@@ -170,11 +218,10 @@ BaseRenderer.basePropTypes = {
     draggable: PropTypes.bool,
   }).isRequired,
   interactionHandlers: PropTypes.shape({
-    handleElementDoubleClick: PropTypes.func.isRequired,
+    onEditStart: PropTypes.func.isRequired,
+    onEditEnd: PropTypes.func.isRequired,
     handleElementDelete: PropTypes.func.isRequired,
   }).isRequired,
   onUpdate: PropTypes.func,
-  onEditStart: PropTypes.func,
-  onEditEnd: PropTypes.func,
   isBeingEdited: PropTypes.bool,
 };

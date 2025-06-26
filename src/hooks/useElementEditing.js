@@ -1,18 +1,19 @@
 import { useCallback } from "react";
-import { useCanvasElements } from "./useCanvasElements";
 
 /**
  * Hook to provide editing handlers for canvas elements.
  * Returns: { handleElementDoubleClick, handleElementDelete }
  */
-export default function useElementEditing() {
-  const { editingManager, setNewSelectedElement, removeElement } =
-    useCanvasElements();
-
+export default function useElementEditing({
+  editingManager,
+  setNewSelectedElement,
+  updateElement,
+  removeElement,
+}) {
   // Returns a function suitable for use as a double-click handler
-  const handleElementDoubleClick = useCallback(
+  const onEditStart = useCallback(
     (element) => {
-      console.log(`🔶 [User]  Double Click ID=${element.id}`);
+      //console.log(`🔶 [User]  Double Click ID=${element.id}`);
       return () => {
         editingManager.startEditing(element);
         setNewSelectedElement(element);
@@ -22,6 +23,25 @@ export default function useElementEditing() {
     [editingManager, setNewSelectedElement]
   );
 
+  const onEditEnd = useCallback(
+    (result) => {
+      return () => {
+        if (result) {
+          updateElement(result.id, result.update);
+        }
+        editingManager.endEditing();
+        return true;
+      };
+    },
+    [editingManager, updateElement]
+  );
+
+  const onEditCancel = useCallback(() => {
+    return () => {
+      editingManager.endEditing();
+      return true;
+    };
+  }, [editingManager]);
   // Returns a function suitable for use as a delete handler
   const handleElementDelete = useCallback(
     (element) => {
@@ -33,5 +53,5 @@ export default function useElementEditing() {
     [removeElement]
   );
 
-  return { handleElementDoubleClick, handleElementDelete };
+  return { onEditStart, onEditEnd, onEditCancel, handleElementDelete };
 }

@@ -1,7 +1,7 @@
 // ============================================================================
 // REFACTORED MEMORY EDITOR COMPONENT
 // ============================================================================
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Stage, Layer, Transformer } from "react-konva";
 import {
@@ -75,12 +75,12 @@ const MemoryEditorPage = () => {
     setElements,
     setNewSelectedElement,
     selectedElement,
-    editingElement,
     editingManager,
     elementStates, // This replaces photoStates.current
     createElement,
     updateElement,
     getElementsByType,
+    removeElement,
   } = useCanvasElements();
 
   // Other existing state...
@@ -98,6 +98,7 @@ const MemoryEditorPage = () => {
   const trRef = useRef(null);
   const cancelRef = useRef();
   const stageContainerRef = useRef(null);
+  const textRefs = useRef({});
 
   // State to store initial canvas view settings from server
   const [initialViewState, setInitialViewState] = useState({
@@ -142,7 +143,14 @@ const MemoryEditorPage = () => {
   });
 
   // Destructure handleElementDoubleClick and handleElementDelete from useElementEditing
-  const { handleElementDoubleClick, handleElementDelete } = useElementEditing();
+  const { onEditStart, onEditEnd, onEditCancel, handleElementDelete } =
+    useElementEditing({
+      editingManager,
+      setNewSelectedElement,
+      selectedElement,
+      updateElement,
+      removeElement,
+    });
 
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
@@ -151,10 +159,7 @@ const MemoryEditorPage = () => {
     trRef.current.nodes([]);
 
     // Show transformer only if element selected and not editing
-    if (
-      selectedElement &&
-      !editingManager.isElementEditing(selectedElement.id)
-    ) {
+    if (selectedElement && !editingManager.isEditing()) {
       const konvaNode = konvaStageRef.current.findOne(`#${selectedElement.id}`);
       if (konvaNode) {
         trRef.current.nodes([konvaNode]);
@@ -176,13 +181,7 @@ const MemoryEditorPage = () => {
         //console.log("🔍 Selection unchanged, skipping:", newId);
         return;
       }
-
-      console.log("🔍 [SELECT]:", { from: previousId, to: newId });
-
-      // End any current editing session
-      if (editingManager.editingElement) {
-        editingManager.endEditing();
-      }
+      editingManager.endEditing();
 
       // Update React state
       setNewSelectedElement(newElement);
@@ -698,17 +697,14 @@ const MemoryEditorPage = () => {
 
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
-    console.log("🔵 useEffect #6 - Keyboard events fired");
-
     const handleKeyDown = (e) => {
+      console.log("🔵 useEffect #6 - Keyboard events fired:", e.key);
       // Handle Escape key only
       if (e.key === "Escape") {
         if (selectedElement) {
           setNewSelectedElement(null);
         }
-        if (editingElement) {
-          editingManager.endEditing(); // ← Use editingManager instead of setEditingElement
-        }
+        editingManager.endEditing(); // ← Use editingManager instead of setEditingElement
         if (document.fullscreenElement) {
           setIsFullScreen(false);
         }
@@ -720,7 +716,7 @@ const MemoryEditorPage = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedElement, editingElement, setNewSelectedElement, editingManager]); // ← Update dependencies
+  }, [selectedElement, setNewSelectedElement, editingManager]); // ← Update dependencies
 
   // ✅ BETTER: Self-contained fullscreen toggle
   const toggleFullScreen = async () => {
@@ -1165,21 +1161,20 @@ const MemoryEditorPage = () => {
               >
                 <Layer>
                   {elements.map((element) => {
+                    if (!textRefs.current[element.id]) {
+                      textRefs.current[element.id] = React.createRef();
+                    }
                     // Inline renderer props (fixed per renderer)
                     const rendererProps = {
                       onUpdate: updateElement,
                       interactionHandlers: {
-                        handleElementDoubleClick,
+                        onEditStart,
+                        onEditEnd,
+                        onEditCancel,
                         handleElementDelete,
                       },
-                      isBeingEdited: editingManager.isElementEditing(
-                        element.id
-                      ),
-                      onEditStart: () => {
-                        setNewSelectedElement(element);
-                        editingManager.startEditing(element);
-                      },
-                      onEditEnd: editingManager.endEditing,
+                      isBeingEdited: editingManager.isEditing(),
+                      textRef: textRefs.current[element.id],
                     };
 
                     return RendererFactory.createRenderer(
@@ -1205,9 +1200,7 @@ const MemoryEditorPage = () => {
                 <ElementToolbar
                   element={selectedElement}
                   isSelected={true}
-                  isEditing={editingManager.isElementEditing(
-                    selectedElement.id
-                  )} // ← Fix this
+                  isEditing={editingManager.isEditing()} // ← Fix this
                   onEdit={handleElementEdit}
                   onDelete={() => handleElementDelete(selectedElement.id)}
                   onUpdate={handleElementToolbarUpdate}
