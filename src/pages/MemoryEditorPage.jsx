@@ -100,6 +100,12 @@ const MemoryEditorPage = () => {
   const stageContainerRef = useRef(null);
   const textRefs = useRef({});
 
+  // Ref to track the editing renderer instance. It is been used to pass the click on stage to this renderer (to cancel edit)
+  const editingRendererRef = useRef(null);
+  const setEditReference = useCallback((rendererInstance) => {
+    editingRendererRef.current = rendererInstance;
+  }, []);
+
   // State to store initial canvas view settings from server
   const [initialViewState, setInitialViewState] = useState({
     scale: 1,
@@ -171,7 +177,7 @@ const MemoryEditorPage = () => {
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
-    (newElement) => {
+    (newElement, event) => {
       const previousElement = selectedElement;
       const previousId = previousElement?.id || null;
       const newId = newElement?.id || null;
@@ -181,6 +187,8 @@ const MemoryEditorPage = () => {
         //console.log("🔍 Selection unchanged, skipping:", newId);
         return;
       }
+
+      editingRendererRef.current?.handleBlurTrigger(event);
       editingManager.endEditing();
 
       // Update React state
@@ -195,8 +203,11 @@ const MemoryEditorPage = () => {
       const stage = e.target.getStage();
 
       if (clickedNode === stage) {
-        console.log("🔍 [Click] Detect Click On Stage");
-        handleElementSelection(null);
+        console.log(
+          "🔍 [Click] Detect Click On Stage. editingRendererRef:",
+          editingRendererRef.current?.displayInfo()
+        );
+        handleElementSelection(null, e);
       } else {
         // Walk up to find element ID
         let currentNode = clickedNode;
@@ -218,11 +229,11 @@ const MemoryEditorPage = () => {
               `🔍 [Click] Detect Click On Element ${foundElement.id}`
             );
             // Use centralized selection handler
-            handleElementSelection(foundElement);
+            handleElementSelection(foundElement, e);
           }
         } else {
           // No element found - clear selection
-          handleElementSelection(null);
+          handleElementSelection(null, e);
         }
       }
     },
@@ -698,9 +709,9 @@ const MemoryEditorPage = () => {
   // Simplified keyboard event handler - only Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      console.log("🔵 useEffect #6 - Keyboard events fired:", e.key);
       // Handle Escape key only
       if (e.key === "Escape") {
+        console.log("🔵 [USER] - Keyboard events fired:", e.key);
         if (selectedElement) {
           setNewSelectedElement(null);
         }
@@ -1108,17 +1119,6 @@ const MemoryEditorPage = () => {
                 y={stagePosition.y}
                 onWheel={handleWheel}
                 onClick={(e) => {
-                  /**
-                  console.log("🟢 ===== onClick EVENT FIRED =====");
-                  console.log(
-                    "🟢 onClick - target type:",
-                    e.target.getClassName?.() || "unknown"
-                  );
-                  console.log(
-                    "🟢 onClick - target ID:",
-                    e.target.id?.() || "no-id"
-                  );
-                  console.log("🟢 onClick - timestamp:", Date.now()); */
                   handleStageClick(e);
                 }}
                 draggable={true}
@@ -1173,6 +1173,7 @@ const MemoryEditorPage = () => {
                         onEditCancel,
                         handleElementDelete,
                       },
+                      setEditReference: setEditReference,
                       isBeingEdited: editingManager.isEditing(),
                       textRef: textRefs.current[element.id],
                     };

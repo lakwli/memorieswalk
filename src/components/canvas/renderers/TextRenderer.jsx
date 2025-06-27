@@ -175,10 +175,10 @@ class TextRendererClass extends BaseRenderer {
     textarea.addEventListener("keydown", (e) => {
       super.handleKeyboardTrigger(e);
     });
-
+    /** 
     textarea.addEventListener("blur", () => {
       super.handleBlurTrigger(e);
-    });
+    });*/
   }
 
   // In TextRendererClass

@@ -8,11 +8,17 @@ export class BaseRenderer {
     this.interactionHandlers = props.interactionHandlers;
     this.onUpdate = props.onUpdate;
     this.isBeingEdited = props.isBeingEdited;
+    this.setEditReference = props.setEditReference;
     this.groupRef = React.createRef();
     this.textRef = props.textRef || React.createRef();
     //this.version = this.element?.version || 0;
   }
-
+  displayInfo() {
+    const type = this.constructor.name;
+    const id = this.element?.id || "unknown";
+    console.log(`Renderer Type: ${type}, Element ID: ${id}`);
+    return `Renderer [Type: ${type}, Element ID: ${id}]`;
+  }
   // Base properties - automatically available to all child classes
   get elementProps() {
     const props = this.element.getProps?.() || {};
@@ -87,13 +93,10 @@ export class BaseRenderer {
         y: newY,
       });
     }
-
-    //console.log("🔶 onUpdate called");
-    //console.log(
-    //  `🔶 ===== BaseRenderer handleElementDragEnd completed =====ID=${this.element.id}, x=${oldX}->${newX}, y=${oldY}->${newY}`
-    //);
-    //console.log("🔶 handleElementDragEnd completed");
   }
+
+  // Handle blur event when user clicks outside the textbox. It is detected by MemoryEditorPage click handler
+  // This is used to cancel editing and revert to the original state
   handleBlurTrigger(e) {
     console.log(`🔶 [USER] On Blur on textbox  ID=${this.element.id}`);
     this.interactionHandlers.onEditCancel();
@@ -130,9 +133,11 @@ export class BaseRenderer {
     e.cancelBubble = true;
 
     this.interactionHandlers.onEditStart(this.element)(e);
-    this.onUITurnToEditMode(e);
 
+    this.onUITurnToEditMode(e);
     this.isBeingEdited = true;
+
+    this.setEditReference(this);
   }
   onUITurnToEditMode(e) {
     // Default: do nothing or throw to force subclass to implement
@@ -223,5 +228,6 @@ BaseRenderer.basePropTypes = {
     handleElementDelete: PropTypes.func.isRequired,
   }).isRequired,
   onUpdate: PropTypes.func,
+  updateEditingRenderer: PropTypes.func,
   isBeingEdited: PropTypes.bool,
 };
