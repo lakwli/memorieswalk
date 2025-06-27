@@ -42,9 +42,11 @@ export default function useElementEditing({
       return true;
     };
   }, [editingManager]);
+
   // Returns a function suitable for use as a delete handler
   const handleElementDelete = useCallback(
     (element) => {
+      console.log(`🔶 [USER-DEL]  Click On toolbar delete ID=${element?.id}`);
       if (element.cleanup) {
         element.cleanup();
       }

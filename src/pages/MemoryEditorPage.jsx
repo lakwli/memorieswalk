@@ -1203,7 +1203,7 @@ const MemoryEditorPage = () => {
                   isSelected={true}
                   isEditing={editingManager.isEditing()} // ← Fix this
                   onEdit={handleElementEdit}
-                  onDelete={() => handleElementDelete(selectedElement.id)}
+                  onDelete={() => handleElementDelete(selectedElement)}
                   onUpdate={handleElementToolbarUpdate}
                   onCopy={handleToolbarCopy}
                   onBringForward={handleToolbarBringForward}
