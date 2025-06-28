@@ -102,6 +102,7 @@ export class BaseRenderer {
     this.interactionHandlers.onEditCancel();
     this.onUITurnToEditCompleteMode(e);
     this.isBeingEdited = false;
+    this.setEditingRenderRef(null);
   }
   handleKeyboardTrigger(e) {
     // Enter + shift adds newline, but Enter alone completes editing
@@ -113,6 +114,7 @@ export class BaseRenderer {
       }
       this.onUITurnToEditCompleteMode(e);
       this.isBeingEdited = false;
+      this.setEditingRenderRef(null);
     }
     // Escape cancels editing without changes
     if (e.key === "Escape") {
@@ -120,8 +122,9 @@ export class BaseRenderer {
         `🔶 [USER] Press Escape on textbox  ID=${this.element.id} ${this.textRef.current}`
       );
       this.onUITurnToEditCompleteMode(e);
-      this.interactionHandlers.onEditEnd(null)(e);
+      this.interactionHandlers.onEditCancel()(e);
       this.isBeingEdited = false;
+      this.setEditingRenderRef(null);
     }
   }
 

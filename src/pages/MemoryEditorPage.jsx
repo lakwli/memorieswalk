@@ -1126,6 +1126,13 @@ const MemoryEditorPage = () => {
               >
                 <Layer>
                   {elements.map((element) => {
+                    if (
+                      editingRendererRef.current &&
+                      element.id === editingRendererRef.current.element.id
+                    ) {
+                      // Skip rendering the display layer for the element being edited
+                      return null;
+                    }
                     if (!textRefs.current[element.id]) {
                       textRefs.current[element.id] = React.createRef();
                     }
