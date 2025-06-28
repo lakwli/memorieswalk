@@ -55,5 +55,25 @@ export default function useElementEditing({
     [removeElement]
   );
 
-  return { onEditStart, onEditEnd, onEditCancel, handleElementDelete };
+  const handleToolbarUpdate = useCallback(
+    (element, updates) => {
+      console.log("🎯 TOOLBAR UPDATE TRIGGERED:", {
+        element: element.id,
+        updates,
+      });
+
+      updateElement(element.id, updates);
+
+      console.log("🎯 Update completed via updateElement");
+    },
+    [updateElement] // ✅ Now depends on updateElement
+  );
+
+  return {
+    onEditStart,
+    onEditEnd,
+    onEditCancel,
+    handleToolbarUpdate,
+    handleElementDelete,
+  };
 }

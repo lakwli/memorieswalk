@@ -55,24 +55,17 @@ export const FontFamilyControl = ({ element, onUpdate }) => (
         const oldValue = element.fontFamily || "Arial";
         const newValue = e.target.value;
 
-        console.log("🎨 FontFamilyControl onChange triggered:", {
-          elementId: element.id,
-          oldValue,
-          newValue,
-          hasChanged: oldValue !== newValue,
-          selectedIndex: e.target.selectedIndex,
-          target: e.target,
-          timestamp: new Date().toISOString(),
-        });
-
         // Only trigger update if the value actually changed
         if (oldValue !== newValue) {
-          console.log("🎨 FontFamilyControl triggering update - value changed");
-          onUpdate({ fontFamily: newValue });
-        } else {
           console.log(
-            "🎨 FontFamilyControl NOT triggering update - same value"
+            "🎨 [USER-Toolbar] change FontFamilyControl (onChange triggered):",
+            {
+              elementId: element.id,
+              oldValue,
+              newValue,
+            }
           );
+          onUpdate({ fontFamily: newValue });
         }
       }}
       style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}

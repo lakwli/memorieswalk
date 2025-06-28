@@ -8,7 +8,7 @@ export class BaseRenderer {
     this.interactionHandlers = props.interactionHandlers;
     this.onUpdate = props.onUpdate;
     this.isBeingEdited = props.isBeingEdited;
-    this.setEditReference = props.setEditReference;
+    this.setEditingRenderRef = props.setEditingRenderRef;
     this.groupRef = React.createRef();
     this.textRef = props.textRef || React.createRef();
     //this.version = this.element?.version || 0;
@@ -137,7 +137,7 @@ export class BaseRenderer {
     this.onUITurnToEditMode(e);
     this.isBeingEdited = true;
 
-    this.setEditReference(this);
+    this.setEditingRenderRef(this);
   }
   onUITurnToEditMode(e) {
     // Default: do nothing or throw to force subclass to implement
@@ -204,7 +204,9 @@ export class BaseRenderer {
   // Common render method
   //TODO: check if to use id + version + type as key. It seems that element does change even with same key
   render() {
-    //console.log(`🎯 [RENDER] Rendering: ${this.element.id}`);
+    // if (this.isBeingEdited && this.element.id === this.selectedElementId) {
+    //  return null;
+    //}
     return (
       <React.Fragment key={`${this.element.id}-${this.element.version}`}>
         <Group {...this.elementProps}>{this.renderContent()}</Group>
@@ -228,6 +230,6 @@ BaseRenderer.basePropTypes = {
     handleElementDelete: PropTypes.func.isRequired,
   }).isRequired,
   onUpdate: PropTypes.func,
-  updateEditingRenderer: PropTypes.func,
+  setEditingRenderRef: PropTypes.func,
   isBeingEdited: PropTypes.bool,
 };

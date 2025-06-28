@@ -102,7 +102,7 @@ const MemoryEditorPage = () => {
 
   // Ref to track the editing renderer instance. It is been used to pass the click on stage to this renderer (to cancel edit)
   const editingRendererRef = useRef(null);
-  const setEditReference = useCallback((rendererInstance) => {
+  const setEditingRenderRef = useCallback((rendererInstance) => {
     editingRendererRef.current = rendererInstance;
   }, []);
 
@@ -149,14 +149,19 @@ const MemoryEditorPage = () => {
   });
 
   // Destructure handleElementDoubleClick and handleElementDelete from useElementEditing
-  const { onEditStart, onEditEnd, onEditCancel, handleElementDelete } =
-    useElementEditing({
-      editingManager,
-      setNewSelectedElement,
-      selectedElement,
-      updateElement,
-      removeElement,
-    });
+  const {
+    onEditStart,
+    onEditEnd,
+    onEditCancel,
+    handleToolbarUpdate,
+    handleElementDelete,
+  } = useElementEditing({
+    editingManager,
+    setNewSelectedElement,
+    selectedElement,
+    updateElement,
+    removeElement,
+  });
 
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
@@ -551,46 +556,6 @@ const MemoryEditorPage = () => {
       }
     },
     [selectedElement, editingManager] // ← Use editingManager directly, NOT from elementBehaviors
-  );
-
-  // Handle finishing edit mode (for future use)
-  // const handleElementFinishEdit = useCallback(() => {
-  //   elementBehaviors.editingManager.endEditing();
-  // }, [elementBehaviors.editingManager]);
-
-  // Handle element updates from toolbar with editing awareness - SIMPLIFIED VERSION
-  const handleElementToolbarUpdate = useCallback(
-    (elementIdOrUpdatedElement, updates) => {
-      console.log("🎯 TOOLBAR UPDATE TRIGGERED:", {
-        elementIdOrUpdatedElement,
-        updates,
-        timestamp: new Date().toISOString(),
-      });
-
-      let elementId, elementUpdates;
-
-      if (typeof elementIdOrUpdatedElement === "string") {
-        elementId = elementIdOrUpdatedElement;
-        elementUpdates = updates;
-      } else {
-        const updatedElement = elementIdOrUpdatedElement;
-        elementId = updatedElement.id;
-        elementUpdates = updatedElement;
-      }
-
-      console.log(
-        "🎯 Processing update for element:",
-        elementId,
-        "with:",
-        elementUpdates
-      );
-
-      // ✅ FIXED: Use updateElement instead of setElements
-      updateElement(elementId, elementUpdates);
-
-      console.log("🎯 Update completed via updateElement");
-    },
-    [updateElement] // ✅ Now depends on updateElement
   );
 
   // Handle element layer changes
@@ -1173,7 +1138,7 @@ const MemoryEditorPage = () => {
                         onEditCancel,
                         handleElementDelete,
                       },
-                      setEditReference: setEditReference,
+                      setEditingRenderRef: setEditingRenderRef,
                       isBeingEdited: editingManager.isEditing(),
                       textRef: textRefs.current[element.id],
                     };
@@ -1204,7 +1169,9 @@ const MemoryEditorPage = () => {
                   isEditing={editingManager.isEditing()} // ← Fix this
                   onEdit={handleElementEdit}
                   onDelete={() => handleElementDelete(selectedElement)}
-                  onUpdate={handleElementToolbarUpdate}
+                  onUpdate={(update) =>
+                    handleToolbarUpdate(selectedElement, update)
+                  }
                   onCopy={handleToolbarCopy}
                   onBringForward={handleToolbarBringForward}
                   onSendBackward={handleToolbarSendBackward}
