@@ -149,19 +149,14 @@ const MemoryEditorPage = () => {
   });
 
   // Destructure handleElementDoubleClick and handleElementDelete from useElementEditing
-  const {
-    onEditStart,
-    onEditEnd,
-    onEditCancel,
-    handleToolbarUpdate,
-    handleElementDelete,
-  } = useElementEditing({
-    editingManager,
-    setNewSelectedElement,
-    selectedElement,
-    updateElement,
-    removeElement,
-  });
+  const { onEditStart, onEditEnd, onEditCancel, handleElementDelete } =
+    useElementEditing({
+      editingManager,
+      setNewSelectedElement,
+      selectedElement,
+      updateElement,
+      removeElement,
+    });
 
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
@@ -179,6 +174,11 @@ const MemoryEditorPage = () => {
 
     trRef.current.getLayer()?.batchDraw();
   }, [selectedElement, editingManager]);
+
+  const handleToolbarUpdate = useCallback((toolbarUpdate) => {
+    // Update the element in the canvas
+    editingRendererRef.current?.handleToolbarUpdate(toolbarUpdate);
+  }, []);
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
@@ -1176,9 +1176,7 @@ const MemoryEditorPage = () => {
                   isEditing={editingManager.isEditing()} // ← Fix this
                   onEdit={handleElementEdit}
                   onDelete={() => handleElementDelete(selectedElement)}
-                  onUpdate={(update) =>
-                    handleToolbarUpdate(selectedElement, update)
-                  }
+                  onUpdate={handleToolbarUpdate}
                   onCopy={handleToolbarCopy}
                   onBringForward={handleToolbarBringForward}
                   onSendBackward={handleToolbarSendBackward}

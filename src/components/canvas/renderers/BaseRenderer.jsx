@@ -135,6 +135,17 @@ export class BaseRenderer {
     }
   }
 
+  handleToolbarUpdate(update) {
+    this.handleToolbarUpdateUI(update);
+  }
+  handleToolbarUpdateUI(update) {
+    // Default: do nothing or throw to force subclass to implement
+    throw new Error(
+      "handleToolbarUpdateUI must be implemented by subclass",
+      update
+    );
+  }
+
   handleElementDoubleClick(e) {
     console.log(
       `🔶 [USER] Double Click ID=${this.element.id} EDIT?:${this.isBeingEdited}`

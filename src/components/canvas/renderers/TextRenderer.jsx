@@ -129,6 +129,11 @@ class TextRendererClass extends BaseRenderer {
     };
   }
 
+  handleToolbarUpdateUI(update) {
+    // Default: do nothing or throw to force subclass to implement
+    console.log("🔧 [RENDER-TEXT-TOOLBAR] Reflect the text editing UI", update);
+  }
+
   onUITurnToEditMode(e) {
     console.log(
       "📝 [RENDER-TEXT-EDITMODE] Convert into text editing structure"
@@ -195,6 +200,7 @@ class TextRendererClass extends BaseRenderer {
   // Finish editing
   onUITurnToEditCompleteMode() {
     console.log("📝 [RENDER-TEXT-EDITMODE]  Leaving text editing structure");
+    this.displayInfo();
     // Try to get textarea and stage from the event or from refs
     const textarea = this.textareaRef.current;
     const stage =
