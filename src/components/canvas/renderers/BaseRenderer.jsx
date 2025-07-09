@@ -16,8 +16,15 @@ export class BaseRenderer {
   displayInfo() {
     const type = this.constructor.name;
     const id = this.element?.id || "unknown";
-    console.log(`Renderer Type: ${type}, Element ID: ${id}`);
-    return `Renderer [Type: ${type}, Element ID: ${id}]`;
+    // Log both the ref object and its current value
+    console.log(
+      `Renderer Type: ${type}, Element ID: ${id}`,
+      "textRef:",
+      this.textRef,
+      "textRef.current:",
+      this.textRef.current
+    );
+    return `Renderer [Type: ${type}, Element ID: ${id}], textRef: ${this.textRef}, textRef.current: ${this.textRef.current}`;
   }
   // Base properties - automatically available to all child classes
   get elementProps() {
