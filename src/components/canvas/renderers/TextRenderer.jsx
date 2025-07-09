@@ -130,8 +130,29 @@ class TextRendererClass extends BaseRenderer {
   }
 
   handleToolbarUpdateUI(update) {
-    // Default: do nothing or throw to force subclass to implement
     console.log("🔧 [RENDER-TEXT-TOOLBAR] Reflect the text editing UI", update);
+    console.log(
+      "🔧 [RENDER-TEXT-TOOLBAR] Current textareaRef:",
+      this.textareaRef
+    );
+    if (this.textareaRef?.current) {
+      console.log("🔧 [RENDER-TEXT-TOOLBAR] Updating textarea styles");
+      if (update.fontFamily) {
+        console.log(
+          "🔧 [RENDER-TEXT-TOOLBAR] Setting fontFamily to",
+          update.fontFamily
+        );
+        this.textareaRef.current.style.fontFamily = update.fontFamily;
+      }
+      if (update.fontSize) {
+        console.log(
+          "🔧 [RENDER-TEXT-TOOLBAR] Setting fontSize to",
+          update.fontSize
+        );
+        this.textareaRef.current.style.fontSize = `${update.fontSize}px`;
+      }
+      // handle other style updates similarly
+    }
   }
 
   onUITurnToEditMode(e) {
