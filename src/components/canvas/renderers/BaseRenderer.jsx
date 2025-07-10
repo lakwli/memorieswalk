@@ -119,6 +119,7 @@ export class BaseRenderer {
 
   handleToolbarUpdate(update) {
     this.handleToolbarUpdateUI(update);
+    this.setFocus();
   }
   handleToolbarUpdateUI(update) {
     // Default: do nothing or throw to force subclass to implement
@@ -126,6 +127,11 @@ export class BaseRenderer {
       "handleToolbarUpdateUI must be implemented by subclass",
       update
     );
+  }
+
+  // Default: must be implemented by child
+  setFocus() {
+    throw new Error("setFocus must be implemented by subclass");
   }
 
   handleElementDoubleClick(e) {

@@ -211,6 +211,12 @@ class TextRendererClass extends BaseRenderer {
     };
   }
 
+  setFocus() {
+    if (this.textareaRef?.current) {
+      this.textareaRef.current.focus();
+    }
+  }
+
   // Finish editing
   onUITurnToEditCompleteMode() {
     console.log("📝 [RENDER-TEXT-EDITMODE]  Leaving text editing structure");
