@@ -85,7 +85,10 @@ export class BaseRenderer {
   // This is used to cancel editing and revert to the original state
   handleBlurTrigger(e) {
     console.log(`🔶 [USER] On Blur on textbox  ID=${this.element.id}`);
-    this.interactionHandlers.onEditCancel();
+    const result = this.captureInputChange(e);
+    if (result) {
+      this.interactionHandlers.onEditEnd(result)(e);
+    }
     this.onUITurnToEditCompleteMode(e);
     this.isBeingEdited = false;
     this.setEditingRenderRef(null);

@@ -196,12 +196,13 @@ class TextRendererClass extends BaseRenderer {
   }
 
   // In TextRendererClass
-  captureInputChange(e) {
-    const textarea = e.target;
+  captureInputChange() {
+    const textarea = this.textareaRef?.current;
+    if (!textarea) return null;
     return {
       id: this.element.id,
       update: {
-        text: e.target.value,
+        text: textarea.value,
         fontSize: parseInt(textarea.style.fontSize, 10),
         fontFamily: textarea.style.fontFamily,
 
