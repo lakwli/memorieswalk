@@ -44,7 +44,6 @@ export class BaseRenderer {
     console.log(
       `🔶 [DRAG START]  handleElementDragStart =====ID=${this.element.id}, ELM:x=${this.element.x}, y=${this.element.y}`
     );
-    //console.log("🔶 Element ID:", this.element.id);
 
     e.cancelBubble = true;
 
@@ -53,8 +52,6 @@ export class BaseRenderer {
     if (stage && stage.container()) {
       stage.container().style.cursor = "grabbing";
     }
-
-    //console.log("🔶 handleElementDragStart completed");
   }
 
   handleElementDragEnd(e) {
@@ -64,25 +61,10 @@ export class BaseRenderer {
         this.element.id
       }, NODE:x=${node.x()}, y=${node.y()}`
     );
-    //console.log(
-    //  `🔶 ===== BaseRenderer handleElementDragEnd =====ID=${this.element.id}`
-    //);
-    //console.log("🔶 Element ID:", this.element.id);
 
     e.cancelBubble = true;
-
-    // Element updates its own position first
-    //const node = e.target;
-    //onst oldX = this.element.x;
-    //const oldY = this.element.y;
     const newX = node.x();
     const newY = node.y();
-
-    //console.log(`🔶 Position change: x=${oldX}->${newX}, y=${oldY}->${newY}`);
-
-    //this.element.x = newX;
-    //this.element.y = newY;
-
     // Reset cursor based on current mouse position
     const stage = node.getStage();
     if (stage && stage.container()) {
@@ -91,9 +73,6 @@ export class BaseRenderer {
       stage.container().style.cursor = isStillOverElement ? "move" : "grab";
     }
 
-    //console.log("🔶 About to call onUpdate...");
-
-    // Directly call updateElement to sync with React state
     if (this.onUpdate) {
       this.onUpdate(this.element.id, {
         x: newX,
