@@ -197,10 +197,14 @@ class TextRendererClass extends BaseRenderer {
 
   // In TextRendererClass
   captureInputChange(e) {
+    const textarea = e.target;
     return {
       id: this.element.id,
       update: {
         text: e.target.value,
+        fontSize: parseInt(textarea.style.fontSize, 10),
+        fontFamily: textarea.style.fontFamily,
+
         // ...any other fields you want to update
       },
     };
