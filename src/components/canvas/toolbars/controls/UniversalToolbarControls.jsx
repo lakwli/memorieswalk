@@ -1,5 +1,6 @@
 // Registry of all stateless, element-agnostic controls for UniversalToolbar
 import { Button, IconButton, Slider, Tooltip } from "@chakra-ui/react";
+
 import {
   MdFormatBold,
   MdFormatAlignLeft,
@@ -50,31 +51,32 @@ FontStyleControl.propTypes = {
 export const FontFamilyControl = ({ element, onUpdate }) => (
   <Tooltip label="Font Family" hasArrow>
     <select
-      value={element.fontFamily || "Arial"}
+      defaultValue={element.fontFamily || "Arial"}
       onChange={(e) => {
         const oldValue = element.fontFamily || "Arial";
         const newValue = e.target.value;
+        console.log(
+          "🎨 [USER-Toolbar] change FontFamilyControl (onChange triggered):",
+          {
+            elementId: element.id,
+            oldValue,
+            newValue,
+          }
+        );
 
-        // Only trigger update if the value actually changed
-        if (oldValue !== newValue) {
-          console.log(
-            "🎨 [USER-Toolbar] change FontFamilyControl (onChange triggered):",
-            {
-              elementId: element.id,
-              oldValue,
-              newValue,
-            }
-          );
-          onUpdate({ fontFamily: newValue });
-        }
+        onUpdate({ fontFamily: newValue });
       }}
       style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}
     >
-      <option value="Arial">Arial</option>
-      <option value="Georgia">Georgia</option>
-      <option value="Comic Sans MS">Comic Sans MS</option>
-      <option value="Verdana">Verdana</option>
-      <option value="Times New Roman">Times New Roman</option>
+      <option value="Roboto">Roboto</option>
+      <option value="Montserrat">Montserrat</option>
+      <option value="Lobster">Lobster</option>
+      <option value="Oswald">Oswald</option>
+      <option value="Pacifico">Pacifico</option>
+      <option value="Playfair Display">Playfair Display</option>
+      <option value="Bebas Neue">Bebas Neue</option>
+      <option value="Comic Neue">Comic Neue</option>{" "}
+      {/* Add this to your Google Fonts import */}
     </select>
   </Tooltip>
 );
@@ -84,40 +86,39 @@ FontFamilyControl.propTypes = {
 };
 
 // Font Size Control
-export const FontSizeControl = ({ element, onUpdate }) => (
-  <Tooltip label="Font Size" hasArrow>
-    <select
-      value={element.fontSize || 16}
-      onChange={(e) => {
-        const oldValue = element.fontSize || 16;
-        const newValue = parseInt(e.target.value);
+export const FontSizeControl = ({ element, onUpdate }) => {
+  console.log("🔄 FontSizeControl rendered", {
+    fontSize: element.fontSize,
+    id: element.id,
+  });
 
-        console.log("🎨 FontSizeControl onChange triggered:", {
-          elementId: element.id,
-          oldValue,
-          newValue,
-          hasChanged: oldValue !== newValue,
-          timestamp: new Date().toISOString(),
-        });
+  return (
+    <Tooltip label="Font Size" hasArrow>
+      <select
+        defaultValue={element.fontSize || 16} // if using value, the selection will always based on element.fontSize
+        onChange={(e) => {
+          const oldValue = element.fontSize || 16;
+          const newValue = parseInt(e.target.value);
 
-        // Only trigger update if the value actually changed
-        if (oldValue !== newValue) {
-          console.log("🎨 FontSizeControl triggering update - value changed");
+          console.log("🎨 FontSizeControl onChange triggered:", {
+            elementId: element.id,
+            oldValue,
+            newValue,
+          });
+
           onUpdate({ fontSize: newValue });
-        } else {
-          console.log("🎨 FontSizeControl NOT triggering update - same value");
-        }
-      }}
-      style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}
-    >
-      {[8, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72].map((size) => (
-        <option key={size} value={size}>
-          {size}
-        </option>
-      ))}
-    </select>
-  </Tooltip>
-);
+        }}
+        style={{ fontSize: "0.9em", padding: "2px 6px", borderRadius: 4 }}
+      >
+        {[8, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72].map((size) => (
+          <option key={size} value={size}>
+            {size}
+          </option>
+        ))}
+      </select>
+    </Tooltip>
+  );
+};
 FontSizeControl.propTypes = {
   element: PropTypes.object.isRequired,
   onUpdate: PropTypes.func.isRequired,
