@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { Box } from "@chakra-ui/react";
 import { UniversalControlBar } from "./UniversalControlBar.jsx";
-import { TOOLBAR_CONFIG } from "./toolbarConfig";
+import { TOOLBAR_CONFIG } from "./toolbarConfig.js";
 import { CONTROL_REGISTRY } from "./controls/index.js";
 import { APP_CONFIG } from "../../../config/appConfig.js";
 // Debug flag - set to true when debugging toolbar positioning
@@ -14,8 +14,15 @@ const DEBUG_TOOLBAR = false;
  * - State management between selected and editing modes
  * - Positioning logic that works for all element types
  * - Consistent appearance and behavior across element types
- */
-export const ElementToolbar = ({
+
+
+ElementToolbarRenderer
+  └── ElementToolbarControlsBar
+        └── ElementToolbarControls (FontSizeControl, ColorControl, etc.)
+
+*/
+
+export const ElementToolbarRenderer = ({
   updateElementId,
   element,
   isSelected,
@@ -215,7 +222,7 @@ export const ElementToolbar = ({
   })();
 };
 
-ElementToolbar.propTypes = {
+ElementToolbarRenderer.propTypes = {
   updateElementId: PropTypes.string,
   element: PropTypes.shape({
     id: PropTypes.string.isRequired,

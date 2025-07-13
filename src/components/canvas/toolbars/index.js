@@ -1,1 +1,1 @@
-export { ElementToolbar } from "./ElementToolbar.jsx";
+export { ElementToolbarRenderer as ElementToolbarRenderer } from "./ElementToolbarRenderer.jsx";

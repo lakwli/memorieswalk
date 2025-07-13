@@ -109,8 +109,8 @@ class TextRendererClass extends BaseRenderer {
     textarea.style.fontSize = `${elementProps.fontSize * scale}px`;
     textarea.style.fontFamily = elementProps.fontFamily;
     textarea.style.color = elementProps.fill;
-    textarea.style.background =
-      elementProps.backgroundColor || "rgba(255, 255, 255, 0.7)";
+    //textarea.style.background =
+    //elementProps.backgroundColor || "rgba(255, 255, 255, 0.7)";
     textarea.style.textAlign = elementProps.align || "center";
     textarea.style.padding = `${padding * scale}px`;
   }
@@ -173,6 +173,7 @@ class TextRendererClass extends BaseRenderer {
     textarea.style.zIndex = "1000";
     textarea.style.transformOrigin = "left top";
     textarea.style.transform = `rotate(${this.element.rotation || 0}deg)`;
+    textarea.style.background = "transparent";
 
     // Apply current element styling
     this.updateTextareaStyle(textarea, this.element);

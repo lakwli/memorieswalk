@@ -51,7 +51,7 @@ import {
 import useElementEditing from "../hooks/useElementEditing";
 import elementBehaviors from "../hooks/useElementBehaviors";
 // Import new toolbar system
-import { ElementToolbar } from "../components/canvas/toolbars";
+import { ElementToolbarRenderer } from "../components/canvas/toolbars";
 //import { TextElement } from "../components/canvas/elements";
 import { RendererFactory } from "../components/canvas/renderers/RendererFactory";
 import { ELEMENT_TYPES, ELEMENT_STATES } from "../constants";
@@ -1170,7 +1170,7 @@ const MemoryEditorPage = () => {
 
               {/* Element Toolbars - New integrated toolbar system */}
               {selectedElement && (
-                <ElementToolbar
+                <ElementToolbarRenderer
                   element={selectedElement}
                   isSelected={true}
                   isEditing={editingManager.isEditing()} // ← Fix this
