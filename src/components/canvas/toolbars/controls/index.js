@@ -27,7 +27,7 @@ import {
   BringToFrontControl,
   SendToBackControl,
   DeleteControl,
-} from "./UniversalToolbarControls.jsx";
+} from "./ElementToolbarControls.jsx";
 
 export const CONTROL_REGISTRY = {
   fontFamily: FontFamilyControl,

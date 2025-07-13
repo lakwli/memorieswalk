@@ -12,7 +12,16 @@ export const GLOBAL_SELECT_CONTROLS = [
 
 export const TOOLBAR_CONFIG = {
   select: {
-    text: [...GLOBAL_SELECT_CONTROLS],
+    text: [
+      "fontFamily",
+      "fontSize",
+      "textColor",
+      "alignLeft",
+      "alignCenter",
+      "alignRight",
+      "backgroundShape",
+      ...GLOBAL_SELECT_CONTROLS,
+    ],
     photo: [...GLOBAL_SELECT_CONTROLS],
     shape: [...GLOBAL_SELECT_CONTROLS],
     // Add more element types as needed
@@ -22,11 +31,7 @@ export const TOOLBAR_CONFIG = {
       "fontFamily",
       "fontSize",
       "textColor",
-      "alignLeft",
-      "alignCenter",
-      "alignRight",
-      "backgroundShape",
-      "delete",
+      "delete", // Only minimal controls for edit mode
     ],
     photo: ["brightness", "contrast", "delete"],
     shape: ["strokeWidth", "strokeColor", "delete"],
