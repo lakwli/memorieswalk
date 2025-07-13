@@ -12,7 +12,7 @@ import { CONTROL_REGISTRY } from "./controls/index.js";
  *   const controls = TOOLBAR_CONFIG[mode][element.type];
  *   <UniversalControlBar controls={controls} controlProps={{ element, onUpdate, ... }} />
  */
-export const UniversalControlBar = ({
+export const ElementToolbarControlsBar = ({
   controls,
   controlProps,
   controlRegistry = CONTROL_REGISTRY,
@@ -25,7 +25,7 @@ export const UniversalControlBar = ({
   </HStack>
 );
 
-UniversalControlBar.propTypes = {
+ElementToolbarControlsBar.propTypes = {
   controls: PropTypes.arrayOf(PropTypes.string).isRequired,
   controlProps: PropTypes.object,
   controlRegistry: PropTypes.object,

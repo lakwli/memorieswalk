@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { Box } from "@chakra-ui/react";
-import { UniversalControlBar } from "./UniversalControlBar.jsx";
+import { ElementToolbarControlsBar } from "./ElementToolbarControlsBar.jsx";
 import { TOOLBAR_CONFIG } from "./toolbarConfig.js";
 import { CONTROL_REGISTRY } from "./controls/index.js";
 import { APP_CONFIG } from "../../../config/appConfig.js";
@@ -212,7 +212,7 @@ export const ElementToolbarRenderer = ({
           e.stopPropagation();
         }}
       >
-        <UniversalControlBar
+        <ElementToolbarControlsBar
           controls={controls}
           controlProps={controlProps}
           controlRegistry={CONTROL_REGISTRY}
