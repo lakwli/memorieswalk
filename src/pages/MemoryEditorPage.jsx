@@ -175,10 +175,18 @@ const MemoryEditorPage = () => {
     trRef.current.getLayer()?.batchDraw();
   }, [selectedElement, editingManager]);
 
-  const handleToolbarUpdate = useCallback((toolbarUpdate) => {
-    // Update the element in the canvas
-    editingRendererRef.current?.handleToolbarUpdate(toolbarUpdate);
-  }, []);
+  const handleToolbarUpdate = useCallback(
+    (toolbarUpdate) => {
+      if (!editingManager.isEditing() && selectedElement) {
+        // Select mode: update element directly
+        updateElement(selectedElement.id, toolbarUpdate);
+      } else {
+        // Edit mode: pass to renderer
+        editingRendererRef.current?.handleToolbarUpdate(toolbarUpdate);
+      }
+    },
+    [editingManager, selectedElement, updateElement]
+  );
 
   // Private method to handle element selection changes
   const handleElementSelection = useCallback(
