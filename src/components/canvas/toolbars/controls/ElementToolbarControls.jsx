@@ -89,11 +89,6 @@ FontFamilyControl.propTypes = {
 
 // Font Size Control
 export const FontSizeControl = ({ element, onUpdate }) => {
-  console.log("🔄 FontSizeControl rendered", {
-    fontSize: element.fontSize,
-    id: element.id,
-  });
-
   return (
     <Tooltip label="Font Size" hasArrow>
       <select
