@@ -158,6 +158,17 @@ const MemoryEditorPage = () => {
       removeElement,
     });
 
+  function handleNavigate(to, options) {
+    console.log("🔵 [USER] Navigate to:", to, " from MemoryEditorPage");
+    if (editingManager.isEditing()) {
+      editingManager.endEditing();
+      if (editingRendererRef.current?.handleBlurTrigger) {
+        editingRendererRef.current.handleBlurTrigger();
+      }
+    }
+    navigate(to, options);
+  }
+
   useEffect(() => {
     if (!trRef.current || !konvaStageRef.current) return;
 
@@ -783,7 +794,7 @@ const MemoryEditorPage = () => {
             aria-label="Back to dashboard"
             icon={<ArrowBackIcon />}
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => handleNavigate("/dashboard")}
           />
         </Tooltip>
         <Image src={LogoSvg} alt="Memora Logo" h="30px" />
@@ -924,7 +935,7 @@ const MemoryEditorPage = () => {
             borderRadius="full"
           />
           <MenuList>
-            <MenuItem onClick={() => navigate("/account-settings")}>
+            <MenuItem onClick={() => handleNavigate("/account-settings")}>
               Account Settings
             </MenuItem>
             <MenuDivider />
@@ -939,7 +950,7 @@ const MemoryEditorPage = () => {
                   duration: 3000,
                   isClosable: true,
                 });
-                navigate("/login");
+                handleNavigate("/login");
               }}
             >
               Sign Out
@@ -1060,7 +1071,7 @@ const MemoryEditorPage = () => {
         <Text color="red.500" fontSize="xl" mb={4}>
           Error loading memory: {error}
         </Text>
-        <Button onClick={() => navigate("/dashboard")} colorScheme="blue">
+        <Button onClick={() => handleNavigate("/dashboard")} colorScheme="blue">
           Back to Dashboard
         </Button>
       </Flex>
@@ -1220,7 +1231,7 @@ const MemoryEditorPage = () => {
                 duration: 3000,
                 isClosable: true,
               });
-              navigate("/dashboard");
+              handleNavigate("/dashboard");
             } catch (err) {
               toast({
                 title: "Error",

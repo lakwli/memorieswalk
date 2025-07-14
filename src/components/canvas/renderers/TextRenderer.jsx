@@ -223,7 +223,7 @@ class TextRendererClass extends BaseRenderer {
   // Finish editing
   onUITurnToEditCompleteMode() {
     console.log("📝 [RENDER-TEXT-EDITMODE]  Leaving text editing structure");
-    this.displayInfo();
+
     // Try to get textarea and stage from the event or from refs
     const textarea = this.textareaRef.current;
     const stage =
