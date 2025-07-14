@@ -128,7 +128,6 @@ class TextRendererClass extends BaseRenderer {
       height: Math.round(currentHeight * scaleY),
     };
   }
-
   handleToolbarUpdateUI(update) {
     console.log("🔧 [RENDER-TEXT-TOOLBAR] Reflect the text editing UI", update);
 
@@ -138,6 +137,9 @@ class TextRendererClass extends BaseRenderer {
       }
       if (update.fontSize) {
         this.textareaRef.current.style.fontSize = `${update.fontSize}px`;
+      }
+      if (update.fill) {
+        this.textareaRef.current.style.color = update.fill;
       }
       // handle other style updates similarly
     }

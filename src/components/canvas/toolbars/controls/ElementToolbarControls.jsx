@@ -1,5 +1,7 @@
 // Registry of all stateless, element-agnostic controls for UniversalToolbar
+import { useState, useRef, useEffect } from "react";
 import { Button, IconButton, Slider, Tooltip } from "@chakra-ui/react";
+import { SketchPicker } from "react-color";
 
 import {
   MdFormatBold,
@@ -124,42 +126,70 @@ FontSizeControl.propTypes = {
   onUpdate: PropTypes.func.isRequired,
 };
 
-// Text Color Control
-export const TextColorControl = ({ element, onUpdate }) => (
-  <Tooltip label="Text Color" hasArrow>
-    <IconButton
-      icon={<MdFormatColorText />}
-      size="sm"
-      aria-label="Text Color"
-      style={{ color: element.fill || "#000" }}
-      onClick={() => {
-        const oldValue = element.fill || "#000";
-        const newValue = oldValue === "#000" ? "#f00" : "#000";
+export const TextColorControl = ({ element, onUpdate }) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef(null);
 
-        console.log("🎨 TextColorControl onClick triggered:", {
-          elementId: element.id,
-          oldValue,
-          newValue,
-          hasChanged: oldValue !== newValue,
-          timestamp: new Date().toISOString(),
-        });
+  // Close picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setShowPicker(false);
+      }
+    }
+    if (showPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showPicker]);
 
-        // Only trigger update if the value actually changed
-        if (oldValue !== newValue) {
-          console.log("🎨 TextColorControl triggering update - value changed");
-          onUpdate({ fill: newValue });
-        } else {
-          console.log("🎨 TextColorControl NOT triggering update - same value");
-        }
-      }}
-    />
-  </Tooltip>
-);
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <IconButton
+        icon={<MdFormatColorText />}
+        size="sm"
+        aria-label="Text Color"
+        onClick={() => setShowPicker((v) => !v)}
+        style={{ color: element.fill || "#000" }}
+      />
+      {showPicker && (
+        <div
+          ref={pickerRef}
+          style={{
+            position: "absolute",
+            zIndex: 9999,
+            top: "2.5em",
+            left: 0,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            borderRadius: 8,
+            background: "#fff",
+          }}
+        >
+          <SketchPicker
+            color={element.fill || "#000"}
+            onChangeComplete={(color) => {
+              onUpdate({ fill: color.hex });
+              setShowPicker(false);
+              console.log("🎨 TextColorControl change color triggered:", {
+                elementId: element.id,
+                color: color.hex,
+              });
+            }}
+            width={180}
+            disableAlpha
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 TextColorControl.propTypes = {
   element: PropTypes.object.isRequired,
   onUpdate: PropTypes.func.isRequired,
 };
-
 // Alignment Controls
 export const AlignLeftControl = ({ element, onUpdate }) => (
   <Tooltip label="Align Left" hasArrow>
