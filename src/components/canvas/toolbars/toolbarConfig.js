@@ -1,40 +1,36 @@
 // Centralized toolbar configuration for select/edit toolbars
 // Each entry is an array of control keys (strings)
-
+//contros are decided in ElementToolbarControls.GlobalSelectControl
+/** 
 export const GLOBAL_SELECT_CONTROLS = [
-  "copy",
+  //"copy",
   "bringForward",
   "sendBackward",
-  "bringToFront",
-  "sendToBack",
+  //"bringToFront",
+  //"sendToBack",
   "delete",
 ];
-
+*/
 export const TOOLBAR_CONFIG = {
   select: {
     text: [
       "fontFamily",
       "fontSize",
       "textColor",
-      "alignLeft",
+      //"alignLeft",
       "alignCenter",
-      "alignRight",
+      //"alignRight",
       "backgroundShape",
-      ...GLOBAL_SELECT_CONTROLS,
+      "globalSelect",
     ],
-    photo: [...GLOBAL_SELECT_CONTROLS],
-    shape: [...GLOBAL_SELECT_CONTROLS],
+    photo: ["brightness", "contrast", "globalSelect"],
+    shape: ["strokeWidth", "strokeColor", "globalSelect"],
     // Add more element types as needed
   },
   edit: {
-    text: [
-      "fontFamily",
-      "fontSize",
-      "textColor",
-      "delete", // Only minimal controls for edit mode
-    ],
-    photo: ["brightness", "contrast", "delete"],
-    shape: ["strokeWidth", "strokeColor", "delete"],
+    text: ["fontFamily", "fontSize", "textColor"],
+    photo: ["brightness", "contrast"],
+    shape: ["strokeWidth", "strokeColor"],
     // Add more element types as needed
   },
 };

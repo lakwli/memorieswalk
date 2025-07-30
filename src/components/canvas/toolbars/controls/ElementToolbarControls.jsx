@@ -363,6 +363,7 @@ CopyControl.propTypes = {
 
 // Layer Controls (as a Menu)
 import { Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
+/**
 export const LayerControl = ({
   onBringForward,
   onSendBackward,
@@ -398,7 +399,7 @@ LayerControl.propTypes = {
 export const BringForwardControl = ({ onBringForward }) => (
   <Tooltip label="Bring Forward" hasArrow>
     <IconButton
-      icon={<FaLayerGroup />}
+      icon={<FaLayerGroup style={{ opacity: 1 }} />}
       size="sm"
       variant="ghost"
       aria-label="Bring Forward"
@@ -414,7 +415,7 @@ BringForwardControl.propTypes = {
 export const SendBackwardControl = ({ onSendBackward }) => (
   <Tooltip label="Send Backward" hasArrow>
     <IconButton
-      icon={<FaLayerGroup style={{ transform: "scaleX(-1)" }} />}
+      icon={<FaLayerGroup style={{ transform: "scaleX(-1)", opacity: 0.5 }} />}
       size="sm"
       variant="ghost"
       aria-label="Send Backward"
@@ -480,6 +481,53 @@ export const DeleteControl = ({ onDelete }) => (
   </Menu>
 );
 DeleteControl.propTypes = {
+  onDelete: PropTypes.func.isRequired,
+};
+ */
+export const GlobalSelectControl = ({
+  onBringForward,
+  onSendBackward,
+  onBringToFront,
+  onSendToBack,
+  onDelete,
+}) => (
+  <Menu size="sm">
+    <MenuButton
+      as={IconButton}
+      icon={<MdMoreVert />}
+      size="sm"
+      variant="ghost"
+      aria-label="More options"
+    />
+    <MenuList>
+      <MenuItem icon={<FaLayerGroup />} onClick={onBringForward}>
+        Bring Forward
+      </MenuItem>
+      <MenuItem
+        icon={
+          <FaLayerGroup style={{ transform: "scaleX(-1)", opacity: 0.5 }} />
+        }
+        onClick={onSendBackward}
+      >
+        Send Backward
+      </MenuItem>
+
+      <MenuItem
+        icon={<MdDelete color="#e53e3e" />}
+        onClick={onDelete}
+        style={{ color: "#e53e3e" }}
+      >
+        Delete
+      </MenuItem>
+    </MenuList>
+  </Menu>
+);
+
+GlobalSelectControl.propTypes = {
+  onBringForward: PropTypes.func.isRequired,
+  onSendBackward: PropTypes.func.isRequired,
+  onBringToFront: PropTypes.func.isRequired,
+  onSendToBack: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };
 
