@@ -487,8 +487,8 @@ DeleteControl.propTypes = {
 export const GlobalSelectControl = ({
   onBringForward,
   onSendBackward,
-  onBringToFront,
-  onSendToBack,
+  //onBringToFront,
+  //onSendToBack,
   onDelete,
 }) => (
   <Menu size="sm">
