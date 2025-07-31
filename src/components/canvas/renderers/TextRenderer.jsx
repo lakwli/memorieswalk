@@ -190,6 +190,18 @@ class TextRendererClass extends BaseRenderer {
 
     // Set event handlers
     textarea.addEventListener("keydown", (e) => {
+      // Only call super for keys other than plain Enter
+      if (
+        e.key === "Enter" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.shiftKey
+      ) {
+        // Let textarea insert a newline (do nothing)
+        return;
+      }
+      // For all other keys, use the superclass handler
       super.handleKeyboardTrigger(e);
     });
     /** 
