@@ -6,6 +6,7 @@ import { SketchPicker } from "react-color";
 import {
   MdFormatBold,
   MdFormatAlignLeft,
+  MdFormatAlignCenter,
   MdDelete,
   MdMoreVert,
   MdContentCopy,
@@ -204,7 +205,7 @@ AlignLeftControl.propTypes = {
 export const AlignCenterControl = ({ element, onUpdate }) => (
   <Tooltip label="Align Center" hasArrow>
     <IconButton
-      icon={<MdFormatAlignLeft style={{ transform: "rotate(90deg)" }} />}
+      icon={<MdFormatAlignCenter style={{ transform: "rotate(90deg)" }} />}
       size="sm"
       aria-label="Align Center"
       colorScheme={element.align === "center" ? "blue" : "gray"}
