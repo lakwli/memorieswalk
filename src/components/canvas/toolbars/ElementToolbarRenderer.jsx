@@ -1,3 +1,4 @@
+import { useRef, useLayoutEffect, useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { Box } from "@chakra-ui/react";
 import { ElementToolbarControlsBar } from "./ElementToolbarControlsBar.jsx";
@@ -14,13 +15,11 @@ const DEBUG_TOOLBAR = false;
  * - State management between selected and editing modes
  * - Positioning logic that works for all element types
  * - Consistent appearance and behavior across element types
-
-
-ElementToolbarRenderer
-  └── ElementToolbarControlsBar
-        └── ElementToolbarControls (FontSizeControl, ColorControl, etc.)
-
-*/
+ *
+ * ElementToolbarRenderer
+ *   └── ElementToolbarControlsBar
+ *         └── ElementToolbarControls (FontSizeControl, ColorControl, etc.)
+ */
 
 export const ElementToolbarRenderer = ({
   updateElementId,
@@ -47,6 +46,39 @@ export const ElementToolbarRenderer = ({
   onBringToFront = typeof onBringToFront === "function" ? onBringToFront : noop;
   onSendToBack = typeof onSendToBack === "function" ? onSendToBack : noop;
 
+  // Ref and state for measuring toolbar width
+  const toolbarRef = useRef(null);
+  const [measuredWidth, setMeasuredWidth] = useState(
+    APP_CONFIG.UI.TOOLBAR.WIDTH
+  );
+
+  // Determine mode and controls
+  const mode = isEditing ? "edit" : "select";
+  const controls = useMemo(
+    () => TOOLBAR_CONFIG[mode]?.[element.type] || [],
+    [mode, element.type]
+  );
+
+  // Compose controlProps for all controls
+  const controlProps = {
+    element,
+    onUpdate,
+    onDelete,
+    onEdit,
+    onCopy,
+    onBringForward,
+    onSendBackward,
+    onBringToFront,
+    onSendToBack,
+  };
+
+  // Measure toolbar width after render and when controls change
+  useLayoutEffect(() => {
+    if (toolbarRef.current) {
+      setMeasuredWidth(toolbarRef.current.offsetWidth);
+    }
+  }, [controls, isEditing]);
+
   if (!elementId) {
     return null;
   }
@@ -57,7 +89,7 @@ export const ElementToolbarRenderer = ({
 
   // Calculate toolbar position - zoom-independent, viewport-constrained
   const getToolbarPosition = () => {
-    const toolbarWidth = APP_CONFIG.UI.TOOLBAR.WIDTH;
+    const toolbarWidth = measuredWidth || APP_CONFIG.UI.TOOLBAR.WIDTH;
     const toolbarHeight = APP_CONFIG.UI.TOOLBAR.HEIGHT;
     const clearanceAbove = APP_CONFIG.UI.TOOLBAR.CLEARANCE_ABOVE;
     const margin = APP_CONFIG.UI.TOOLBAR.MARGIN;
@@ -167,59 +199,39 @@ export const ElementToolbarRenderer = ({
     console.log("🎯 ===== ElementToolbar RENDER END =====");
   }
 
-  // Determine mode and controls
-  const mode = isEditing ? "edit" : "select";
-  const controls = TOOLBAR_CONFIG[mode]?.[element.type] || [];
-
-  // Compose controlProps for all controls
-  const controlProps = {
-    element,
-    onUpdate,
-    onDelete,
-    onEdit,
-    onCopy,
-    onBringForward,
-    onSendBackward,
-    onBringToFront,
-    onSendToBack,
-  };
-  return (() => {
-    console.log(
-      `🔄 [RENDER] Toolbar: id=${element?.id} W=${element?.width} H=${element?.height}, Position: (${element?.x}, ${element?.y}), `
-    );
-    return (
-      <Box
-        position="fixed" // Fixed to viewport, not affected by canvas zoom
-        top={`${toolbarPosition.top}px`}
-        left={`${toolbarPosition.left}px`}
-        zIndex={1000}
-        bg="white"
-        boxShadow="lg"
-        borderRadius="md"
-        border="1px solid"
-        borderColor="gray.200"
-        p={2}
-        opacity={0.95}
-        backdropFilter="blur(4px)"
-        minWidth="280px"
-        maxWidth="320px"
-        onClick={(e) => {
-          // Prevent clicks on toolbar from bubbling up to stage or document
-          e.stopPropagation();
-        }}
-        onMouseDown={(e) => {
-          // Prevent mousedown events from bubbling up
-          e.stopPropagation();
-        }}
-      >
-        <ElementToolbarControlsBar
-          controls={controls}
-          controlProps={controlProps}
-          controlRegistry={CONTROL_REGISTRY}
-        />
-      </Box>
-    );
-  })();
+  return (
+    <Box
+      ref={toolbarRef}
+      position="fixed" // Fixed to viewport, not affected by canvas zoom
+      top={`${toolbarPosition.top}px`}
+      left={`${toolbarPosition.left}px`}
+      zIndex={1000}
+      bg="white"
+      boxShadow="lg"
+      borderRadius="md"
+      border="1px solid"
+      borderColor="gray.200"
+      p={2}
+      opacity={0.95}
+      backdropFilter="blur(4px)"
+      width="auto"
+      // Remove minWidth/maxWidth so toolbar fits controls
+      onClick={(e) => {
+        // Prevent clicks on toolbar from bubbling up to stage or document
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        // Prevent mousedown events from bubbling up
+        e.stopPropagation();
+      }}
+    >
+      <ElementToolbarControlsBar
+        controls={controls}
+        controlProps={controlProps}
+        controlRegistry={CONTROL_REGISTRY}
+      />
+    </Box>
+  );
 };
 
 ElementToolbarRenderer.propTypes = {

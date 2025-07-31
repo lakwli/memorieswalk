@@ -307,10 +307,11 @@ class TextRendererClass extends BaseRenderer {
           width={width}
           height={height}
           align={this.element.align}
-          verticalAlign={this.element.verticalAlign}
+          verticalAlign="top"
           wrap={this.element.wrap}
           fontStyle={this.element.fontStyle}
           textDecoration={this.element.textDecoration}
+          padding={this.element.padding || 10}
         />
       </React.Fragment>
     );
